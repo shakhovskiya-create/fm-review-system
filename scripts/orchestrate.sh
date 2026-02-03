@@ -29,8 +29,10 @@ ACTION=$(gum choose --header "Что делаем?" \
     "6. 🧪 Генерация тестов (Agent 4)" \
     "7. 🏗️ Архитектура + ТЗ (Agent 5)" \
     "8. 📊 Презентация для стейкхолдеров (Agent 6)" \
-    "9. 📁 Управление проектами" \
-    "10. 📋 Статус pipeline")
+    "9. 🔄 Миграция Word → Notion (Agent 7)" \
+    "10. 🎨 Создать ePC-диаграмму в Miro (Agent 8)" \
+    "11. 📁 Управление проектами" \
+    "12. 📋 Статус pipeline")
 
 case "$ACTION" in
 
@@ -54,7 +56,9 @@ case "$ACTION" in
         "Agent 2: Симуляция ролей" \
         "Agent 4: Тест-кейсы" \
         "Agent 5: Архитектура + ТЗ" \
-        "Agent 6: Презентация")
+        "Agent 6: Презентация" \
+        "Agent 7: Миграция в Notion" \
+        "Agent 8: ePC в Miro")
     
     init_pipeline_state "$PROJECT" "$FM_PATH"
     
@@ -62,9 +66,9 @@ case "$ACTION" in
     subheader "PIPELINE"
     
     # Определяем порядок
-    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_6")
-    PIPELINE_NAMES=("Аудит" "Симуляция" "Тесты" "Архитектура" "Презентация")
-    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_6_PRESENTER")
+    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_6" "AGENT_7" "AGENT_8")
+    PIPELINE_NAMES=("Аудит" "Симуляция" "Тесты" "Архитектура" "Презентация" "Миграция" "ePC")
+    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_6_PRESENTER" "AGENT_7_MIGRATOR" "AGENT_8_EPC_DESIGNER")
     
     for i in "${!PIPELINE_ORDER[@]}"; do
         agent="${PIPELINE_NAMES[$i]}"
@@ -221,9 +225,61 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 9. УПРАВЛЕНИЕ ПРОЕКТАМИ
+# 9. МИГРАЦИЯ WORD → NOTION (Agent 7)
 # ═══════════════════════════════════════════════════════════════
 "9."*)
+    header "МИГРАЦИЯ WORD → NOTION (Agent 7)"
+    PROJECT=$(select_project)
+    FM_PATH=$(get_latest_fm "$PROJECT")
+    
+    MIGRATE_ACTION=$(gum choose --header "Что делаем?" \
+        "1. Полная миграция Word → Notion ⭐" \
+        "2. Только извлечь данные (без Notion)" \
+        "3. Валидация миграции (Word vs Notion)" \
+        "4. Отчет о миграции")
+    
+    CONTEXT="Проект: ${PROJECT}
+ФМ: ${FM_PATH}
+Действие: ${MIGRATE_ACTION}"
+    
+    case "$MIGRATE_ACTION" in
+        "1."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/migrate" "$CONTEXT" ;;
+        "2."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/extract" "$CONTEXT" ;;
+        "3."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/validate" "$CONTEXT" ;;
+        "4."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/report" "$CONTEXT" ;;
+    esac
+    ;;
+
+# ═══════════════════════════════════════════════════════════════
+# 10. EPC-ДИАГРАММА В MIRO (Agent 8)
+# ═══════════════════════════════════════════════════════════════
+"10."*)
+    header "EPC-ДИАГРАММА В MIRO (Agent 8)"
+    PROJECT=$(select_project)
+    FM_PATH=$(get_latest_fm "$PROJECT")
+    
+    EPC_ACTION=$(gum choose --header "Что делаем?" \
+        "1. Создать ePC-диаграмму из ФМ ⭐" \
+        "2. Обновить существующую ePC" \
+        "3. Валидация диаграммы" \
+        "4. Получить embed-ссылку для Notion")
+    
+    CONTEXT="Проект: ${PROJECT}
+ФМ: ${FM_PATH}
+Действие: ${EPC_ACTION}"
+    
+    case "$EPC_ACTION" in
+        "1."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc" "$CONTEXT" ;;
+        "2."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-update" "$CONTEXT" ;;
+        "3."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-validate" "$CONTEXT" ;;
+        "4."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-export" "$CONTEXT" ;;
+    esac
+    ;;
+
+# ═══════════════════════════════════════════════════════════════
+# 11. УПРАВЛЕНИЕ ПРОЕКТАМИ
+# ═══════════════════════════════════════════════════════════════
+"11."*)
     header "УПРАВЛЕНИЕ ПРОЕКТАМИ"
     
     PROJ_ACTION=$(gum choose --header "Что делаем?" \
@@ -262,9 +318,9 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 10. СТАТУС PIPELINE
+# 12. СТАТУС PIPELINE
 # ═══════════════════════════════════════════════════════════════
-"10."*)
+"12."*)
     header "СТАТУС PIPELINE"
     if [[ -f "${PIPELINE_STATE}" ]] && command -v jq &>/dev/null; then
         jq '.' "${PIPELINE_STATE}"
