@@ -45,4 +45,4 @@ CONTEXT="ЭКСПОРТ В NOTION
    - ID, Раздел, Текст требования, Приоритет, Статус, Связанные требования"
 
 echo "$CONTEXT" > "${CONTEXT_FILE}"
-launch_claude_code "${ROOT_DIR}/AGENT_6_PRESENTER.md" "/export-notion" "$CONTEXT"
+launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/migrate" "$CONTEXT"

@@ -53,7 +53,7 @@ fi
 # ─── 3. РЕЗУЛЬТАТЫ АГЕНТОВ ──────────────────────────────────
 subheader "3. Результаты агентов"
 
-AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура")
+AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура" "AGENT_7_MIGRATOR:Миграция в Notion" "AGENT_8_EPC_DESIGNER:ePC диаграмма")
 
 for agent_info in "${AGENTS[@]}"; do
     agent_dir=$(echo "$agent_info" | cut -d: -f1)

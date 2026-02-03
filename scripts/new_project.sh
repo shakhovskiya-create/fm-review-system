@@ -49,7 +49,7 @@ FM_SOURCE=$(gum choose --header "Откуда берем ФМ?" \
 # Создаем структуру
 subheader "Создание структуры"
 
-mkdir -p "${PROJECT_DIR}"/{FM_DOCUMENTS,AGENT_1_ARCHITECT,AGENT_2_ROLE_SIMULATOR,AGENT_3_DEFENDER,AGENT_4_QA_TESTER,AGENT_5_TECH_ARCHITECT,AGENT_6_PRESENTER,REPORTS}
+mkdir -p "${PROJECT_DIR}"/{FM_DOCUMENTS,AGENT_0_CREATOR,AGENT_1_ARCHITECT,AGENT_2_ROLE_SIMULATOR,AGENT_3_DEFENDER,AGENT_4_QA_TESTER,AGENT_5_TECH_ARCHITECT,AGENT_6_PRESENTER,AGENT_7_MIGRATOR,AGENT_8_EPC_DESIGNER,REPORTS}
 
 # README
 cat > "${PROJECT_DIR}/README.md" <<EOF
@@ -74,12 +74,15 @@ cat > "${PROJECT_DIR}/README.md" <<EOF
 PROJECT_${NAME}/
 ├── README.md              ← Этот файл
 ├── FM_DOCUMENTS/          ← Все версии ФМ
+├── AGENT_0_CREATOR/       ← Черновик ФМ
 ├── AGENT_1_ARCHITECT/     ← Результаты аудита
 ├── AGENT_2_ROLE_SIMULATOR/← Симуляции ролей
 ├── AGENT_3_DEFENDER/      ← Ответы на замечания
 ├── AGENT_4_QA_TESTER/     ← Тест-кейсы
 ├── AGENT_5_TECH_ARCHITECT/← Архитектура + ТЗ
 ├── AGENT_6_PRESENTER/     ← Презентации
+├── AGENT_7_MIGRATOR/      ← Отчёт миграции в Notion
+├── AGENT_8_EPC_DESIGNER/  ← ePC диаграммы (Miro ссылки)
 └── REPORTS/               ← Итоговые отчеты
 \`\`\`
 EOF
