@@ -274,7 +274,9 @@ Claude: /respond-all
 3. AGENT_4 + /generate-all → тесты + дыры → /apply → ФМ v1.3
 4. AGENT_5 + /tz → готовое ТЗ на разработку
 5. Quality Gate → проверка готовности
-6. AGENT_6 + /present → презентация для стейкхолдеров
+6. AGENT_7 + /migrate → Word → Notion (5 БД)
+7. AGENT_8 + /epc → ePC в Miro (embed → Notion)
+8. AGENT_6 + /present → финальная презентация
 ```
 
 ---
@@ -298,6 +300,40 @@ Claude: /respond-all
 
 ---
 
+## АГЕНТ 7: MIGRATOR (Миграция Word → Notion)
+
+```
+Прочитай свою роль из AGENT_7_MIGRATOR.md
+
+Проект: PROJECT_SHPMNT_PROFIT
+```
+
+**Команды:**
+- `/migrate` — полная миграция Word → Notion (5 БД + страницы)
+- `/extract` — только извлечь данные из DOCX (без Notion)
+- `/validate` — валидация миграции (Word vs Notion)
+- `/report` — отчет о миграции
+- `/auto` — полный цикл без интервью
+
+---
+
+## АГЕНТ 8: EPC DESIGNER (ePC-диаграммы в Miro)
+
+```
+Прочитай свою роль из AGENT_8_EPC_DESIGNER.md
+
+Проект: PROJECT_SHPMNT_PROFIT
+```
+
+**Команды:**
+- `/epc` — создать ePC-диаграмму из ФМ
+- `/epc-update` — обновить существующую ePC
+- `/epc-validate` — валидация диаграммы (покрытие, связность)
+- `/epc-export` — получить embed-ссылку для Notion
+- `/auto` — полный цикл без интервью
+
+---
+
 ## КОНВЕЙЕРНЫЙ РЕЖИМ (/auto)
 
 Каждый агент поддерживает команду `/auto` для работы в конвейере:
@@ -311,6 +347,8 @@ Agent 1: /auto → полный аудит + /apply
 Agent 2: /auto → все роли + /apply  
 Agent 4: /auto → все тесты + coverage
 Agent 5: /auto → архитектура + ТЗ
+Agent 7: /auto → миграция в Notion
+Agent 8: /auto → ePC в Miro
 Agent 6: /auto → презентация + экспорт
 ```
 
@@ -325,11 +363,13 @@ Agent 6: /auto → презентация + экспорт
 ## СКРИПТЫ
 
 ```
-./scripts/orchestrate.sh    — Главное меню (рекомендуется)
+./scripts/orchestrate.sh    — Главное меню (9 агентов + управление)
 ./scripts/new_project.sh    — Создать новый проект
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
 ./scripts/export_notion.sh  — Экспорт в Notion
 ./scripts/export_miro.sh    — Экспорт ePC в Miro
-./scripts/agent[0-5]_*.sh   — Запуск интервью для каждого агента
+./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
+./scripts/agent7_migrate.sh — Интервью для миграции Word → Notion
+./scripts/agent8_epc.sh     — Интервью для ePC-диаграмм в Miro
 ```
