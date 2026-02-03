@@ -82,7 +82,7 @@ check_jq() {
 
 list_projects() {
     local projects=()
-    for dir in "${ROOT_DIR}"/PROJECT_*/; do
+    for dir in "${ROOT_DIR}"/projects/PROJECT_*/; do
         [[ -d "$dir" ]] && projects+=("$(basename "$dir")")
     done
     printf '%s\n' "${projects[@]}"

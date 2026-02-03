@@ -47,4 +47,4 @@ CONTEXT="ЭКСПОРТ В MIRO
 5. Добавь легенду и метаданные (версия ФМ, дата)"
 
 echo "$CONTEXT" > "${CONTEXT_FILE}"
-launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc" "$CONTEXT"
+launch_claude_code "${ROOT_DIR}/agents/AGENT_8_EPC_DESIGNER.md" "/epc" "$CONTEXT"

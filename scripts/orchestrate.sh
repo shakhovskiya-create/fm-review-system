@@ -72,7 +72,7 @@ case "$ACTION" in
     
     for i in "${!PIPELINE_ORDER[@]}"; do
         agent="${PIPELINE_NAMES[$i]}"
-        agent_file="${ROOT_DIR}/${PIPELINE_FILES[$i]}.md"
+        agent_file="${ROOT_DIR}/agents/${PIPELINE_FILES[$i]}.md"
         
         if echo "$STAGES" | grep -q "${agent}"; then
             echo -e "${MAGENTA}  [$((i+1))] ${agent}${NC} — ожидание"
@@ -109,7 +109,7 @@ case "$ACTION" in
 Версия: ${FM_VER}
 ${PREV_CONTEXT}"
             
-            launch_claude_code "${ROOT_DIR}/${agent_md}" "/audit" "$FULL_CONTEXT"
+            launch_claude_code "${ROOT_DIR}/agents/${agent_md}" "/audit" "$FULL_CONTEXT"
             
             # Ждем подтверждения завершения
             gum confirm "Этап '${agent}' завершен?" && {
@@ -151,7 +151,7 @@ ${PREV_CONTEXT}"
     CONTEXT="${CONTEXT}\nПроект: ${PROJECT}"
     echo -e "$CONTEXT" > "${CONTEXT_FILE}"
     
-    launch_claude_code "${ROOT_DIR}/AGENT_0_CREATOR.md" "/new" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_0_CREATOR.md" "/new" "$CONTEXT"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
@@ -163,7 +163,7 @@ ${PREV_CONTEXT}"
     bash "${SCRIPTS_DIR}/agent1_audit.sh"
     CONTEXT=$(load_context)
     CONTEXT="${CONTEXT}\nПроект: ${PROJECT}\nФМ: ${FM_PATH}"
-    launch_claude_code "${ROOT_DIR}/AGENT_1_ARCHITECT.md" "/audit" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_1_ARCHITECT.md" "/audit" "$CONTEXT"
     ;;
 
 "4."*)
@@ -171,7 +171,7 @@ ${PREV_CONTEXT}"
     FM_PATH=$(get_latest_fm "$PROJECT")
     bash "${SCRIPTS_DIR}/agent2_simulate.sh"
     CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/AGENT_2_ROLE_SIMULATOR.md" "/simulate-all" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_2_ROLE_SIMULATOR.md" "/simulate-all" "$CONTEXT"
     ;;
 
 "5."*)
@@ -179,7 +179,7 @@ ${PREV_CONTEXT}"
     FM_PATH=$(get_latest_fm "$PROJECT")
     bash "${SCRIPTS_DIR}/agent3_defend.sh"
     CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/AGENT_3_DEFENDER.md" "/respond-all" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_3_DEFENDER.md" "/respond-all" "$CONTEXT"
     ;;
 
 "6."*)
@@ -187,7 +187,7 @@ ${PREV_CONTEXT}"
     FM_PATH=$(get_latest_fm "$PROJECT")
     bash "${SCRIPTS_DIR}/agent4_test.sh"
     CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/AGENT_4_QA_TESTER.md" "/generate-all" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_4_QA_TESTER.md" "/generate-all" "$CONTEXT"
     ;;
 
 "7."*)
@@ -195,7 +195,7 @@ ${PREV_CONTEXT}"
     FM_PATH=$(get_latest_fm "$PROJECT")
     bash "${SCRIPTS_DIR}/agent5_architect.sh"
     CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/AGENT_5_TECH_ARCHITECT.md" "/full" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_5_TECH_ARCHITECT.md" "/full" "$CONTEXT"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
@@ -221,7 +221,7 @@ ${PREV_CONTEXT}"
 Аудитория: ${AUDIENCE}
 Формат: ${FORMAT}"
     
-    launch_claude_code "${ROOT_DIR}/AGENT_6_PRESENTER.md" "/present" "$CONTEXT"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_6_PRESENTER.md" "/present" "$CONTEXT"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
@@ -243,10 +243,10 @@ ${PREV_CONTEXT}"
 Действие: ${MIGRATE_ACTION}"
     
     case "$MIGRATE_ACTION" in
-        "1."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/migrate" "$CONTEXT" ;;
-        "2."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/extract" "$CONTEXT" ;;
-        "3."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/validate" "$CONTEXT" ;;
-        "4."*) launch_claude_code "${ROOT_DIR}/AGENT_7_MIGRATOR.md" "/report" "$CONTEXT" ;;
+        "1."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_7_MIGRATOR.md" "/migrate" "$CONTEXT" ;;
+        "2."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_7_MIGRATOR.md" "/extract" "$CONTEXT" ;;
+        "3."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_7_MIGRATOR.md" "/validate" "$CONTEXT" ;;
+        "4."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_7_MIGRATOR.md" "/report" "$CONTEXT" ;;
     esac
     ;;
 
@@ -269,10 +269,10 @@ ${PREV_CONTEXT}"
 Действие: ${EPC_ACTION}"
     
     case "$EPC_ACTION" in
-        "1."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc" "$CONTEXT" ;;
-        "2."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-update" "$CONTEXT" ;;
-        "3."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-validate" "$CONTEXT" ;;
-        "4."*) launch_claude_code "${ROOT_DIR}/AGENT_8_EPC_DESIGNER.md" "/epc-export" "$CONTEXT" ;;
+        "1."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_EPC_DESIGNER.md" "/epc" "$CONTEXT" ;;
+        "2."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_EPC_DESIGNER.md" "/epc-update" "$CONTEXT" ;;
+        "3."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_EPC_DESIGNER.md" "/epc-validate" "$CONTEXT" ;;
+        "4."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_EPC_DESIGNER.md" "/epc-export" "$CONTEXT" ;;
     esac
     ;;
 
@@ -298,7 +298,7 @@ ${PREV_CONTEXT}"
         "5."*) bash "${SCRIPTS_DIR}/export_miro.sh" ;;
         "6."*)
             header "ПРОЕКТЫ"
-            for dir in "${ROOT_DIR}"/PROJECT_*/; do
+            for dir in "${ROOT_DIR}"/projects/PROJECT_*/; do
                 [[ -d "$dir" ]] || continue
                 proj=$(basename "$dir")
                 fm=$(get_latest_fm "$proj" 2>/dev/null || echo "нет ФМ")

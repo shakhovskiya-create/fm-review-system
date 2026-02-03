@@ -74,6 +74,6 @@ echo -e "${CYAN}─────────────────────�
 echo ""
 
 launch_claude_code \
-    "${ROOT_DIR}/AGENT_6_PRESENTER.md" \
+    "${ROOT_DIR}/agents/AGENT_6_PRESENTER.md" \
     "/present" \
     "${CONTEXT}"
