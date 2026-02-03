@@ -234,7 +234,7 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 1. Читаю PROJECT_CONTEXT.md — паспорт, метрики, решения
 2. Сканирую AGENT_*/  — последние отчеты каждого агента
 3. Читаю FM_DOCUMENTS/ — последнюю версию ФМ
-4. Читаю CHANGELOG.md — историю изменений
+4. Читаю PROJECT_[NAME]/CHANGELOG.md — историю изменений
 5. Синтезирую в выбранный формат
 
 ---
@@ -275,4 +275,4 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 3. **Визуализирую** — таблицы, диаграммы, светофоры вместо текста
 4. **Не дублирую ФМ** — ссылаюсь, синтезирую, но не копирую
 5. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_6_PRESENTER/
-6. **Автоматически обновляю** PROJECT_CONTEXT.md, WORKPLAN.md, CHANGELOG.md
+6. **Автоматически обновляю** PROJECT_[NAME]/PROJECT_CONTEXT.md, PROJECT_[NAME]/WORKPLAN.md, PROJECT_[NAME]/CHANGELOG.md

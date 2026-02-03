@@ -39,3 +39,32 @@
 
 ---
 *Последнее обновление: 2026-02-03 — Phase 6 ✅ ALL CRITICAL + MEDIUM DONE*
+
+## Phase 7: Реструктуризация папок + Deep Audit (2026-02-03)
+
+### ✅ Реструктуризация
+- ✅ 7.1 Агенты вынесены в `agents/` (9 файлов)
+- ✅ 7.2 Документация вынесена в `docs/` (8 файлов)
+- ✅ 7.3 Проекты вынесены в `projects/` (2 проекта)
+- ✅ 7.4 Все ссылки в CLAUDE.md обновлены (agents/, docs/, projects/)
+- ✅ 7.5 Все скрипты обновлены (new_project.sh, quality_gate.sh, orchestrate.sh, common.sh)
+- ✅ 7.6 PROMPTS.md — ссылки на агентов обновлены
+- ✅ 7.7 Agent 7 — ссылка на DOCX_EDIT_SKILL.md → docs/
+- ✅ 7.8 Мусор удалён (~$*.docx, .DS_Store)
+
+### ✅ Pipeline Fix (логическая дыра)
+- ✅ 7.9 ОБНАРУЖЕНА ДЫРА: старый pipeline Agent 0→Agent 7→Agents 1-5 приводил к рассинхрону Notion↔local
+- ✅ 7.10 ИСПРАВЛЕНО: Pipeline = 0(create) → 1-5(review+apply) → QG → 7(publish) → 8(ePC) → бизнес → 3+0+7/sync → 6
+- ✅ 7.11 Pipeline консистентен в 3 файлах: CLAUDE.md, docs/PROMPTS.md, workflows/fm-workflows.md
+- ✅ 7.12 NL Router соответствует новому pipeline
+- ✅ 7.13 orchestrate.sh порядок: 1→2→4→5→7→8→6 (корректен)
+
+### ⬜ К боевому тесту (Phase 8)
+- ⬜ 8.1 Настроить Notion Integration + расшарить БД
+- ⬜ 8.2 Настроить Miro App + получить доступ к board
+- ⬜ 8.3 Создать 5 БД Notion по schemas/notion-databases.md
+- ⬜ 8.4 Прогнать FM-LS-PROFIT через полный pipeline (0→1→2→4→5→QG→7→8)
+- ⬜ 8.5 Тест бизнес-согласования (Draft→Review→замечания→Defender→Approved)
+
+---
+*Последнее обновление: 2026-02-03 — Phase 7 ✅ DONE, Phase 8 ⬜ PENDING*

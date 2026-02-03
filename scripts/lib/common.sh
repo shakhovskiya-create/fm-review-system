@@ -99,7 +99,7 @@ select_project() {
 }
 
 get_latest_fm() {
-    local project_dir="${ROOT_DIR}/$1/FM_DOCUMENTS"
+    local project_dir="${ROOT_DIR}/projects/$1/FM_DOCUMENTS"
     if [[ ! -d "$project_dir" ]]; then
         error "Папка FM_DOCUMENTS не найдена в $1"
         return 1

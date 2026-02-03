@@ -358,8 +358,8 @@
 ПОСЛЕ КАЖДОЙ КОМАНДЫ (/respond, /respond-all, /summary, и т.д.):
 
 1. ДОПОЛНИТЬ PROJECT_CONTEXT.md
-2. ОБНОВИТЬ CHANGELOG.md (если приняты изменения ФМ)
-3. ОБНОВИТЬ WORKPLAN.md (если появился backlog)
+2. ОБНОВИТЬ PROJECT_[NAME]/CHANGELOG.md (если приняты изменения ФМ)
+3. ОБНОВИТЬ PROJECT_[NAME]/WORKPLAN.md (если появился backlog)
 ```
 
 **Формат автозаписи в PROJECT_CONTEXT:**

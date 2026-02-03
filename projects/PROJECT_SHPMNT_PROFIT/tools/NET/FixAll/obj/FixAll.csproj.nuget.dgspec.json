@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj": {}
+    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj": {}
   },
   "projects": {
-    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj": {
+    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj",
+        "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj",
         "projectName": "FixAll",
-        "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj",
+        "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/FixAll.csproj",
         "packagesPath": "/Users/antonsahovskii/.nuget/packages/",
-        "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/obj/",
+        "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/FixAll/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/antonsahovskii/.nuget/NuGet/NuGet.Config"

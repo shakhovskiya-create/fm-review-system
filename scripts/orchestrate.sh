@@ -66,9 +66,9 @@ case "$ACTION" in
     subheader "PIPELINE"
     
     # Определяем порядок
-    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_6" "AGENT_7" "AGENT_8")
-    PIPELINE_NAMES=("Аудит" "Симуляция" "Тесты" "Архитектура" "Презентация" "Миграция" "ePC")
-    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_6_PRESENTER" "AGENT_7_MIGRATOR" "AGENT_8_EPC_DESIGNER")
+    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_7" "AGENT_8" "AGENT_6")
+    PIPELINE_NAMES=("Аудит" "Симуляция" "Тесты" "Архитектура" "Миграция" "ePC" "Презентация")
+    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_7_MIGRATOR" "AGENT_8_EPC_DESIGNER" "AGENT_6_PRESENTER")
     
     for i in "${!PIPELINE_ORDER[@]}"; do
         agent="${PIPELINE_NAMES[$i]}"
@@ -96,7 +96,7 @@ case "$ACTION" in
             
             # Собираем контекст из предыдущих этапов
             PREV_CONTEXT=""
-            for dir in "${ROOT_DIR}/${PROJECT}"/AGENT_*/; do
+            for dir in "${ROOT_DIR}/projects/${PROJECT}"/AGENT_*/; do
                 [[ -d "$dir" ]] || continue
                 for f in "$dir"/*.md; do
                     [[ -f "$f" ]] || continue

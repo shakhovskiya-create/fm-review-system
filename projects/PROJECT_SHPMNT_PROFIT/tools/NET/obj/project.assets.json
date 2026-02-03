@@ -241,11 +241,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/DocxTools.csproj",
+      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/DocxTools.csproj",
       "projectName": "DocxTools",
-      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/DocxTools.csproj",
+      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/DocxTools.csproj",
       "packagesPath": "/Users/antonsahovskii/.nuget/packages/",
-      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/obj/",
+      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/antonsahovskii/.nuget/NuGet/NuGet.Config"

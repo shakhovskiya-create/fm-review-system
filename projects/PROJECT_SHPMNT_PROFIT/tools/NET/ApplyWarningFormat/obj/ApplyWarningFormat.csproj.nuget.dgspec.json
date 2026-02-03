@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj": {}
+    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj": {}
   },
   "projects": {
-    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj": {
+    "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj",
+        "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj",
         "projectName": "ApplyWarningFormat",
-        "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj",
+        "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/ApplyWarningFormat.csproj",
         "packagesPath": "/Users/antonsahovskii/.nuget/packages/",
-        "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/obj/",
+        "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyWarningFormat/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/antonsahovskii/.nuget/NuGet/NuGet.Config"

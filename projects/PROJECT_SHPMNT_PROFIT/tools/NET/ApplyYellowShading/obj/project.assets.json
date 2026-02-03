@@ -142,11 +142,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/ApplyYellowShading.csproj",
+      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/ApplyYellowShading.csproj",
       "projectName": "ApplyYellowShading",
-      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/ApplyYellowShading.csproj",
+      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/ApplyYellowShading.csproj",
       "packagesPath": "/Users/antonsahovskii/.nuget/packages/",
-      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/obj/",
+      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyYellowShading/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/antonsahovskii/.nuget/NuGet/NuGet.Config"

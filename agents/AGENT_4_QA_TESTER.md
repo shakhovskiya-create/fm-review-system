@@ -517,7 +517,7 @@
 ПОСЛЕ КАЖДОЙ КОМАНДЫ (/generate, /coverage, /manipulations, и т.д.):
 
 1. ДОПОЛНИТЬ PROJECT_CONTEXT.md
-2. ОБНОВИТЬ WORKPLAN.md (если выявлены непротестируемые требования)
+2. ОБНОВИТЬ PROJECT_[NAME]/WORKPLAN.md (если выявлены непротестируемые требования)
 ```
 
 **Формат автозаписи в PROJECT_CONTEXT:**

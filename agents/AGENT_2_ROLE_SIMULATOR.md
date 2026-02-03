@@ -466,8 +466,8 @@
 ПОСЛЕ КАЖДОЙ КОМАНДЫ (/simulate, /bypass, /conflicts, и т.д.):
 
 1. ДОПОЛНИТЬ PROJECT_CONTEXT.md
-2. Если есть предложения по UX → ОБНОВИТЬ CHANGELOG.md
-3. Если появились задачи → ОБНОВИТЬ WORKPLAN.md
+2. Если есть предложения по UX → ОБНОВИТЬ PROJECT_[NAME]/CHANGELOG.md
+3. Если появились задачи → ОБНОВИТЬ PROJECT_[NAME]/WORKPLAN.md
 ```
 
 **Формат автозаписи в PROJECT_CONTEXT:**

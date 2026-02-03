@@ -415,7 +415,7 @@ Content:
    - EPC-METADATA-[дата].md (ссылка, версия, элементы)
    - EPC-VALIDATION-[дата].md (результаты валидации)
 
-3. ОБНОВИТЬ CHANGELOG.md:
+3. ОБНОВИТЬ PROJECT_[NAME]/CHANGELOG.md:
    - Запись о создании/обновлении ePC
 ```
 

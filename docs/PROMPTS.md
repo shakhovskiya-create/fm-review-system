@@ -269,18 +269,29 @@ Claude: /respond-all
 ## ПОЛНЫЙ ЦИКЛ REVIEW
 
 ```
-NOTION-FIRST PIPELINE:
-1. AGENT_0 + /new → создание контента ФМ
-2. AGENT_7 + /migrate → создание в Notion (source of truth)
-3. AGENT_1 + /audit → аудит → findings
-4. AGENT_2 + /simulate-all → UX проблемы
-5. AGENT_4 + /generate-all → тесты + дыры
-6. AGENT_5 + /tz → архитектура + ТЗ
-7. Quality Gate → проверка готовности + Notion URL + Miro
-8. AGENT_8 + /epc → ePC в Miro (auto-embed → Notion)
-9. [Бизнес-согласование] → Notion: Draft → Review → Approved
-10. AGENT_3 + /respond → ответы на замечания бизнеса (по запросу)
-11. AGENT_6 + /present → финальная презентация
+NOTION-FIRST PIPELINE (5 этапов):
+
+ЭТАП 1 — СОЗДАНИЕ (локально):
+  1. AGENT_0 + /auto → создание контента ФМ (local MD)
+
+ЭТАП 2 — ВНУТРЕННИЙ РЕВЬЮ (локально):
+  2. AGENT_1 + /auto → аудит → /apply → FM v1.1
+  3. AGENT_2 + /auto → UX → /apply → FM v1.2
+  4. AGENT_4 + /auto → тесты → /apply → FM v1.3
+  5. AGENT_5 + /auto → архитектура + ТЗ → FM v1.4
+  6. Quality Gate → проверка готовности
+
+ЭТАП 3 — ПУБЛИКАЦИЯ (Notion + Miro):
+  7. AGENT_7 + /auto → публикация в Notion (Draft)
+  8. AGENT_8 + /auto → ePC в Miro → embed в Notion
+
+ЭТАП 4 — БИЗНЕС-СОГЛАСОВАНИЕ (Notion):
+  9. Статус: Draft → Review → бизнес комментирует
+  10. AGENT_3 + /auto → анализ замечаний бизнеса
+  11. AGENT_0 → доработка → AGENT_7 /sync → Approved
+
+ЭТАП 5 — ФИНАЛИЗАЦИЯ:
+  12. AGENT_6 + /auto → презентация + отчёты
 ```
 
 ---
@@ -288,7 +299,7 @@ NOTION-FIRST PIPELINE:
 ## АГЕНТ 6: PRESENTER (Презентация и экспорт)
 
 ```
-Прочитай свою роль из AGENT_6_PRESENTER.md
+Прочитай свою роль из agents/AGENT_6_PRESENTER.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ```
@@ -309,7 +320,7 @@ NOTION-FIRST PIPELINE:
 ## АГЕНТ 7: MIGRATOR (Миграция Word → Notion)
 
 ```
-Прочитай свою роль из AGENT_7_MIGRATOR.md
+Прочитай свою роль из agents/AGENT_7_MIGRATOR.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ```
@@ -327,7 +338,7 @@ NOTION-FIRST PIPELINE:
 ## АГЕНТ 8: EPC DESIGNER (ePC-диаграммы в Miro)
 
 ```
-Прочитай свою роль из AGENT_8_EPC_DESIGNER.md
+Прочитай свою роль из agents/AGENT_8_EPC_DESIGNER.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ```

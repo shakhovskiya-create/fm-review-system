@@ -20,7 +20,7 @@ if [[ -z "$NAME" ]]; then
     exit 1
 fi
 
-PROJECT_DIR="${ROOT_DIR}/PROJECT_${NAME}"
+PROJECT_DIR="${ROOT_DIR}/projects/PROJECT_${NAME}"
 if [[ -d "$PROJECT_DIR" ]]; then
     error "Проект PROJECT_${NAME} уже существует"
     exit 1

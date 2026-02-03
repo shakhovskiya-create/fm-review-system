@@ -142,11 +142,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/ApplyAll.csproj",
+      "projectUniqueName": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/ApplyAll.csproj",
       "projectName": "ApplyAll",
-      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/ApplyAll.csproj",
+      "projectPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/ApplyAll.csproj",
       "packagesPath": "/Users/antonsahovskii/.nuget/packages/",
-      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/obj/",
+      "outputPath": "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/tools/NET/ApplyAll/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/antonsahovskii/.nuget/NuGet/NuGet.Config"
