@@ -93,6 +93,19 @@ subheader "5. Документация"
 
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
+# ─── 6. NOTION & MIRO ──────────────────────────────────────
+subheader "6. Notion & Miro"
+
+if [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]]; then
+    NOTION_URL=$(grep -o "https://www.notion.so/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    MIRO_URL=$(grep -o "https://miro.com/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    
+    [[ -n "$NOTION_URL" ]] && check_pass "Notion URL: найден" || check_warn "Notion URL: не найден (Agent 7 не выполнен?)"
+    [[ -n "$MIRO_URL" ]] && check_pass "Miro Board: найден" || check_warn "Miro Board: не найден (Agent 8 не выполнен?)"
+else
+    check_warn "PROJECT_CONTEXT.md не найден — Notion/Miro статус не проверен"
+fi
+
 # ─── ИТОГ ────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"

@@ -269,14 +269,18 @@ Claude: /respond-all
 ## ПОЛНЫЙ ЦИКЛ REVIEW
 
 ```
-1. AGENT_1 + /audit → находим проблемы → /apply → ФМ v1.1
-2. AGENT_2 + /simulate-all → UX проблемы → /apply → ФМ v1.2
-3. AGENT_4 + /generate-all → тесты + дыры → /apply → ФМ v1.3
-4. AGENT_5 + /tz → готовое ТЗ на разработку
-5. Quality Gate → проверка готовности
-6. AGENT_7 + /migrate → Word → Notion (5 БД)
-7. AGENT_8 + /epc → ePC в Miro (embed → Notion)
-8. AGENT_6 + /present → финальная презентация
+NOTION-FIRST PIPELINE:
+1. AGENT_0 + /new → создание контента ФМ
+2. AGENT_7 + /migrate → создание в Notion (source of truth)
+3. AGENT_1 + /audit → аудит → findings
+4. AGENT_2 + /simulate-all → UX проблемы
+5. AGENT_4 + /generate-all → тесты + дыры
+6. AGENT_5 + /tz → архитектура + ТЗ
+7. Quality Gate → проверка готовности + Notion URL + Miro
+8. AGENT_8 + /epc → ePC в Miro (auto-embed → Notion)
+9. [Бизнес-согласование] → Notion: Draft → Review → Approved
+10. AGENT_3 + /respond → ответы на замечания бизнеса (по запросу)
+11. AGENT_6 + /present → финальная презентация
 ```
 
 ---
@@ -291,12 +295,14 @@ Claude: /respond-all
 
 **Команды:**
 - `/present` — подготовить презентацию для стейкхолдеров
-- `/executive` — краткий отчет для руководства (1 страница)
-- `/notion` — экспортировать в Notion
-- `/miro` — создать ePC-диаграмму в Miro
-- `/pptx` — создать слайды
-- `/summary` — сводный отчет по всем агентам
+- `/summary` — краткое резюме проекта (1 страница)
+- `/status` — статус-отчет (что сделано, что осталось)
+- `/export-pptx` — создать слайды
+- `/changelog` — changelog для стейкхолдеров
+- `/roadmap` — дорожная карта внедрения
 - `/auto` — полный цикл без интервью
+
+> ⚠️ Notion → Agent 7 (/migrate), Miro → Agent 8 (/epc)
 
 ---
 
@@ -312,8 +318,9 @@ Claude: /respond-all
 - `/migrate` — полная миграция Word → Notion (5 БД + страницы)
 - `/extract` — только извлечь данные из DOCX (без Notion)
 - `/validate` — валидация миграции (Word vs Notion)
+- `/dry-run` — показать план миграции БЕЗ выполнения
 - `/report` — отчет о миграции
-- `/auto` — полный цикл без интервью
+- `/auto` — полный цикл без интервью (с проверкой идемпотентности)
 
 ---
 

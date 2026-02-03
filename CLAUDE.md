@@ -9,15 +9,15 @@
 Это система из 9 агентов для полного жизненного цикла Функциональных Моделей (ФМ) для проектов 1С: создание, проверка, миграция в Notion, визуализация ePC в Miro.
 
 **Файлы агентов:**
-- `AGENT_0_CREATOR.md` — создание ФМ с нуля
-- `AGENT_1_ARCHITECT.md` — полный аудит ФМ (бизнес + 1С)
-- `AGENT_2_ROLE_SIMULATOR.md` — симуляция ролей
-- `AGENT_3_DEFENDER.md` — защита от замечаний
-- `AGENT_4_QA_TESTER.md` — генерация тестов
-- `AGENT_5_TECH_ARCHITECT.md` — проектирование и ТЗ
-- `AGENT_6_PRESENTER.md` — презентации, экспорт в Notion/Miro
-- `AGENT_7_MIGRATOR.md` — миграция Word → Notion (5 БД, шаблоны, валидация)
-- `AGENT_8_EPC_DESIGNER.md` — ePC-диаграммы в Miro (нотация, цвета, связи)
+- `agents/AGENT_0_CREATOR.md` — создание ФМ с нуля
+- `agents/AGENT_1_ARCHITECT.md` — полный аудит ФМ (бизнес + 1С)
+- `agents/AGENT_2_ROLE_SIMULATOR.md` — симуляция ролей
+- `agents/AGENT_3_DEFENDER.md` — защита от замечаний
+- `agents/AGENT_4_QA_TESTER.md` — генерация тестов
+- `agents/AGENT_5_TECH_ARCHITECT.md` — проектирование и ТЗ
+- `agents/AGENT_6_PRESENTER.md` — презентации, экспорт в Notion/Miro
+- `agents/AGENT_7_MIGRATOR.md` — миграция Word → Notion (5 БД, шаблоны, валидация)
+- `agents/AGENT_8_EPC_DESIGNER.md` — ePC-диаграммы в Miro (нотация, цвета, связи)
 
 **Notion/Miro ресурсы:**
 - `schemas/notion-databases.md` — JSON-схемы 5 БД Notion (Функциональные модели, Требования, Глоссарий, Риски, История версий)
@@ -28,14 +28,62 @@
 
 **Документация:**
 - `README.md` — описание системы
-- `PROMPTS.md` — промпты для запуска агентов
-- `CHANGELOG.md` — история изменений
-- `CHAT_CONTEXT.md` — подробный контекст всех чатов (для восстановления)
-- `TODOS.md` — реалтайм-трекер задач
+- `docs/PROMPTS.md` — промпты для запуска агентов
+- `docs/CHANGELOG.md` — история изменений
+- `docs/CHAT_CONTEXT.md` — подробный контекст всех чатов (для восстановления)
+- `docs/TODOS.md` — реалтайм-трекер задач
 
 **Рабочие файлы (обновляются автоматически):**
-- `PROJECT_CONTEXT.md` — контекст проекта, находки, решения
-- `WORKPLAN.md` — план работ, статус задач
+- `docs/PROJECT_CONTEXT.md` — контекст проекта, находки, решения
+- `docs/WORKPLAN.md` — план работ, статус задач
+
+---
+
+## 🗣️ NATURAL LANGUAGE ROUTER
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ПОЛЬЗОВАТЕЛЬ ГОВОРИТ НА ЕСТЕСТВЕННОМ ЯЗЫКЕ.               │
+│  CLAUDE CODE ОПРЕДЕЛЯЕТ АГЕНТА АВТОМАТИЧЕСКИ.              │
+└─────────────────────────────────────────────────────────────┘
+
+МАРШРУТИЗАЦИЯ ПО КЛЮЧЕВЫМ ФРАЗАМ:
+
+"Создай ФМ для...", "Новая ФМ", "Давай опишем процесс..."
+  → Agent 0 (Creator) → /new
+
+"Запусти аудит", "Проверь ФМ", "Какие проблемы в ФМ?"
+  → Agent 1 (Architect) → /audit
+
+"Как это будет для пользователя?", "Покажи UX", "Симулируй..."
+  → Agent 2 (Simulator) → /simulate-all
+
+"Вот замечания от бизнеса", "Проанализируй замечания", "Ответь на..."
+  → Agent 3 (Defender) → /respond
+
+"Создай тесты", "Какие тест-кейсы?", "Протестируй ФМ"
+  → Agent 4 (QA) → /generate-all
+
+"Спроектируй архитектуру", "Как это реализовать в 1С?", "Сделай ТЗ"
+  → Agent 5 (Tech Architect) → /full
+
+"Подготовь презентацию", "Отчёт для руководства", "Резюме проекта"
+  → Agent 6 (Presenter) → /present
+
+"Мигрируй в Notion", "Опубликуй ФМ", "Создай в Notion"
+  → Agent 7 (Migrator) → /migrate
+
+"Создай ePC", "Нарисуй диаграмму", "Схема процесса в Miro"
+  → Agent 8 (EPC Designer) → /epc
+
+"Отправь на согласование", "Статус согласования"
+  → Бизнес-согласование workflow (см. секцию ниже)
+
+"Полный цикл", "Запусти всё", "Конвейер"
+  → Pipeline: Agent 0 → 7 → 1-5 → 8 → 6
+
+ЕСЛИ НЕПОНЯТНО — спроси: "Уточните: вы хотите [вариант 1] или [вариант 2]?"
+```
 
 ---
 
@@ -703,34 +751,37 @@ X.Y.Z где:
 
 ```
 fm-review-system/
-├── CLAUDE.md                 ← Этот файл (правила)
+├── CLAUDE.md                 ← Этот файл (правила, читается Claude Code автоматически)
 ├── README.md                 ← Описание системы
-├── PROMPTS.md                ← Промпты для запуска
-├── CHANGELOG.md              ← История изменений системы
-├── PROJECT_CONTEXT.md        ← Общий контекст (авто)
-├── WORKPLAN.md               ← Общий план работ (авто)
 │
-├── AGENT_0_CREATOR.md        ← Создание ФМ
-├── AGENT_1_ARCHITECT.md      ← Аудит ФМ
-├── AGENT_2_ROLE_SIMULATOR.md ← Симуляция ролей
-├── AGENT_3_DEFENDER.md       ← Защита ФМ
-├── AGENT_4_QA_TESTER.md      ← Тестирование
-├── AGENT_5_TECH_ARCHITECT.md ← Проектирование + ТЗ
+├── agents/                   ← 9 АГЕНТОВ
+│   ├── AGENT_0_CREATOR.md    ← Создание ФМ
+│   ├── AGENT_1_ARCHITECT.md  ← Аудит ФМ
+│   ├── AGENT_2_ROLE_SIMULATOR.md ← Симуляция ролей
+│   ├── AGENT_3_DEFENDER.md   ← Защита ФМ
+│   ├── AGENT_4_QA_TESTER.md  ← Тестирование
+│   ├── AGENT_5_TECH_ARCHITECT.md ← Проектирование + ТЗ
+│   ├── AGENT_6_PRESENTER.md  ← Презентации
+│   ├── AGENT_7_MIGRATOR.md   ← Миграция в Notion
+│   └── AGENT_8_EPC_DESIGNER.md ← ePC в Miro
 │
-├── PROJECT_SHPMNT_PROFIT/    ← ПРОЕКТ: Контроль рентабельности
-│   ├── README.md             ← Обзор проекта
-│   ├── FM_DOCUMENTS/         ← Версии ФМ
-│   ├── AGENT_1_ARCHITECT/    ← Результаты аудита
-│   ├── AGENT_2_ROLE_SIMULATOR/  ← Симуляции ролей
-│   ├── AGENT_3_DEFENDER/     ← Ответы на замечания
-│   ├── AGENT_4_QA_TESTER/    ← Тест-кейсы
-│   ├── AGENT_5_TECH_ARCHITECT/  ← ТЗ
-│   └── REPORTS/              ← Итоговые отчёты
+├── docs/                     ← ДОКУМЕНТАЦИЯ
+│   ├── PROMPTS.md            ← Промпты для запуска
+│   ├── CHANGELOG.md          ← История изменений
+│   ├── TODOS.md              ← Трекер задач
+│   ├── AUDIT_REPORT.md       ← Аудит системы
+│   ├── CHAT_CONTEXT.md       ← Контекст чатов
+│   ├── PROJECT_CONTEXT.md    ← Контекст проекта (авто)
+│   └── WORKPLAN.md           ← План работ (авто)
 │
-└── PROJECT_SALES_PIPELINE/   ← ПРОЕКТ: Проектные продажи
-    ├── README.md             ← Обзор тематики
-    ├── FM-*.md               ← Мини-ФМ
-    └── docx/                 ← DOCX версии
+├── projects/                 ← РАБОЧИЕ ПРОЕКТЫ
+│   ├── PROJECT_SHPMNT_PROFIT/← Контроль рентабельности
+│   └── PROJECT_SALES_PIPELINE/← Проектные продажи
+│
+├── schemas/                  ← JSON-схемы Notion БД
+├── templates/                ← Шаблоны Notion-страниц
+├── workflows/                ← Сквозные сценарии
+└── scripts/                  ← Bash-скрипты запуска
 ```
 
 ---
@@ -818,33 +869,43 @@ PROJECT_[NAME]/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  СТАНДАРТНЫЙ КОНВЕЙЕР REVIEW ФМ:                           │
+│  NOTION-FIRST КОНВЕЙЕР:                                    │
 │                                                             │
-│  Agent 0 (Creator)     → создание ФМ с нуля                │
+│  Agent 0 (Creator)     → создание контента ФМ              │
 │         ↓                                                    │
-│  Agent 1 (Architect)   → аудит → /apply → ФМ v+0.0.1      │
+│  Agent 7 (Migrator)    → СОЗДАНИЕ В NOTION (source of truth)│
+│         ↓                ФМ-страница + 5 БД заполнены       │
+│  Agent 1 (Architect)   → аудит → findings → Notion         │
 │         ↓                                                    │
-│  Agent 2 (Simulator)   → UX-проблемы → /apply → ФМ v+0.0.1│
+│  Agent 2 (Simulator)   → UX-проблемы → Notion              │
 │         ↓                                                    │
-│  Agent 4 (QA Tester)   → тесты + дыры → /apply → ФМ v+0.0.1│
+│  Agent 4 (QA Tester)   → тесты + дыры → Notion             │
 │         ↓                                                    │
 │  Agent 5 (Tech Arch)   → архитектура + ТЗ                  │
 │         ↓                                                    │
 │  Quality Gate          → проверка готовности                │
 │         ↓                                                    │
-│  Agent 6 (Presenter)   → презентация для стейкхолдеров     │
+│  Agent 8 (EPC Designer)→ ePC в Miro → embed в Notion       │
+│         ↓                                                    │
+│  [Бизнес-согласование] → Notion: Draft → Review → Approved │
+│         ↓                бизнес ревьюит, оставляет замечания│
+│  Agent 3 (Defender)    → ответы на замечания бизнеса       │
+│         ↓                                                    │
+│  Agent 6 (Presenter)   → презентация + отчёты              │
 │                                                             │
-│  Agent 3 (Defender)    → вызывается по запросу              │
-│                        (когда приходят замечания)            │
+│  ⚠️ SOURCE OF TRUTH = NOTION (не Word!)                    │
+│  ⚠️ Word/DOCX — только для legacy-миграции                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Правила конвейера
 
-1. **Каждый агент читает результаты предыдущих**: перед работой сканирует PROJECT_[NAME]/AGENT_*/ на наличие отчетов
-2. **Контекст передается автоматически**: через PROJECT_CONTEXT.md и .interview_context.txt
-3. **Quality gate перед передачей**: скрипт `scripts/quality_gate.sh` проверяет готовность
-4. **Версия ФМ инкрементируется**: каждый /apply увеличивает PATCH-версию
+1. **Notion — source of truth**: ФМ создаётся и живёт в Notion, не в Word
+2. **Каждый агент читает результаты предыдущих**: сканирует PROJECT_[NAME]/AGENT_*/ и Notion-страницу
+3. **Контекст передается автоматически**: через PROJECT_CONTEXT.md (включает Notion URL, Miro Board URL)
+4. **Quality gate перед передачей**: скрипт `scripts/quality_gate.sh` проверяет Notion-страницу и ePC
+5. **Версия ФМ инкрементируется**: в Notion БД "История версий"
+6. **Бизнес-согласование**: после Quality Gate статус в Notion меняется Draft → Review, бизнес оставляет замечания
 
 ### Запуск конвейера
 
@@ -852,12 +913,22 @@ PROJECT_[NAME]/
 # Через оркестратор (рекомендуется):
 ./scripts/orchestrate.sh → "Полный цикл review"
 
-# Вручную по одному:
-./scripts/agent1_audit.sh → Claude Code → /audit → /apply
-./scripts/agent2_simulate.sh → Claude Code → /simulate-all → /apply
-./scripts/agent4_test.sh → Claude Code → /generate-all → /apply
+# По шагам:
+./scripts/agent0_new.sh → Claude Code → /new → контент ФМ
+./scripts/agent7_migrate.sh → Claude Code → /auto → создание в Notion
+./scripts/agent1_audit.sh → Claude Code → /audit → findings
+./scripts/agent2_simulate.sh → Claude Code → /simulate-all
+./scripts/agent4_test.sh → Claude Code → /generate-all
 ./scripts/agent5_architect.sh → Claude Code → /full
 ./scripts/quality_gate.sh PROJECT_[NAME]
+./scripts/agent8_epc.sh → Claude Code → /auto → ePC в Miro + embed в Notion
+./scripts/agent6_present.sh → Claude Code → /present
+
+# Natural language (в Claude Code):
+"Запусти аудит ФМ FM-LS-PROFIT"       → Agent 1 /audit
+"Проанализируй замечания от бизнеса"   → Agent 3 /respond
+"Создай ePC для этой ФМ"              → Agent 8 /epc
+"Подготовь презентацию для директоров" → Agent 6 /present
 ```
 
 ---
@@ -954,10 +1025,10 @@ FALLBACK (если MCP недоступен):
 
 5 БАЗ ДАННЫХ (см. schemas/notion-databases.md):
 1. Функциональные модели (FM) — реестр всех ФМ (статус, версия, владелец)
-2. Требования (Requirements) — требования (ID, тип, приоритет, статус реализации)
-3. Глоссарий (Glossary) — термины (определение, контекст, синонимы)
-4. Риски (Risks) — риски (вероятность, влияние, митигация)
-5. История версий (Version History) — история версий (дата, автор, изменения)
+2. Требования (Requirements) — ID, тип, приоритет, статус реализации
+3. Глоссарий (Glossary) — термины, определения, контекст, синонимы
+4. Риски (Risks) — вероятность, влияние, митигация
+5. История версий (Version History) — дата, автор, описание изменений
 
 ШАБЛОНЫ (см. templates/):
 - fm-notion-page.md — полная страница ФМ
@@ -996,6 +1067,54 @@ FALLBACK (если MCP недоступен):
 - Каждый процесс ФМ = отдельная ePC-диаграмма
 - Embed-ссылка из Miro вставляется в Notion-страницу ФМ
 - Валидация: все функции покрыты событиями, нет висячих элементов
+```
+
+---
+
+## 🤝 БИЗНЕС-СОГЛАСОВАНИЕ (Approval Workflow)
+
+```
+ВОРКФЛОУ СОГЛАСОВАНИЯ ФМ В NOTION:
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  1. DRAFT (черновик)                                            │
+│     Кто: Agent 0 создал → Agent 7 опубликовал в Notion          │
+│     Статус Notion: Draft (серый)                                │
+│     Действие: ФМ доступна для внутреннего ревью (Agents 1-5)    │
+│                                                                  │
+│  2. INTERNAL REVIEW (внутренний ревью)                          │
+│     Кто: Agents 1-5 проверили, замечания исправлены             │
+│     Статус Notion: Draft → Review (жёлтый)                      │
+│     Действие: Notion-страница расшаривается бизнес-заказчику    │
+│                                                                  │
+│  3. BUSINESS REVIEW (согласование с бизнесом)                   │
+│     Кто: Бизнес-заказчик открывает Notion, читает ФМ            │
+│     Как: Оставляет комментарии прямо в Notion                   │
+│     Срок: 3 рабочих дня (настраиваемо)                         │
+│     Действие: Agent 3 (Defender) анализирует замечания          │
+│                                                                  │
+│  4. REWORK (доработка по замечаниям)                            │
+│     Кто: Agent 3 формирует ответы, Agent 0 вносит правки       │
+│     Статус Notion: Review (остаётся)                            │
+│     Действие: повторный цикл до снятия всех замечаний           │
+│                                                                  │
+│  5. APPROVED (согласовано)                                      │
+│     Кто: Бизнес-заказчик подтверждает                           │
+│     Статус Notion: Review → Approved (зелёный)                  │
+│     Действие: Agent 8 создаёт финальную ePC, Agent 6 отчёт     │
+│                                                                  │
+│  6. ARCHIVED (архив)                                            │
+│     Когда: Новая версия ФМ заменяет текущую                    │
+│     Статус Notion: Approved → Archived (коричневый)             │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+КОМАНДЫ ДЛЯ БИЗНЕС-СОГЛАСОВАНИЯ:
+- "Отправь ФМ на согласование"     → меняет статус Draft → Review
+- "Проанализируй замечания"        → Agent 3 → /respond
+- "ФМ согласована"                 → меняет статус Review → Approved
+- "Покажи статус согласования"     → читает статус + комментарии из Notion
 ```
 
 ---
