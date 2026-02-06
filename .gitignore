@@ -1,0 +1,5 @@
+
+# Local config with secrets
+scripts/.env.local
+.env.local
+*.local
