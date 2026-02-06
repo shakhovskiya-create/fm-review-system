@@ -562,6 +562,12 @@ URL: https://confluence.ekf.su/pages/viewpage.action?pageId=83951683
 - Стало: Confluence v11, раздел "Общая схема процесса (TO-BE)" с info panel + ссылкой на Miro
 - Добавлено правило push/merge в todos.md
 
+### Git Push
+- Первая попытка заблокирована GitHub Push Protection (токены в коде)
+- Исправлено: все скрипты переведены на environment variables (CONFLUENCE_TOKEN, MIRO_TOKEN)
+- Commit: db2d960 "Confluence-only: Notion removed, ePC diagrams in Miro"
+- Push: origin/main успешно обновлен
+
 Статус: DONE
 
 ---
