@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-02-06T12:00:00.000Z" agent="Mozilla/5.0" version="21.0.0" type="device">
+  <diagram name="Основной поток" id="epc-main-flow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="Диаграмма 1: Основной поток контроля рентабельности" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="500" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- O1: Manager role -->
+        <mxCell id="O1" value="Менеджер" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="80" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- E1: Start Event -->
+        <mxCell id="E1" value="Заказ клиента&#xa;создан" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- S1: 1C:УТ -->
+        <mxCell id="S1" value="1С:УТ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="80" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- F1: Check NPSS -->
+        <mxCell id="F1" value="Проверка НПСС&#xa;(автоматически)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
+          <mxGeometry x="420" y="170" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- X1: XOR NPSS -->
+        <mxCell id="X1" value="XOR" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FBC02D;" vertex="1" parent="1">
+          <mxGeometry x="460" y="260" width="80" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- E2: NPSS OK - better wording -->
+        <mxCell id="E2" value="НПСС&#xa;актуальна" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="350" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- E3: NPSS Failed - better wording -->
+        <mxCell id="E3" value="НПСС&#xa;просрочена" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFCDD2;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="640" y="260" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- F2: Calculate Profitability -->
+        <mxCell id="F2" value="Расчет&#xa;рентабельности" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
+          <mxGeometry x="420" y="430" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- X2: XOR Profitability -->
+        <mxCell id="X2" value="XOR" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FBC02D;" vertex="1" parent="1">
+          <mxGeometry x="460" y="520" width="80" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- E4: Profit >= 0 -->
+        <mxCell id="E4" value="Рентаб.&#xa;>= 0%" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="290" y="600" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- E5: Profit < 0 -->
+        <mxCell id="E5" value="Рентаб.&#xa;&lt; 0%" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="610" y="600" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- F3: Auto-approve -->
+        <mxCell id="F3" value="Авто-&#xa;согласование" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
+          <mxGeometry x="260" y="680" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- P1: Subprocess -->
+        <mxCell id="P1" value="Процесс&#xa;согласования&#xa;(Диаграмма 2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="680" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- E6: Approved -->
+        <mxCell id="E6" value="Заказ&#xa;согласован" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="430" y="780" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges with rounded corners -->
+        <mxCell id="edge0" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;" edge="1" parent="1" source="O1" target="E1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge1" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="E1" target="F1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge2" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;" edge="1" parent="1" source="S1" target="E1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge3" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="F1" target="X1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge4" value="да" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="X1" target="E2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge5" value="нет" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="X1" target="E3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge6" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="E2" target="F2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge7" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="F2" target="X2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge8" value=">= 0%" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="X2" target="E4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge9" value="&lt; 0%" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="X2" target="E5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge10" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="E4" target="F3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge11" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="E5" target="P1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge12" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="F3" target="E6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge13" value="согласовано" style="edgeStyle=elbowEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" parent="1" source="P1" target="E6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_title" value="Легенда" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="70" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend0" value="Орг. единица" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="100" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend1" value="Начало/Успех" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="135" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend2" value="Промежуточное" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="170" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend3" value="Ошибка/Стоп" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFCDD2;strokeColor=#E53935;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="205" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend4" value="Функция" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="240" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend5" value="XOR" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FBC02D;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="865" y="275" width="70" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend6" value="ИС" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="320" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend7" value="Подпроцесс" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;dashed=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="850" y="355" width="100" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
