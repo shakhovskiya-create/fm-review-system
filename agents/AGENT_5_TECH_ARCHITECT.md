@@ -13,13 +13,13 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     PROJECT_[NAME]/FM_DOCUMENTS/FM-*-v*.docx                │
+│     Confluence REST API (PAGE_ID из проекта)                │
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ ТЗ И АРХИТЕКТУРУ:                        │
 │     PROJECT_[NAME]/AGENT_5_TECH_ARCHITECT/                  │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Новая версия ФМ → PROJECT_[NAME]/FM_DOCUMENTS/        │
+│     - Обновление ФМ → Confluence (PUT API)                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
@@ -48,13 +48,13 @@
 │     → Тестовые сценарии = проверяю покрытие архитектурой   │
 │     → Манипуляции = проектирую защиту на уровне платформы  │
 │                                                             │
-│  4. PROJECT_[NAME]/FM_DOCUMENTS/       — текущая ФМ        │
+│  4. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
 │  5. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  Я — ПОСЛЕДНИЙ аналитический агент в pipeline.             │
 │  Мой выход: полное ТЗ для команды разработки.              │
 │  Далее: Quality Gate → Agent 6 (Presenter)                 │
-│  → Agent 7 (Migrator): архитектура в Notion                │
+│  → Agent 7 (Migrator): архитектура в Confluence             │
 │  → Agent 8 (EPC Designer): системы/интерфейсы для ePC      │
 │                                                             │
 │  ТРАССИРОВКА В ТЗ:                                          │

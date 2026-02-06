@@ -53,7 +53,7 @@ fi
 # ─── 3. РЕЗУЛЬТАТЫ АГЕНТОВ ──────────────────────────────────
 subheader "3. Результаты агентов"
 
-AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура" "AGENT_7_MIGRATOR:Миграция в Notion" "AGENT_8_EPC_DESIGNER:ePC диаграмма")
+AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура" "AGENT_7_MIGRATOR:Публикация в Confluence" "AGENT_8_EPC_DESIGNER:ePC диаграмма")
 
 for agent_info in "${AGENTS[@]}"; do
     agent_dir=$(echo "$agent_info" | cut -d: -f1)
@@ -93,17 +93,17 @@ subheader "5. Документация"
 
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
-# ─── 6. NOTION & MIRO ──────────────────────────────────────
-subheader "6. Notion & Miro"
+# ─── 6. CONFLUENCE & MIRO ──────────────────────────────────
+subheader "6. Confluence & Miro"
 
 if [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]]; then
-    NOTION_URL=$(grep -o "https://www.notion.so/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    CONFLUENCE_URL=$(grep -o "https://[^ ]*atlassian.net/wiki/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
     MIRO_URL=$(grep -o "https://miro.com/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
     
-    [[ -n "$NOTION_URL" ]] && check_pass "Notion URL: найден" || check_warn "Notion URL: не найден (Agent 7 не выполнен?)"
+    [[ -n "$CONFLUENCE_URL" ]] && check_pass "Confluence URL: найден" || check_warn "Confluence URL: не найден (Agent 7 не выполнен?)"
     [[ -n "$MIRO_URL" ]] && check_pass "Miro Board: найден" || check_warn "Miro Board: не найден (Agent 8 не выполнен?)"
 else
-    check_warn "PROJECT_CONTEXT.md не найден — Notion/Miro статус не проверен"
+    check_warn "PROJECT_CONTEXT.md не найден — Confluence/Miro статус не проверен"
 fi
 
 # ─── ИТОГ ────────────────────────────────────────────────────

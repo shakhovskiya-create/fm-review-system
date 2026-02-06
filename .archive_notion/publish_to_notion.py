@@ -131,12 +131,18 @@ def find_fm_page(code):
     return None
 
 def clear_page_content(page_id):
-    """Remove all blocks from page"""
-    r = api("GET", f"blocks/{page_id}/children?page_size=100")
-    if r:
+    """Remove ALL blocks from page (with pagination)"""
+    deleted = 0
+    while True:
+        r = api("GET", f"blocks/{page_id}/children?page_size=100")
+        if not r or not r.get("results"):
+            break
         for block in r.get("results", []):
             api("DELETE", f"blocks/{block['id']}")
-            time.sleep(0.05)
+            deleted += 1
+            time.sleep(0.03)
+        print(f"    Удалено блоков: {deleted}", end='\r')
+    print(f"    Удалено блоков: {deleted}    ")
 
 def archive_related_records(fm_id, db_id):
     """Archive records linked to FM"""
@@ -156,56 +162,41 @@ def archive_related_records(fm_id, db_id):
 existing_fm = find_fm_page(FM_CODE)
 if existing_fm:
     print(f"  Найдена существующая ФМ: {FM_CODE}")
-    FM_ID = existing_fm["id"]
-    FM_URL = existing_fm["url"]
+    old_id = existing_fm["id"]
 
-    # Clear old content
-    print("  Очищаю контент страницы...")
-    clear_page_content(FM_ID)
+    # Archive old page (fast!) instead of deleting blocks one by one
+    print("  Архивирую старую страницу...")
+    archive_page(old_id)
 
-    # Archive old requirements and versions for this FM
+    # Archive old requirements and versions
     print("  Архивирую старые требования и версии...")
-    archived = archive_related_records(FM_ID, REQ_DB)
-    archived += archive_related_records(FM_ID, VER_DB)
+    archived = archive_related_records(old_id, REQ_DB)
+    archived += archive_related_records(old_id, VER_DB)
     print(f"  Архивировано: {archived}")
-
-    # Update FM properties
-    api("PATCH", f"pages/{FM_ID}", {
-        "properties": {
-            "Название": {"rich_text": rich_text(FM_NAME)},
-            "Версия": {"rich_text": rich_text(FM_VERSION)},
-        }
-    })
-    print(f"  Обновлена версия: {FM_VERSION}")
 else:
-    print(f"  ФМ не найдена, будет создана новая")
+    print(f"  ФМ не найдена")
 
-# === STEP 1: CREATE FM PAGE (if not exists) ===
-if not existing_fm:
-    print("\n=== СОЗДАНИЕ FM ===")
-    fm_page = api("POST", "pages", {
-        "parent": {"database_id": FM_DB},
-        "properties": {
-            "Код": {"title": rich_text(FM_CODE)},
-            "Название": {"rich_text": rich_text(FM_NAME)},
-            "Версия": {"rich_text": rich_text(FM_VERSION)},
-            "Статус": {"select": {"name": "Draft"}},
-            "Приоритет": {"select": {"name": "P1"}},
-            "Область": {"multi_select": [{"name": "Продажи"}, {"name": "Логистика"}, {"name": "Финансы"}]},
-            "Системы": {"multi_select": [{"name": "1С:УТ"}, {"name": "1С:ERP"}]}
-        }
-    })
-    if not fm_page:
-        print("ОШИБКА!")
-        sys.exit(1)
-    FM_ID = fm_page["id"]
-    FM_URL = fm_page["url"]
-    print(f"  ID: {FM_ID}")
-    print(f"  URL: {FM_URL}")
-else:
-    print(f"\n=== ОБНОВЛЕНИЕ FM ===")
-    print(f"  ID: {FM_ID}")
-    print(f"  URL: {FM_URL}")
+# === STEP 1: ALWAYS CREATE NEW FM PAGE ===
+print("\n=== СОЗДАНИЕ FM ===")
+fm_page = api("POST", "pages", {
+    "parent": {"database_id": FM_DB},
+    "properties": {
+        "Код": {"title": rich_text(FM_CODE)},
+        "Название": {"rich_text": rich_text(FM_NAME)},
+        "Версия": {"rich_text": rich_text(FM_VERSION)},
+        "Статус": {"select": {"name": "Draft"}},
+        "Приоритет": {"select": {"name": "P1"}},
+        "Область": {"multi_select": [{"name": "Продажи"}, {"name": "Логистика"}, {"name": "Финансы"}]},
+        "Системы": {"multi_select": [{"name": "1С:УТ"}, {"name": "1С:ДО"}, {"name": "WMS"}]}
+    }
+})
+if not fm_page:
+    print("ОШИБКА создания страницы!")
+    sys.exit(1)
+FM_ID = fm_page["id"]
+FM_URL = fm_page["url"]
+print(f"  ID: {FM_ID}")
+print(f"  URL: {FM_URL}")
 
 # === STEP 2: CREATE REQUIREMENTS IN DB ===
 print("\n=== СОЗДАНИЕ ТРЕБОВАНИЙ В БД ===")
@@ -261,14 +252,14 @@ today = datetime.date.today().isoformat()
 api("POST", "pages", {
     "parent": {"database_id": VER_DB},
     "properties": {
-        "Версия": {"title": rich_text(f"v{FM_VERSION}")},
+        "Версия": {"title": rich_text("v1.0.0")},
         "Дата": {"date": {"start": today}},
-        "Изменения": {"rich_text": rich_text("Начальная версия документа в Notion")},
+        "Изменения": {"rich_text": rich_text("Начальная публикация в Notion")},
         "Тип": {"select": {"name": "Major"}},
         "ФМ": {"relation": [{"id": FM_ID}]}
     }
 })
-print(f"  Создана версия: v{FM_VERSION} (начальная)")
+print(f"  Создана версия: v1.0.0 (начальная публикация)")
 
 # === STEP 3: BUILD CONTENT ===
 print("\n=== ПОСТРОЕНИЕ КОНТЕНТА ===")

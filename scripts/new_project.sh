@@ -81,7 +81,7 @@ PROJECT_${NAME}/
 ├── AGENT_4_QA_TESTER/     ← Тест-кейсы
 ├── AGENT_5_TECH_ARCHITECT/← Архитектура + ТЗ
 ├── AGENT_6_PRESENTER/     ← Презентации
-├── AGENT_7_MIGRATOR/      ← Отчёт миграции в Notion
+├── AGENT_7_MIGRATOR/      ← Публикация в Confluence
 ├── AGENT_8_EPC_DESIGNER/  ← ePC диаграммы (Miro ссылки)
 └── REPORTS/               ← Итоговые отчеты
 \`\`\`

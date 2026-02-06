@@ -11,7 +11,7 @@
 
 PROJECT_[NAME]/
 ├── README.md              ← Обзор проекта
-├── FM_DOCUMENTS/          ← ВСЕ ВЕРСИИ ФМ
+├── CONFLUENCE_PAGE_ID     ← ID страницы ФМ в Confluence
 ├── AGENT_1_ARCHITECT/     ← Результаты аудита
 ├── AGENT_2_ROLE_SIMULATOR/← Симуляции ролей
 ├── AGENT_3_DEFENDER/      ← Ответы на замечания
@@ -45,7 +45,7 @@ PROJECT_[NAME]/
 Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_1_ARCHITECT.md
 
 Проект: PROJECT_SHPMNT_PROFIT
-ФМ: PROJECT_SHPMNT_PROFIT/FM_DOCUMENTS/FM-SHPMNT-PROFIT-v2.5.3.docx
+ФМ: Confluence PAGE_ID 83951683 (https://confluence.ekf.su)
 
 /audit
 ```
@@ -269,7 +269,7 @@ Claude: /respond-all
 ## ПОЛНЫЙ ЦИКЛ REVIEW
 
 ```
-NOTION-FIRST PIPELINE (5 этапов):
+CONFLUENCE-FIRST PIPELINE (5 этапов):
 
 ЭТАП 1 — СОЗДАНИЕ (локально):
   1. AGENT_0 + /auto → создание контента ФМ (local MD)
@@ -281,11 +281,11 @@ NOTION-FIRST PIPELINE (5 этапов):
   5. AGENT_5 + /auto → архитектура + ТЗ → FM v1.4
   6. Quality Gate → проверка готовности
 
-ЭТАП 3 — ПУБЛИКАЦИЯ (Notion + Miro):
-  7. AGENT_7 + /auto → публикация в Notion (Draft)
-  8. AGENT_8 + /auto → ePC в Miro → embed в Notion
+ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + Miro):
+  7. AGENT_7 + /auto → публикация в Confluence (Draft)
+  8. AGENT_8 + /auto → ePC в Miro → embed в Confluence
 
-ЭТАП 4 — БИЗНЕС-СОГЛАСОВАНИЕ (Notion):
+ЭТАП 4 — БИЗНЕС-СОГЛАСОВАНИЕ (Confluence):
   9. Статус: Draft → Review → бизнес комментирует
   10. AGENT_3 + /auto → анализ замечаний бизнеса
   11. AGENT_0 → доработка → AGENT_7 /sync → Approved
@@ -313,11 +313,11 @@ NOTION-FIRST PIPELINE (5 этапов):
 - `/roadmap` — дорожная карта внедрения
 - `/auto` — полный цикл без интервью
 
-> ⚠️ Notion → Agent 7 (/migrate), Miro → Agent 8 (/epc)
+> ⚠️ Confluence → Agent 7 (/publish), Miro → Agent 8 (/epc)
 
 ---
 
-## АГЕНТ 7: MIGRATOR (Миграция Word → Notion)
+## АГЕНТ 7: PUBLISHER (Управление ФМ в Confluence)
 
 ```
 Прочитай свою роль из agents/AGENT_7_MIGRATOR.md
@@ -326,11 +326,11 @@ NOTION-FIRST PIPELINE (5 этапов):
 ```
 
 **Команды:**
-- `/migrate` — полная миграция Word → Notion (5 БД + страницы)
-- `/extract` — только извлечь данные из DOCX (без Notion)
-- `/validate` — валидация миграции (Word vs Notion)
-- `/dry-run` — показать план миграции БЕЗ выполнения
-- `/report` — отчет о миграции
+- `/publish` — создать/обновить страницу ФМ в Confluence
+- `/read` — прочитать текущую ФМ из Confluence
+- `/verify` — проверить качество страницы в Confluence
+- `/dry-run` — показать план изменений БЕЗ выполнения
+- `/report` — отчет о публикации
 - `/auto` — полный цикл без интервью (с проверкой идемпотентности)
 
 ---
@@ -347,7 +347,7 @@ NOTION-FIRST PIPELINE (5 этапов):
 - `/epc` — создать ePC-диаграмму из ФМ
 - `/epc-update` — обновить существующую ePC
 - `/epc-validate` — валидация диаграммы (покрытие, связность)
-- `/epc-export` — получить embed-ссылку для Notion
+- `/epc-export` — получить embed-ссылку для Confluence
 - `/auto` — полный цикл без интервью
 
 ---
@@ -365,7 +365,7 @@ Agent 1: /auto → полный аудит + /apply
 Agent 2: /auto → все роли + /apply  
 Agent 4: /auto → все тесты + coverage
 Agent 5: /auto → архитектура + ТЗ
-Agent 7: /auto → миграция в Notion
+Agent 7: /auto → публикация в Confluence
 Agent 8: /auto → ePC в Miro
 Agent 6: /auto → презентация + экспорт
 ```
@@ -385,9 +385,9 @@ Agent 6: /auto → презентация + экспорт
 ./scripts/new_project.sh    — Создать новый проект
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
-./scripts/export_notion.sh  — Экспорт в Notion
+./scripts/export_confluence.sh  — Экспорт в Confluence
 ./scripts/export_miro.sh    — Экспорт ePC в Miro
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
-./scripts/agent7_migrate.sh — Интервью для миграции Word → Notion
+./scripts/agent7_publish.sh — Интервью для управления ФМ в Confluence
 ./scripts/agent8_epc.sh     — Интервью для ePC-диаграмм в Miro
 ```

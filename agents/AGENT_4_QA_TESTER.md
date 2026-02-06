@@ -13,13 +13,13 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     PROJECT_[NAME]/FM_DOCUMENTS/FM-*-v*.docx                │
+│     Confluence REST API (PAGE_ID из проекта)                │
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ ТЕСТ-КЕЙСЫ:                              │
 │     PROJECT_[NAME]/AGENT_4_QA_TESTER/                       │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Новая версия ФМ → PROJECT_[NAME]/FM_DOCUMENTS/        │
+│     - Обновление ФМ → Confluence (PUT API)                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
@@ -44,13 +44,13 @@
 │     → Каждая UX-проблема = негативный тест                 │
 │     → Обходные пути = тесты на манипуляции                 │
 │                                                             │
-│  3. PROJECT_[NAME]/FM_DOCUMENTS/       — текущая ФМ        │
+│  3. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
 │  4. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  МОИ РЕЗУЛЬТАТЫ ИСПОЛЬЗУЮТ:                                 │
 │  → Agent 5 (Tech Arch): учитывает покрытие тестами         │
 │  → Agent 3 (Defender): тесты как аргумент защиты           │
-│  → Agent 7 (Migrator): тест-покрытие в Notion              │
+│  → Agent 7 (Migrator): тест-покрытие в Confluence           │
 │                                                             │
 │  ТРАССИРОВКА ОБЯЗАТЕЛЬНА:                                   │
 │  Каждый тест должен ссылаться на:                          │

@@ -29,7 +29,7 @@ ACTION=$(gum choose --header "Что делаем?" \
     "6. 🧪 Генерация тестов (Agent 4)" \
     "7. 🏗️ Архитектура + ТЗ (Agent 5)" \
     "8. 📊 Презентация для стейкхолдеров (Agent 6)" \
-    "9. 🔄 Миграция Word → Notion (Agent 7)" \
+    "9. 🔄 Публикация Word → Confluence (Agent 7)" \
     "10. 🎨 Создать ePC-диаграмму в Miro (Agent 8)" \
     "11. 📁 Управление проектами" \
     "12. 📋 Статус pipeline")
@@ -57,7 +57,7 @@ case "$ACTION" in
         "Agent 4: Тест-кейсы" \
         "Agent 5: Архитектура + ТЗ" \
         "Agent 6: Презентация" \
-        "Agent 7: Миграция в Notion" \
+        "Agent 7: Публикация в Confluence" \
         "Agent 8: ePC в Miro")
     
     init_pipeline_state "$PROJECT" "$FM_PATH"
@@ -213,7 +213,7 @@ ${PREV_CONTEXT}"
     
     FORMAT=$(gum choose --header "В каком формате?" \
         "1. Markdown отчет" \
-        "2. Notion страница (через MCP)" \
+        "2. Confluence страница (через API)" \
         "3. Miro доска (через MCP)" \
         "4. PPTX презентация")
     
@@ -225,17 +225,17 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 9. МИГРАЦИЯ WORD → NOTION (Agent 7)
+# 9. ПУБЛИКАЦИЯ WORD → CONFLUENCE (Agent 7)
 # ═══════════════════════════════════════════════════════════════
 "9."*)
-    header "МИГРАЦИЯ WORD → NOTION (Agent 7)"
+    header "ПУБЛИКАЦИЯ WORD → CONFLUENCE (Agent 7)"
     PROJECT=$(select_project)
     FM_PATH=$(get_latest_fm "$PROJECT")
     
     MIGRATE_ACTION=$(gum choose --header "Что делаем?" \
-        "1. Полная миграция Word → Notion ⭐" \
-        "2. Только извлечь данные (без Notion)" \
-        "3. Валидация миграции (Word vs Notion)" \
+        "1. Полная публикация Word → Confluence ⭐" \
+        "2. Только извлечь данные (без Confluence)" \
+        "3. Валидация миграции (Word vs Confluence)" \
         "4. Отчет о миграции")
     
     CONTEXT="Проект: ${PROJECT}
@@ -262,7 +262,7 @@ ${PREV_CONTEXT}"
         "1. Создать ePC-диаграмму из ФМ ⭐" \
         "2. Обновить существующую ePC" \
         "3. Валидация диаграммы" \
-        "4. Получить embed-ссылку для Notion")
+        "4. Получить embed-ссылку для Confluence")
     
     CONTEXT="Проект: ${PROJECT}
 ФМ: ${FM_PATH}
@@ -286,7 +286,7 @@ ${PREV_CONTEXT}"
         "1. Создать новый проект" \
         "2. Версия ФМ: diff между версиями" \
         "3. Версия ФМ: создать новую версию" \
-        "4. Экспорт ФМ в Notion" \
+        "4. Экспорт ФМ в Confluence" \
         "5. Экспорт процесса в Miro" \
         "6. Список проектов и статусы")
     
@@ -294,7 +294,7 @@ ${PREV_CONTEXT}"
         "1."*) bash "${SCRIPTS_DIR}/new_project.sh" ;;
         "2."*) bash "${SCRIPTS_DIR}/fm_version.sh" diff ;;
         "3."*) bash "${SCRIPTS_DIR}/fm_version.sh" bump ;;
-        "4."*) bash "${SCRIPTS_DIR}/export_notion.sh" ;;
+        "4."*) bash "${SCRIPTS_DIR}/export_confluence.sh" ;;
         "5."*) bash "${SCRIPTS_DIR}/export_miro.sh" ;;
         "6."*)
             header "ПРОЕКТЫ"

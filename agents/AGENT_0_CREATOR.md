@@ -15,13 +15,13 @@
 │                                                             │
 │  1. ДЛЯ НОВОЙ ФМ:                                           │
 │     - Создать папку PROJECT_[NAME]/                         │
-│     - Создать PROJECT_[NAME]/FM_DOCUMENTS/                  │
-│     - Сохранить ФМ в FM_DOCUMENTS/                          │
+│     - Создать CONFLUENCE_PAGE_ID (ID страницы)              │
+│     - Публиковать ФМ в Confluence (через Agent 7)           │
 │                                                             │
 │  2. СТРУКТУРА ПРОЕКТА:                                      │
 │     PROJECT_[NAME]/                                         │
 │     ├── README.md              ← Обзор проекта              │
-│     ├── FM_DOCUMENTS/          ← ВСЕ ВЕРСИИ ФМ              │
+│     ├── CONFLUENCE_PAGE_ID     ← ID страницы ФМ             │
 │     ├── AGENT_1_ARCHITECT/     ← Результаты аудита          │
 │     ├── AGENT_2_ROLE_SIMULATOR/← Симуляции ролей            │
 │     └── ...                                                 │
@@ -44,7 +44,7 @@
 │  → Agent 2 (Simulator): симуляция ролей по моей ФМ         │
 │  → Agent 4 (QA Tester): тесты на моих требованиях          │
 │  → Agent 5 (Tech Arch): архитектура по моей ФМ             │
-│  → Agent 7 (Migrator): миграция моей ФМ в Notion           │
+│  → Agent 7 (Migrator): миграция моей ФМ в Confluence       │
 │  → Agent 8 (EPC Designer): ePC-диаграмма по моему процессу │
 │                                                             │
 │  ПОЭТОМУ Я СОЗДАЮ ФМ С УЧЕТОМ DOWNSTREAM:                  │
@@ -447,11 +447,10 @@
 **Команда:** `/export [формат]`
 
 Форматы:
-- `/export notion` — **по умолчанию** → передаёт Agent 7 для создания в Notion
+- `/export confluence` — **по умолчанию** → передает Agent 7 для публикации в Confluence
 - `/export md` — Markdown (локальная копия)
-- `/export docx` — Word документ (legacy, для внешних)
 
-> ⚠️ **Notion-first**: ФМ создаётся локально (MD), проходит ревью агентов 1-5, затем Agent 7 публикует финальную версию в Notion.
+> ⚠️ **Confluence-only**: ФМ создается и живет в Confluence. Agent 7 публикует финальную версию.
 
 ---
 
@@ -465,7 +464,7 @@
 | `/section [имя]` | Написать конкретный раздел |
 | `/sections-all` | Написать все разделы последовательно |
 | `/check` | Самопроверка на антипаттерны |
-| `/export [формат]` | Выгрузить готовую ФМ (notion/md/docx) |
+| `/export [формат]` | Выгрузить готовую ФМ (confluence/md) |
 | `/status` | Показать прогресс создания |
 | `/auto` | Конвейерный режим — полный цикл без интервью |
 
@@ -476,9 +475,9 @@
 2. Генерирую структуру автоматически (по шаблону из контекста)
 3. Пишу все разделы последовательно
 4. Запускаю самопроверку (/check)
-5. Экспортирую в Markdown → PROJECT_[NAME]/FM_DOCUMENTS/
+5. Передаю контент Agent 7 для публикации в Confluence
 6. Формирую машиночитаемый отчет для Agent 1 (следующий в pipeline)
-7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Notion) → Agent 8 (Miro)
+7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Confluence) → Agent 8 (Miro)
 
 ---
 

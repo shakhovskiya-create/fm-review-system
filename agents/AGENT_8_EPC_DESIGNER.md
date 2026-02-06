@@ -14,15 +14,15 @@
 │  PROJECT_[NAME]/AGENT_8_EPC_DESIGNER/                       │
 │                                                             │
 │  ЧИТАЮ ИСХОДНЫЕ ДАННЫЕ ИЗ:                                  │
-│  PROJECT_[NAME]/FM_DOCUMENTS/   — ФМ (процессы, роли)       │
+│  Confluence (REST API, PAGE_ID) — ФМ (процессы, роли)       │
 │  PROJECT_[NAME]/AGENT_1_ARCHITECT/ — аудит (уточнения)      │
-│  PROJECT_[NAME]/AGENT_7_MIGRATOR/  — Notion-ссылки          │
+│  PROJECT_[NAME]/AGENT_7_MIGRATOR/  — Confluence-ссылки       │
 │  PROJECT_[NAME]/PROJECT_CONTEXT.md — контекст               │
 │                                                             │
 │  СОЗДАЮ В MIRO:                                              │
 │  📊 Доска с ePC-диаграммой процесса                          │
 │  📊 Фрейм с легендой и версией                              │
-│  📊 Embed-ссылка для Notion                                  │
+│  📊 Embed-ссылка для Confluence                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -37,11 +37,11 @@
 │  Agent 0 (Creator)    → Описание процесса                  │
 │  Agent 1 (Architect)  → Уточненная логика                  │
 │  Agent 2 (Simulator)  → Сценарии ролей                     │
-│  Agent 7 (Migrator)   → Notion-ссылка для embed            │
+│  Agent 7 (Migrator)   → Confluence-ссылка для embed         │
 │                                                             │
 │  ПЕРЕДАЕТ РЕЗУЛЬТАТЫ:                                       │
 │  → Agent 6 (Presenter): диаграмма для презентаций          │
-│  → Agent 7 (Migrator): embed-ссылка в Notion               │
+│  → Agent 7 (Migrator): embed-ссылка в Confluence            │
 │  → Agent 4 (QA Tester): визуал для проверки сценариев      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -55,7 +55,7 @@
 - Соответствует стандартам ARIS/ePC
 - Легко читается за 2 минуты
 - Имеет корректную цветовую схему EKF
-- Встраивается в Notion через embed
+- Встраивается в Confluence через embed
 
 ---
 
@@ -66,7 +66,7 @@
 | `/epc` | Создать ePC-диаграмму из текущей ФМ |
 | `/epc-update` | Обновить существующую ePC |
 | `/epc-validate` | Проверить диаграмму на соответствие правилам |
-| `/epc-export` | Получить embed-ссылку для Notion |
+| `/epc-export` | Получить embed-ссылку для Confluence |
 | `/status` | Показать статус текущей диаграммы |
 | `/auto` | Конвейерный режим — полный цикл без интервью |
 
@@ -74,12 +74,12 @@
 
 При вызове `/auto` вместо `/epc`:
 1. Пропускаю интервью — беру ВСЕ параметры из PROJECT_CONTEXT.md
-2. Читаю ФМ автоматически (последняя версия из FM_DOCUMENTS/)
-3. Если Agent 7 выполнен — читаю Notion URL из его результатов
+2. Читаю ФМ из Confluence (REST API, PAGE_ID из проекта)
+3. Если Agent 7 выполнен — читаю Confluence URL из его результатов
 4. Создаю ePC-диаграмму в Miro (полный цикл: скелет → детализация → оформление)
 5. Автоматически запускаю /epc-validate
 6. Получаю embed-ссылку и сохраняю в PROJECT_CONTEXT.md
-7. Если Notion-страница существует — автоматически вставляю Miro embed через Notion MCP
+7. Если Confluence-страница существует — автоматически вставляю Miro embed через Confluence API
 8. Формирую машиночитаемый отчет для Agent 6
 
 ### Обработка ошибок MCP
@@ -178,7 +178,7 @@
 │         ↓                                                    │
 │  4. ОФОРМЛЕНИЕ       Цвета, выравнивание, легенда           │
 │         ↓                                                    │
-│  5. ВАЛИДАЦИЯ        Проверка правил + embed в Notion        │
+│  5. ВАЛИДАЦИЯ        Проверка правил + embed в Confluence     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -379,18 +379,18 @@
 
 ---
 
-## 🔗 ИНТЕГРАЦИЯ С NOTION
+## 🔗 ИНТЕГРАЦИЯ С CONFLUENCE
 
 После создания диаграммы в Miro:
 
 1. Получить URL доски/фрейма
-2. Обновить страницу ФМ в Notion:
+2. Обновить страницу ФМ в Confluence:
    - Property "Miro Board": [URL доски]
    - Добавить embed-блок в раздел "Схема процесса"
 3. Сообщить Agent 7 (Migrator) об обновлении
 
 ```
-Notion MCP: Update page
+Confluence API: Update page
 Properties:
   "Miro Board": "https://miro.com/app/board/[board_id]/"
 Content:
@@ -432,4 +432,4 @@ Content:
 5. **Легенда обязательна** — в каждой диаграмме
 6. **Версия в заголовке** — совпадает с версией ФМ
 7. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_8_EPC_DESIGNER/
-8. **Embed в Notion** — автоматически после создания
+8. **Embed в Confluence** — автоматически после создания

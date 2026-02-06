@@ -40,7 +40,7 @@
 │  ПЕРЕД НАЧАЛОМ РАБОТЫ — АВТОМАТИЧЕСКИ СКАНИРУЮ:            │
 │                                                             │
 │  1. PROJECT_[NAME]/PROJECT_CONTEXT.md  — текущий контекст  │
-│  2. PROJECT_[NAME]/FM_DOCUMENTS/       — все версии ФМ     │
+│  2. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
 │  3. PROJECT_[NAME]/AGENT_*/            — результаты других │
 │                                                             │
 │  Я — ПЕРВЫЙ в pipeline. Мои результаты используют:         │
@@ -48,7 +48,7 @@
 │  → Agent 4 (QA Tester): покрывает мои findings тестами     │
 │  → Agent 5 (Tech Arch): учитывает мои 1С-замечания        │
 │  → Agent 3 (Defender): защищает ФМ от моих замечаний       │
-│  → Agent 7 (Migrator): мои findings добавляются в Notion   │
+│  → Agent 7 (Migrator): мои findings добавляются в Confluence│
 │  → Agent 8 (EPC Designer): уточненная логика для ePC       │
 │                                                             │
 │  МОЙ ФОРМАТ ОТЧЕТА ДОЛЖЕН БЫТЬ МАШИНОЧИТАЕМЫМ:            │
@@ -76,14 +76,14 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     PROJECT_[NAME]/FM_DOCUMENTS/FM-*-v*.docx                │
+│     Confluence REST API (PAGE_ID из проекта)                │
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ РЕЗУЛЬТАТЫ АУДИТА:                       │
 │     PROJECT_[NAME]/AGENT_1_ARCHITECT/                       │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Новая версия ФМ → PROJECT_[NAME]/FM_DOCUMENTS/        │
-│     - CHANGES.md → PROJECT_[NAME]/FM_DOCUMENTS/             │
+│     - Обновление ФМ → Confluence (PUT API)                  │
+│     - CHANGES.md → PROJECT_[NAME]/CHANGES/                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │

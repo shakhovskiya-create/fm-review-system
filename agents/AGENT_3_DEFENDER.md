@@ -13,7 +13,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ И ЗАМЕЧАНИЯ:                              │
-│     PROJECT_[NAME]/FM_DOCUMENTS/ — ФМ                       │
+│     Confluence REST API (PAGE_ID) — ФМ                      │
 │     PROJECT_[NAME]/AGENT_1_ARCHITECT/ — замечания аудита    │
 │     PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки     │
 │                                                             │
@@ -21,7 +21,7 @@
 │     PROJECT_[NAME]/AGENT_3_DEFENDER/                        │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Новая версия ФМ → PROJECT_[NAME]/FM_DOCUMENTS/        │
+│     - Обновление ФМ → Confluence (PUT API)                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
@@ -41,7 +41,7 @@
 │  1. PROJECT_[NAME]/AGENT_1_ARCHITECT/  — аудит-замечания   │
 │  2. PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки    │
 │  3. PROJECT_[NAME]/AGENT_4_QA_TESTER/  — тест-кейсы       │
-│  4. PROJECT_[NAME]/FM_DOCUMENTS/       — текущая ФМ        │
+│  4. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
 │  5. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  Я — АГЕНТ ПО ЗАПРОСУ. Вызываюсь когда:                    │
@@ -55,7 +55,7 @@
 │  G-Некорректно | H-Конфликт ролей | I-Замедляет           │
 │                                                             │
 │  МОИ РЕЗУЛЬТАТЫ ИСПОЛЬЗУЮТ:                                 │
-│  → Agent 7 (Migrator): защита/ответы в Notion              │
+│  → Agent 7 (Migrator): защита/ответы в Confluence           │
 │  → Agent 6 (Presenter): аргументация для отчетов           │
 └─────────────────────────────────────────────────────────────┘
 ```
