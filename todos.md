@@ -624,3 +624,69 @@ URL: https://confluence.ekf.su/pages/viewpage.action?pageId=83951683
 Статус: DONE
 
 ---
+
+## STEP-25: Генерация PNG диаграмм и внедрение в Confluence
+Дата: 06.02.2026
+Задача: Создать настоящие ePC диаграммы как PNG изображения и внедрить напрямую в страницу Confluence.
+
+### Контекст
+- Проблема: Пользователю нужны САМИ ДИАГРАММЫ в Confluence, не ссылки на Miro
+- Miro REST API v2 не поддерживает экспорт изображений
+- Confluence Server не поддерживает iframe/widget макросы
+- Scroll Documents установлен, но не помогает с диаграммами
+- Решение: генерация PNG через Graphviz + загрузка как attachment + embed через ac:image
+
+### План
+- [x] Установить graphviz (brew install graphviz)
+- [x] Установить Python graphviz модуль (pip3 install graphviz)
+- [x] Создать скрипт scripts/generate_epc_diagrams.py
+- [x] Сгенерировать 3 ePC диаграммы в нотации:
+  - epc_1_main_flow.png - Основной поток (109KB)
+  - epc_2_approval.png - Процесс согласования (89KB)
+  - epc_3_emergency.png - Экстренное согласование (98KB)
+- [x] Загрузить PNG как attachments на страницу Confluence
+- [x] Обновить H2 TO-BE раздел с embedded изображениями (ac:image macro)
+- [x] Верифицировать отображение диаграмм
+
+### Действие
+- graphviz 14.1.2 установлен через Homebrew
+- Создан scripts/generate_epc_diagrams.py:
+  - Использует graphviz.Digraph с ePC-нотацией
+  - Цвета по EKF схеме (зеленый=старт, оранжевый=промежуточный, красный=конец, голубой=функция, желтый=XOR)
+  - splines='polyline' для правильной отрисовки
+  - 3 функции: create_main_flow_diagram(), create_approval_diagram(), create_emergency_diagram()
+  - Автоматическая загрузка через Confluence REST API (child/attachment)
+  - Обновление TO-BE секции с ac:image макросами
+- Созданные файлы:
+  - scripts/diagrams/epc_1_main_flow.png (109,335 bytes)
+  - scripts/diagrams/epc_2_approval.png (88,860 bytes)
+  - scripts/diagrams/epc_3_emergency.png (98,067 bytes)
+- Confluence attachments: 83951778, 83951779, 83951780
+- Confluence версия: 12 -> 13
+
+### Проверка
+| Критерий | Результат | Метод |
+|----------|-----------|-------|
+| 3 PNG файла созданы | OK | ls scripts/diagrams/*.png |
+| Diagram 1 uploaded | OK | attachment 83951778 |
+| Diagram 2 uploaded | OK | attachment 83951779 |
+| Diagram 3 uploaded | OK | attachment 83951780 |
+| ac:image macros в body | OK | verify_diagrams.py |
+| ri:attachment в body | OK | verify_diagrams.py |
+| H3 заголовки | OK | "Основной поток", "Процесс согласования", "Экстренное согласование" |
+| Легенда ePC | OK | expand macro с таблицей цветов |
+| Confluence v13 | OK | version check |
+
+### Изменения
+- Было: Confluence v12, H2 TO-BE с таблицами описания процесса (текст)
+- Стало: Confluence v13, H2 TO-BE с 3 встроенными PNG диаграммами ePC + легенда
+- Новые скрипты: generate_epc_diagrams.py, check_drawio.py, check_confluence_macros.py, verify_diagrams.py
+- Зависимости: graphviz (brew), graphviz (pip)
+
+### URL
+Confluence: https://confluence.ekf.su/pages/viewpage.action?pageId=83951683
+Miro (интерактив): https://miro.com/app/board/uXjVGFq_knA=
+
+Статус: DONE
+
+---
