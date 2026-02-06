@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-02-06T15:00:00.000Z" agent="Mozilla/5.0" version="21.0.0" type="device">
+  <diagram name="BPMN Экстренное согласование" id="bpmn-emergency">
+    <mxGraphModel dx="1300" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="BPMN: Экстренное согласование (устное разрешение)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Swimlane: Менеджер -->
+        <mxCell id="lane1" value="Менеджер" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1100" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#67AB9F;" vertex="1" parent="lane1">
+          <mxGeometry x="30" y="35" width="30" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Task: Request -->
+        <mxCell id="task1" value="Запрос устного&#xa;разрешения" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="100" y="25" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Gateway: Got approval? -->
+        <mxCell id="gw1" value="X" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="240" y="30" width="40" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Task: Fix in 1C -->
+        <mxCell id="task2" value="Фиксация в 1С&#xa;(комментарий)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="330" y="25" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Swimlane: Склад -->
+        <mxCell id="lane2" value="Склад" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="1100" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Task: Shipment -->
+        <mxCell id="task3" value="Отгрузка&#xa;товара" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane2">
+          <mxGeometry x="330" y="25" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Intermediate Event: Shipped -->
+        <mxCell id="evt_shipped" value="" style="ellipse;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="lane2">
+          <mxGeometry x="470" y="35" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lbl_shipped" value="Товар отгружен" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;" vertex="1" parent="lane2">
+          <mxGeometry x="450" y="68" width="70" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Swimlane: Согласующий -->
+        <mxCell id="lane3" value="Согласующий" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="40" y="250" width="1100" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Timer: 24h -->
+        <mxCell id="timer" value="24ч" style="ellipse;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+          <mxGeometry x="470" y="35" width="30" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Task: Post-factum -->
+        <mxCell id="task4" value="Согласование&#xa;пост-фактум" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+          <mxGeometry x="550" y="25" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Gateway: Confirmed? -->
+        <mxCell id="gw2" value="X" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane3">
+          <mxGeometry x="700" y="30" width="40" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Swimlane: Результат -->
+        <mxCell id="lane4" value="Результат" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="1100" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- End: Approved -->
+        <mxCell id="end_ok" value="" style="ellipse;html=1;fillColor=#67AB9F;strokeWidth=3;" vertex="1" parent="lane4">
+          <mxGeometry x="700" y="15" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lbl_ok" value="Согласовано&#xa;пост-фактум" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;" vertex="1" parent="lane4">
+          <mxGeometry x="680" y="48" width="70" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- End: Incident -->
+        <mxCell id="end_incident" value="" style="ellipse;html=1;fillColor=#f8cecc;strokeWidth=3;" vertex="1" parent="lane4">
+          <mxGeometry x="850" y="35" width="30" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Task: Incident -->
+        <mxCell id="task_incident" value="Регистрация&#xa;инцидента" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane4">
+          <mxGeometry x="750" y="55" width="90" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Standard process link -->
+        <mxCell id="subprocess" value="Стандартный&#xa;процесс (BPMN 2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="95" width="100" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Limits note -->
+        <mxCell id="limits" value="Лимиты:&#xa;• 3/мес на менеджера&#xa;• 5/мес на контрагента" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="950" y="60" width="140" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="start" target="task1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="task1" target="gw1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="да" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="gw1" target="task2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="нет" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="gw1" target="subprocess">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="task2" target="task3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="task3" target="evt_shipped">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="evt_shipped" target="timer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="timer" target="task4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="task4" target="gw2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" value="да" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="gw2" target="end_ok">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" value="нет" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="gw2" target="task_incident">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="task_incident" target="end_incident">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
