@@ -1,168 +1,180 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" modified="2026-02-06T12:00:00.000Z" agent="Mozilla/5.0" version="21.0.0" type="device">
+<mxfile host="app.diagrams.net" modified="2026-02-06T14:00:00.000Z" agent="Mozilla/5.0" version="21.0.0" type="device">
   <diagram name="Процесс согласования" id="epc-approval">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
         <!-- Title -->
-        <mxCell id="title" value="Диаграмма 2: Процесс согласования" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="20" width="400" height="30" as="geometry"/>
+        <mxCell id="title" value="Диаграмма 2: Процесс согласования отрицательной рентабельности" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="30" as="geometry"/>
         </mxCell>
 
         <!-- E1: Start -->
-        <mxCell id="E1" value="Требуется&#xa;согласование" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;" vertex="1" parent="1">
-          <mxGeometry x="480" y="60" width="140" height="50" as="geometry"/>
+        <mxCell id="E1" value="Рентабельность&#xa;&lt; 0%" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="60" width="120" height="50" as="geometry"/>
         </mxCell>
 
         <!-- F1: Determine level -->
         <mxCell id="F1" value="Определение&#xa;уровня согласования" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
-          <mxGeometry x="465" y="130" width="170" height="50" as="geometry"/>
+          <mxGeometry x="520" y="140" width="160" height="50" as="geometry"/>
         </mxCell>
 
-        <!-- S1: 1C:ERP -->
-        <mxCell id="S1" value="1С:ERP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;" vertex="1" parent="1">
-          <mxGeometry x="660" y="140" width="80" height="35" as="geometry"/>
+        <!-- S1: 1C:УТ -->
+        <mxCell id="S1" value="1С:УТ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;" vertex="1" parent="1">
+          <mxGeometry x="710" y="145" width="70" height="40" as="geometry"/>
         </mxCell>
 
         <!-- X1: XOR Level -->
         <mxCell id="X1" value="XOR" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FBC02D;" vertex="1" parent="1">
-          <mxGeometry x="510" y="200" width="80" height="50" as="geometry"/>
+          <mxGeometry x="560" y="220" width="80" height="50" as="geometry"/>
         </mxCell>
 
-        <!-- E2-E4: Levels -->
-        <mxCell id="E2" value="Уровень:&#xa;РБЮ" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
-          <mxGeometry x="200" y="270" width="100" height="45" as="geometry"/>
+        <!-- Level 1: РБЮ (-5..0%) -->
+        <mxCell id="E2" value="Уровень 1:&#xa;РБЮ" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="180" y="310" width="100" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="E3" value="Уровень:&#xa;ДП" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
-          <mxGeometry x="500" y="270" width="100" height="45" as="geometry"/>
+        <mxCell id="O1" value="Рук. БЮ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="70" y="320" width="70" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="E4" value="Уровень:&#xa;ГД" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
-          <mxGeometry x="800" y="270" width="100" height="45" as="geometry"/>
+        <mxCell id="SLA1" value="SLA: 4ч" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="180" y="365" width="70" height="20" as="geometry"/>
         </mxCell>
 
-        <!-- Org units -->
-        <mxCell id="O1" value="РБЮ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
-          <mxGeometry x="130" y="275" width="60" height="35" as="geometry"/>
+        <!-- Level 2: ДП (-15..-5%) -->
+        <mxCell id="E3" value="Уровень 2:&#xa;ДП" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="550" y="310" width="100" height="50" as="geometry"/>
         </mxCell>
         <mxCell id="O2" value="Дир. продаж" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
-          <mxGeometry x="610" y="275" width="80" height="35" as="geometry"/>
-        </mxCell>
-        <mxCell id="O3" value="Ген. директор" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
-          <mxGeometry x="910" y="275" width="90" height="35" as="geometry"/>
-        </mxCell>
-
-        <!-- SLA boxes -->
-        <mxCell id="SLA1" value="SLA: 4ч" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="210" y="320" width="80" height="25" as="geometry"/>
+          <mxGeometry x="680" y="320" width="80" height="35" as="geometry"/>
         </mxCell>
         <mxCell id="SLA2" value="SLA: 8ч" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="510" y="320" width="80" height="25" as="geometry"/>
+          <mxGeometry x="565" y="365" width="70" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Level 3: ГД (< -15%) -->
+        <mxCell id="E4" value="Уровень 3:&#xa;ГД" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="310" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="O3" value="Ген. дир." style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="320" width="70" height="35" as="geometry"/>
         </mxCell>
         <mxCell id="SLA3" value="SLA: 24ч" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF8F00;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="810" y="320" width="80" height="25" as="geometry"/>
+          <mxGeometry x="935" y="365" width="70" height="20" as="geometry"/>
         </mxCell>
 
         <!-- F2: Wait for decision -->
         <mxCell id="F2" value="Ожидание&#xa;решения" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
-          <mxGeometry x="480" y="370" width="140" height="45" as="geometry"/>
+          <mxGeometry x="520" y="420" width="160" height="50" as="geometry"/>
         </mxCell>
 
         <!-- X2: XOR Decision -->
         <mxCell id="X2" value="XOR" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FBC02D;" vertex="1" parent="1">
-          <mxGeometry x="510" y="440" width="80" height="50" as="geometry"/>
+          <mxGeometry x="560" y="510" width="80" height="50" as="geometry"/>
         </mxCell>
 
         <!-- E5: Approved -->
         <mxCell id="E5" value="Согласовано" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#C8E6C9;strokeColor=#82B366;" vertex="1" parent="1">
-          <mxGeometry x="300" y="520" width="120" height="45" as="geometry"/>
+          <mxGeometry x="280" y="600" width="120" height="50" as="geometry"/>
         </mxCell>
 
         <!-- E6: Rejected -->
         <mxCell id="E6" value="Отклонено" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFCDD2;strokeColor=#E53935;" vertex="1" parent="1">
-          <mxGeometry x="490" y="520" width="120" height="45" as="geometry"/>
+          <mxGeometry x="540" y="600" width="120" height="50" as="geometry"/>
         </mxCell>
 
         <!-- E7: Timeout -->
-        <mxCell id="E7" value="Таймаут&#xa;(эскалация)" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
-          <mxGeometry x="680" y="520" width="120" height="45" as="geometry"/>
+        <mxCell id="E7" value="Таймаут" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="600" width="100" height="50" as="geometry"/>
         </mxCell>
 
         <!-- F3: Escalation -->
-        <mxCell id="F3" value="Эскалация на&#xa;следующий уровень" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
-          <mxGeometry x="850" y="450" width="140" height="45" as="geometry"/>
+        <mxCell id="F3" value="Эскалация на&#xa;след. уровень" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
+          <mxGeometry x="940" y="600" width="120" height="50" as="geometry"/>
         </mxCell>
 
         <!-- E8: GD Timeout -->
-        <mxCell id="E8" value="ГД таймаут 48ч" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
-          <mxGeometry x="850" y="520" width="120" height="45" as="geometry"/>
+        <mxCell id="E8" value="ГД:&#xa;48ч без ответа" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FFE0B2;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="600" width="120" height="50" as="geometry"/>
         </mxCell>
 
         <!-- F4: Auto-reject -->
-        <mxCell id="F4" value="Авто-отклонение" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B2EBF2;strokeColor=#0097A7;" vertex="1" parent="1">
-          <mxGeometry x="855" y="590" width="130" height="40" as="geometry"/>
+        <mxCell id="F4" value="Авто-отклонение" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="690" width="120" height="40" as="geometry"/>
         </mxCell>
 
-        <!-- Edges -->
-        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E1" target="F1">
+        <!-- Edges - simple vertical flow -->
+        <mxCell id="e1" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E1" target="F1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="S1" target="F1">
+        <mxCell id="e2" style="edgeStyle=entityRelationEdgeStyle;rounded=1;dashed=1;endArrow=block;endFill=1;" edge="1" parent="1" source="S1" target="F1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F1" target="X1">
+        <mxCell id="e3" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F1" target="X1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge4" value="-5..0%" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X1" target="E2">
+
+        <!-- XOR to levels -->
+        <mxCell id="e4" value="-5% до 0%" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X1" target="E2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge5" value="-15..-5%" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X1" target="E3">
+        <mxCell id="e5" value="-15% до -5%" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X1" target="E3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge6" value="&lt; -15%" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X1" target="E4">
+        <mxCell id="e6" value="ниже -15%" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X1" target="E4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O1" target="E2">
+
+        <!-- Org units to levels -->
+        <mxCell id="e7" style="edgeStyle=entityRelationEdgeStyle;rounded=1;dashed=1;endArrow=none;" edge="1" parent="1" source="O1" target="E2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O2" target="E3">
+        <mxCell id="e8" style="edgeStyle=entityRelationEdgeStyle;rounded=1;dashed=1;endArrow=none;" edge="1" parent="1" source="O2" target="E3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O3" target="E4">
+        <mxCell id="e9" style="edgeStyle=entityRelationEdgeStyle;rounded=1;dashed=1;endArrow=none;" edge="1" parent="1" source="O3" target="E4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E2" target="F2">
+
+        <!-- Levels to F2 -->
+        <mxCell id="e10" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E2" target="F2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E3" target="F2">
+        <mxCell id="e11" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E3" target="F2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E4" target="F2">
+        <mxCell id="e12" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E4" target="F2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F2" target="X2">
+
+        <!-- F2 to X2 -->
+        <mxCell id="e13" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F2" target="X2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge14" value="да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X2" target="E5">
+
+        <!-- X2 outcomes -->
+        <mxCell id="e14" value="да" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X2" target="E5">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge15" value="нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X2" target="E6">
+        <mxCell id="e15" value="нет" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X2" target="E6">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge16" value="таймаут" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X2" target="E7">
+        <mxCell id="e16" value="SLA истек" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X2" target="E7">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E7" target="F3">
+
+        <!-- Timeout flow -->
+        <mxCell id="e17" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E7" target="F3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge18" value="след. уровень" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="F3" target="X1">
+        <mxCell id="e18" value="возврат" style="edgeStyle=entityRelationEdgeStyle;rounded=1;dashed=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F3" target="X1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1150" y="380"/><mxPoint x="1150" y="245"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e19" value="если ГД" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F3" target="E8">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E8" target="F4">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
-        <mxCell id="edge20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F4" target="E6">
+        <mxCell id="e20" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E8" target="F4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 

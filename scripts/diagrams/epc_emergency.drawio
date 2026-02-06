@@ -52,7 +52,7 @@
         </mxCell>
 
         <!-- S1: 1C:ERP -->
-        <mxCell id="S1" value="1С:ERP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;" vertex="1" parent="1">
+        <mxCell id="S1" value="1С:УТ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#757575;" vertex="1" parent="1">
           <mxGeometry x="600" y="390" width="80" height="35" as="geometry"/>
         </mxCell>
 
@@ -107,55 +107,55 @@
         </mxCell>
 
         <!-- Edges -->
-        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E1" target="F1">
+        <mxCell id="edge1" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E1" target="F1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O1" target="F1">
+        <mxCell id="edge2" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="O1" target="F1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F1" target="X1">
+        <mxCell id="edge3" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F1" target="X1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge4" value="да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X1" target="E2">
+        <mxCell id="edge4" value="да" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X1" target="E2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge5" value="нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X1" target="E3">
+        <mxCell id="edge5" value="нет" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X1" target="E3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E3" target="P1">
+        <mxCell id="edge6" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E3" target="P1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E2" target="F2">
+        <mxCell id="edge7" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E2" target="F2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="S1" target="F2">
+        <mxCell id="edge8" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="S1" target="F2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F2" target="F3">
+        <mxCell id="edge9" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F2" target="F3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O2" target="F3">
+        <mxCell id="edge10" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="O2" target="F3">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F3" target="E4">
+        <mxCell id="edge11" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F3" target="E4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E4" target="F4">
+        <mxCell id="edge12" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E4" target="F4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="O3" target="F4">
+        <mxCell id="edge13" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="O3" target="F4">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="F4" target="X2">
+        <mxCell id="edge14" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="F4" target="X2">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge15" value="да" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X2" target="E5">
+        <mxCell id="edge15" value="да" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X2" target="E5">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge16" value="нет" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="X2" target="E6">
+        <mxCell id="edge16" value="нет" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="X2" target="E6">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="edge17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="E6" target="F5">
+        <mxCell id="edge17" style="edgeStyle=entityRelationEdgeStyle;rounded=1;endArrow=block;endFill=1;" edge="1" parent="1" source="E6" target="F5">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
