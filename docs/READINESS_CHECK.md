@@ -60,7 +60,7 @@
 - **AGENT_6_PRESENTER:** упоминает экспорт в Miro и PPTX — допустимо как опции форматов; основной поток — Confluence и отчёты.
 - **orchestrate:** в форматах презентации есть «Miro доска (через MCP)» — опциональный формат, не обязателен.
 - **quality_gate:** проверка MIRO_URL остаётся как опция (warn); BPMN в Confluence не привязан к этому URL.
-- **docs/CHANGELOG.md, CHAT_CONTEXT.md, todos.md:** исторические упоминания MIGRATOR/EPC — не влияют на текущий запуск.
+- **docs/CHANGELOG.md:** исторические упоминания MIGRATOR/EPC - не влияют на текущий запуск. CHAT_CONTEXT.md и todos.md перенесены в docs/archive/ (FC-05).
 
 ---
 

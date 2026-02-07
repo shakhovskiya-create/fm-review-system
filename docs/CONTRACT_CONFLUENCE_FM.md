@@ -106,7 +106,7 @@
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
 | При AUTONOMOUS=1 и ANTHROPIC_API_KEY оркестратор вызывает run_agent.py вместо копирования промпта в буфер | scripts/orchestrate.sh (полный цикл) | ✅ |
-| run_agent.py: --project, --agent 0-8, --command; сохраняет результат в projects/PROJECT/AGENT_X_*/ | scripts/run_agent.py | ✅ |
+| run_agent.py: --project, --agent 0-8, --command; сохраняет результат в projects/PROJECT/AGENT_X_*/ | scripts/experimental/run_agent.py (FC-03: перенесен в experimental/) | ✅ |
 
 ---
 

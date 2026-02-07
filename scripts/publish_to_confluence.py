@@ -22,14 +22,7 @@ import os
 import re
 import ssl
 import sys
-import urllib.request
 from datetime import datetime
-import docx
-from docx.oxml.ns import qn
-from docx.oxml.table import CT_Tbl
-from docx.oxml.text.paragraph import CT_P
-from docx.table import Table
-from docx.text.paragraph import Paragraph
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -56,11 +49,6 @@ def _get_page_id(project_name=None):
     return "83951683"
 
 
-if not TOKEN:
-    print("ERROR: CONFLUENCE_TOKEN environment variable not set")
-    print("Run: export CONFLUENCE_TOKEN='your-token-here'")
-    sys.exit(1)
-
 # Текст который нужно пропустить (описания компонентов системы кодов - уже в таблице)
 SKIP_AFTER_CODE_SYSTEM = [
     "Маршруты согласования",
@@ -79,6 +67,12 @@ parser.add_argument("--from-file", metavar="XHTML", help="Путь к файлу
 parser.add_argument("--project", metavar="PROJECT", help="Имя проекта (для PAGE_ID из projects/PROJECT/CONFLUENCE_PAGE_ID)")
 parser.add_argument("--message", metavar="TEXT", default="Update from script", help="Комментарий версии (version.message)")
 args = parser.parse_args()
+
+# Token check ПОСЛЕ argparse, чтобы --help работал без токена
+if not TOKEN:
+    print("ERROR: CONFLUENCE_TOKEN environment variable not set")
+    print("Run: export CONFLUENCE_TOKEN='your-token-here'")
+    sys.exit(1)
 
 FROM_FILE_MODE = bool(args.from_file)
 if FROM_FILE_MODE:
@@ -103,6 +97,18 @@ else:
         print("Usage: python3 publish_to_confluence.py <path-to-docx>")
         print("   или: python3 publish_to_confluence.py --from-file body.xhtml --project PROJECT_NAME")
         sys.exit(1)
+    # python-docx нужен только для режима DOCX-импорта
+    try:
+        import docx
+        from docx.oxml.ns import qn
+        from docx.oxml.table import CT_Tbl
+        from docx.oxml.text.paragraph import CT_P
+        from docx.table import Table
+        from docx.text.paragraph import Paragraph
+    except ImportError:
+        print("ERROR: python-docx не установлен. Установите: pip install python-docx")
+        print("(python-docx нужен только для импорта .docx, для --from-file не требуется)")
+        sys.exit(1)
     DOC_PATH = args.path
     _project_from_path = None
     _norm = os.path.normpath(DOC_PATH)
@@ -112,7 +118,7 @@ else:
             _project_from_path = parts[1].split("/")[0]
     PAGE_ID = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
     print("=" * 60)
-    print("FM PUBLISHER - CONFLUENCE v2.0")
+    print("FM PUBLISHER - CONFLUENCE v3.0")
     print("=" * 60)
     doc = docx.Document(DOC_PATH)
     print(f"Документ: {DOC_PATH.split('/')[-1]}")

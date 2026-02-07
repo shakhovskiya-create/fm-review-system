@@ -388,8 +388,8 @@ Agent 6: /auto → презентация + экспорт
 ./scripts/new_project.sh    — Создать новый проект
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
-./scripts/export_confluence.sh  — Экспорт в Confluence
-./scripts/export_bpmn.sh    — Генерация BPMN-диаграмм
+python3 scripts/export_from_confluence.py  — Экспорт ФМ из Confluence (PDF/Word)
+node scripts/generate-bpmn.js              — Генерация BPMN-диаграмм
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
 ./scripts/agent7_publish.sh — Интервью для управления ФМ в Confluence
 ./scripts/agent8_bpmn.sh    — Интервью для BPMN-диаграмм

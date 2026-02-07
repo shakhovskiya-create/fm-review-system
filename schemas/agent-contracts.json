@@ -238,12 +238,11 @@
           "enum": ["success", "failed"]
         }
       }
-    }
-  },
+    },
 
-  "agentOutputs": {
-    "Agent0_Creator": {
+    "agentOutput_Agent0_Creator": {
       "type": "object",
+      "description": "Output schema for Agent 0 (Creator)",
       "properties": {
         "fmContent": { "type": "string" },
         "version": { "type": "string" },
@@ -251,8 +250,9 @@
       }
     },
 
-    "Agent1_Architect": {
+    "agentOutput_Agent1_Architect": {
       "type": "object",
+      "description": "Output schema for Agent 1 (Architect)",
       "required": ["findings", "summary"],
       "properties": {
         "findings": {
@@ -271,8 +271,9 @@
       }
     },
 
-    "Agent2_Simulator": {
+    "agentOutput_Agent2_Simulator": {
       "type": "object",
+      "description": "Output schema for Agent 2 (Role Simulator)",
       "required": ["uxFindings", "roles"],
       "properties": {
         "uxFindings": {
@@ -286,8 +287,9 @@
       }
     },
 
-    "Agent3_Defender": {
+    "agentOutput_Agent3_Defender": {
       "type": "object",
+      "description": "Output schema for Agent 3 (Defender)",
       "required": ["responses"],
       "properties": {
         "responses": {
@@ -299,8 +301,9 @@
       }
     },
 
-    "Agent4_QA": {
+    "agentOutput_Agent4_QA": {
       "type": "object",
+      "description": "Output schema for Agent 4 (QA Tester)",
       "required": ["testCases"],
       "properties": {
         "testCases": {
@@ -317,8 +320,9 @@
       }
     },
 
-    "Agent5_TechArchitect": {
+    "agentOutput_Agent5_TechArchitect": {
       "type": "object",
+      "description": "Output schema for Agent 5 (Tech Architect)",
       "properties": {
         "objects1C": { "type": "array", "items": { "type": "string" } },
         "integrations": { "type": "array", "items": { "type": "string" } },
@@ -326,8 +330,9 @@
       }
     },
 
-    "Agent6_Presenter": {
+    "agentOutput_Agent6_Presenter": {
       "type": "object",
+      "description": "Output schema for Agent 6 (Presenter)",
       "properties": {
         "format": {
           "type": "string",
@@ -338,16 +343,18 @@
       }
     },
 
-    "Agent7_Publisher": {
+    "agentOutput_Agent7_Publisher": {
       "type": "object",
+      "description": "Output schema for Agent 7 (Publisher)",
       "required": ["result"],
       "properties": {
         "result": { "$ref": "#/definitions/publishResult" }
       }
     },
 
-    "Agent8_BPMN": {
+    "agentOutput_Agent8_BPMN": {
       "type": "object",
+      "description": "Output schema for Agent 8 (BPMN Designer)",
       "required": ["result"],
       "properties": {
         "result": { "$ref": "#/definitions/bpmnResult" }
