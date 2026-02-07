@@ -1,0 +1,7 @@
+# FM Review System — Python-зависимости
+# Для автономного запуска агентов (run_agent.py) через Claude API
+anthropic>=0.39.0
+
+# Публикация и экспорт (уже используются в проекте)
+python-docx>=1.0.0
+beautifulsoup4>=4.12.0

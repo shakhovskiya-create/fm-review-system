@@ -1,9 +1,66 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FM Review System Agent Contracts v1.0 (R-08)",
-  "description": "JSON Schema for inter-agent communication validation",
+  "title": "FM Review System Agent Contracts v2.0 (FC-04)",
+  "description": "JSON Schema for inter-agent communication. v2.0: added agentSummary sidecar, Agent6_Presenter",
 
   "definitions": {
+    "agentSummary": {
+      "type": "object",
+      "required": ["agent", "command", "timestamp", "fmVersion", "project", "status"],
+      "description": "Lightweight JSON sidecar (_summary.json) produced by every agent after execution",
+      "properties": {
+        "agent": {
+          "type": "string",
+          "description": "Agent name, e.g. Agent1_Architect"
+        },
+        "command": {
+          "type": "string",
+          "description": "Command executed, e.g. /audit, /auto"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "fmVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "FM version that was analyzed/processed"
+        },
+        "project": {
+          "type": "string",
+          "description": "Project name, e.g. PROJECT_SHPMNT_PROFIT"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "partial", "failed"]
+        },
+        "counts": {
+          "type": "object",
+          "description": "Agent-specific counts (findings, tests, etc.)",
+          "properties": {
+            "critical": { "type": "integer" },
+            "high": { "type": "integer" },
+            "medium": { "type": "integer" },
+            "low": { "type": "integer" },
+            "total": { "type": "integer" }
+          }
+        },
+        "outputFiles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of Markdown files produced by this run"
+        },
+        "appliedChanges": {
+          "type": "integer",
+          "description": "Number of changes applied to FM (if /apply was executed)"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Free-form notes about this run"
+        }
+      }
+    },
+
     "finding": {
       "type": "object",
       "required": ["id", "severity", "category", "description"],
@@ -266,6 +323,18 @@
         "objects1C": { "type": "array", "items": { "type": "string" } },
         "integrations": { "type": "array", "items": { "type": "string" } },
         "estimate": { "type": "string" }
+      }
+    },
+
+    "Agent6_Presenter": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["presentation", "report", "summary"]
+        },
+        "audience": { "type": "string" },
+        "sections": { "type": "array", "items": { "type": "string" } }
       }
     },
 

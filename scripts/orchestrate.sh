@@ -116,15 +116,37 @@ ${PREV_CONTEXT}"
                 AGENT_8_BPMN_DESIGNER.md) CMD="/bpmn" ;;
                 *) CMD="/audit" ;;
             esac
-            launch_claude_code "${ROOT_DIR}/agents/${agent_md}" "$CMD" "$FULL_CONTEXT"
             
-            # Ждем подтверждения завершения
-            gum confirm "Этап '${agent}' завершен?" && {
-                complete_pipeline_agent "${PIPELINE_ORDER[$i]}" "done"
-                success "${agent} завершен"
-            } || {
-                warn "${agent} пропущен"
-            }
+            # Автономный режим: вызов через Claude API (run_agent.py)
+            if [[ -n "${AUTONOMOUS:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
+                AGENT_NUM=1
+                case "${agent_md}" in
+                    AGENT_0_CREATOR.md) AGENT_NUM=0 ;;
+                    AGENT_1_ARCHITECT.md) AGENT_NUM=1 ;;
+                    AGENT_2_ROLE_SIMULATOR.md) AGENT_NUM=2 ;;
+                    AGENT_3_DEFENDER.md) AGENT_NUM=3 ;;
+                    AGENT_4_QA_TESTER.md) AGENT_NUM=4 ;;
+                    AGENT_5_TECH_ARCHITECT.md) AGENT_NUM=5 ;;
+                    AGENT_6_PRESENTER.md) AGENT_NUM=6 ;;
+                    AGENT_7_PUBLISHER.md) AGENT_NUM=7 ;;
+                    AGENT_8_BPMN_DESIGNER.md) AGENT_NUM=8 ;;
+                esac
+                export FM_PATH FM_VER
+                if python3 "${SCRIPTS_DIR}/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
+                    complete_pipeline_agent "${PIPELINE_ORDER[$i]}" "done"
+                    success "${agent} завершен (autonomous)"
+                else
+                    warn "${agent} завершился с ошибкой"
+                fi
+            else
+                launch_claude_code "${ROOT_DIR}/agents/${agent_md}" "$CMD" "$FULL_CONTEXT"
+                gum confirm "Этап '${agent}' завершен?" && {
+                    complete_pipeline_agent "${PIPELINE_ORDER[$i]}" "done"
+                    success "${agent} завершен"
+                } || {
+                    warn "${agent} пропущен"
+                }
+            fi
             echo ""
         fi
     done
@@ -308,13 +330,14 @@ ${PREV_CONTEXT}"
         "2."*) bash "${SCRIPTS_DIR}/fm_version.sh" diff ;;
         "3."*) bash "${SCRIPTS_DIR}/fm_version.sh" bump ;;
         "4."*)
-            # Публикация ФМ в Confluence
+            # Публикация ФМ в Confluence (legacy: из docx; Confluence-only: обновление через Agent 7 или --from-file)
             PROJECT=$(select_project)
-            FM_PATH=$(get_latest_fm "$PROJECT")
+            export PROJECT
+            FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
             if [[ -n "$FM_PATH" ]]; then
                 python3 "${SCRIPTS_DIR}/publish_to_confluence.py" "$FM_PATH"
             else
-                error "ФМ не найдена в проекте $PROJECT"
+                info "ФМ в файлах не найдена (режим Confluence-only). Обновление тела страницы: Agent 7 в Claude Code или: python3 scripts/publish_to_confluence.py --from-file <body.xhtml> --project $PROJECT"
             fi
             ;;
         "5."*)
@@ -343,16 +366,18 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 12. СТАТУС PIPELINE
+# 12. СТАТУС PIPELINE (per-project, AG-14)
 # ═══════════════════════════════════════════════════════════════
 "12."*)
     header "СТАТУС PIPELINE"
+    PROJECT=$(select_project)
+    PIPELINE_STATE=$(get_pipeline_state_file "$PROJECT")
     if [[ -f "${PIPELINE_STATE}" ]] && command -v jq &>/dev/null; then
         jq '.' "${PIPELINE_STATE}"
     elif [[ -f "${PIPELINE_STATE}" ]]; then
         cat "${PIPELINE_STATE}"
     else
-        warn "Pipeline не инициализирован. Запустите полный цикл review."
+        warn "Pipeline не инициализирован для ${PROJECT}. Запустите полный цикл review для этого проекта."
     fi
     ;;
 

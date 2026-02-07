@@ -46,21 +46,25 @@
 
 ---
 
-## 5. Режимы работы с ФМ
+## 5. Режимы работы с ФМ и публикация
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
 | Confluence-only (рекомендуется): ФМ только в Confluence | README (Режимы работы с ФМ) | ✅ |
 | Confluence + FM_DOCUMENTS (legacy): источник истины — Confluence | README, CLAUDE.md | ✅ |
 | quality_gate не требует FM_DOCUMENTS (warn при отсутствии) | scripts/quality_gate.sh | ✅ |
+| Меню 11.4 «Публикация ФМ»: при наличии docx — скрипт по пути к файлу; при Confluence-only — подсказка: Agent 7 или `--from-file` | orchestrate.sh, publish_to_confluence.py | ✅ |
+| Обновление тела страницы без docx: `publish_to_confluence.py --from-file <body.xhtml> --project PROJECT` или Agent 7 в Claude Code | README, скрипт (режим --from-file) | ✅ |
 
 ---
 
-## 6. Критерий завершения согласования
+## 6. Критерий завершения согласования и верификация
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
 | Согласование завершено = статус Approved + нет открытых комментариев | workflows/fm-workflows.md, CLAUDE.md (Бизнес-согласование) | ✅ |
+| Проверка: вручную (Confluence UI) или скриптом по API (комментарии к странице); при автоматизации — критерий «готово» = 0 открытых комментариев | Контракт (этот раздел) | ✅ |
+| После каждого PUT в Confluence — верификация: GET страницы и проверка ключевых фрагментов; обновление считается применённым только после успешной верификации | Agent 7 (инструкция), CLAUDE.md § 6 | ✅ |
 
 ---
 
@@ -72,7 +76,22 @@
 
 ---
 
-## 8. Контекст и папки проектов
+## 8. Библиотеки scripts/lib (AG-13)
+
+| Проверка | Где зафиксировано | Статус |
+|----------|-------------------|--------|
+| confluence_utils.py, contract_validator.py — вне текущего контура публикации; скрипты publish_to_confluence.py и оркестрация их не используют | README, этот раздел | ✅ |
+| При необходимости retry/lock/валидации контрактов — подключать явно и описать в контракте | Контракт (этот раздел) | ✅ |
+
+## 9. Автономный /apply (APPLY_MODE, APPLY_SCOPE)
+
+| Проверка | Где зафиксировано | Статус |
+|----------|-------------------|--------|
+| При env APPLY_MODE=auto агенты 1, 2, 4 не спрашивают «какие правки применить»; применяют по APPLY_SCOPE | Контракт (этот раздел), агенты (инструкция) | ✅ |
+| APPLY_SCOPE=critical_high — применить только CRITICAL и HIGH; all — все; иначе — запросить у пользователя | Контракт | ✅ |
+| Без APPLY_MODE=auto решение о наборе правок — за человеком (эскалация) | CLAUDE.md, агенты | ✅ |
+
+## 10. Контекст и папки проектов
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
@@ -80,6 +99,14 @@
 | Канон контекста проекта: PROJECT_[NAME]/PROJECT_CONTEXT.md | CLAUDE.md (Автосохранение) | ✅ |
 | CHANGES/: new_project создаёт; FM-*-CHANGES.md по правилу в CHANGES/ | new_project.sh, CLAUDE.md § 9 | ✅ |
 | Папки агентов 7/8: AGENT_7_PUBLISHER, AGENT_8_BPMN_DESIGNER (новые); quality_gate принимает и старые имена | new_project.sh, quality_gate.sh | ✅ |
+| Pipeline state: per-project, `projects/PROJECT/.pipeline_state.json`; меню 12 показывает состояние выбранного проекта | scripts/lib/common.sh (get_pipeline_state_file), orchestrate.sh | ✅ |
+
+## 11. Автономный запуск пайплайна (AUTONOMOUS, run_agent.py)
+
+| Проверка | Где зафиксировано | Статус |
+|----------|-------------------|--------|
+| При AUTONOMOUS=1 и ANTHROPIC_API_KEY оркестратор вызывает run_agent.py вместо копирования промпта в буфер | scripts/orchestrate.sh (полный цикл) | ✅ |
+| run_agent.py: --project, --agent 0-8, --command; сохраняет результат в projects/PROJECT/AGENT_X_*/ | scripts/run_agent.py | ✅ |
 
 ---
 

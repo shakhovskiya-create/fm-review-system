@@ -12,6 +12,8 @@ TEMPLATES_DIR="${ROOT_DIR}/templates"
 # Контекст интервью: по проекту или общий (AG-04). Вычисляется при вызове.
 get_context_file() { echo "${ROOT_DIR}/.interview_context_${PROJECT:-global}.txt"; }
 CONTEXT_FILE="${ROOT_DIR}/.interview_context_global.txt"
+# Pipeline state: per-project (AG-14). Глобальный путь — только до вызова init_pipeline_state(project).
+get_pipeline_state_file() { echo "${ROOT_DIR}/projects/${1:-_global}/.pipeline_state.json"; }
 PIPELINE_STATE="${ROOT_DIR}/.pipeline_state.json"
 
 # ─── ЦВЕТА ──────────────────────────────────────────────────
@@ -139,11 +141,13 @@ get_fm_version() {
     echo "$filename" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
 }
 
-# ─── PIPELINE STATE ──────────────────────────────────────────
+# ─── PIPELINE STATE (per-project, AG-14) ──────────────────────
 
 init_pipeline_state() {
     local project="$1"
     local fm_path="$2"
+    PIPELINE_STATE=$(get_pipeline_state_file "$project")
+    mkdir -p "$(dirname "${PIPELINE_STATE}")"
     cat > "${PIPELINE_STATE}" <<EOF
 {
     "project": "${project}",

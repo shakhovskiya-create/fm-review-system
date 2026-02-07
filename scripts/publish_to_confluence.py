@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 """
-FM Publisher for Confluence v2.0
-- Word -> Confluence XHTML
-- Таблицы с цветами
-- Жирные заголовки разделов
-- Warning/Note панели
-- Фильтрация дубликатов
+FM Publisher for Confluence v3.0
+
+Два режима работы:
+  1. IMPORT (одноразовый): python3 publish_to_confluence.py path/to/file.docx
+     - Парсит Word (.docx), конвертирует в XHTML, публикует в Confluence
+     - Используется ОДИН РАЗ при начальном импорте ФМ
+
+  2. UPDATE (Confluence-only): python3 publish_to_confluence.py --from-file body.xhtml --project PROJECT
+     - Публикует готовый XHTML контент в Confluence
+     - Основной рабочий режим после импорта
+
+Безопасность (FC-01): все записи идут через confluence_utils.py:
+  - Файловая блокировка (предотвращает гонки)
+  - Автоматический бекап перед обновлением
+  - Повторы с экспоненциальным отступом при транзиентных ошибках
 """
-import json, urllib.request, ssl, re, sys, os
+import argparse
+import json
+import os
+import re
+import ssl
+import sys
+import urllib.request
 from datetime import datetime
 import docx
 from docx.oxml.ns import qn
@@ -57,52 +72,70 @@ SKIP_AFTER_CODE_SYSTEM = [
     "Автоматические проверки",
 ]
 
-# Document path and project (for PAGE_ID from file)
-if len(sys.argv) > 1:
-    DOC_PATH = sys.argv[1]
+# Парсинг аргументов: --from-file (Confluence-only) или путь к docx (legacy)
+parser = argparse.ArgumentParser(description="Публикация/обновление ФМ в Confluence")
+parser.add_argument("path", nargs="?", help="Путь к .docx (legacy)")
+parser.add_argument("--from-file", metavar="XHTML", help="Путь к файлу с XHTML тела страницы (Confluence-only)")
+parser.add_argument("--project", metavar="PROJECT", help="Имя проекта (для PAGE_ID из projects/PROJECT/CONFLUENCE_PAGE_ID)")
+parser.add_argument("--message", metavar="TEXT", default="Update from script", help="Комментарий версии (version.message)")
+args = parser.parse_args()
+
+FROM_FILE_MODE = bool(args.from_file)
+if FROM_FILE_MODE:
+    project = (args.project or os.environ.get("PROJECT") or "").strip()
+    if not project:
+        print("ERROR: в режиме --from-file нужен --project или env PROJECT")
+        sys.exit(1)
+    PAGE_ID = _get_page_id(project)
+    with open(args.from_file, encoding="utf-8") as f:
+        content = f.read()
+    version_message = args.message or "Update from XHTML (Confluence-only)"
+    print("=" * 60)
+    print("FM PUBLISHER - CONFLUENCE (режим --from-file)")
+    print("=" * 60)
+    print(f"Проект: {project}, PAGE_ID: {PAGE_ID}")
+    print(f"XHTML: {len(content)} символов")
+    # Переход к обновлению Confluence (ниже: общий блок GET + PUT)
+    doc = None
+    FM_NAME = None
 else:
-    print("Usage: python3 publish_to_confluence.py <path-to-docx>")
-    print("Example: python3 publish_to_confluence.py projects/PROJECT_SHPMNT_PROFIT/FM_DOCUMENTS/FM-LS-PROFIT-v1.2.1.docx")
-    sys.exit(1)
+    if not args.path:
+        print("Usage: python3 publish_to_confluence.py <path-to-docx>")
+        print("   или: python3 publish_to_confluence.py --from-file body.xhtml --project PROJECT_NAME")
+        sys.exit(1)
+    DOC_PATH = args.path
+    _project_from_path = None
+    _norm = os.path.normpath(DOC_PATH)
+    if os.sep + "projects" + os.sep in _norm or _norm.startswith("projects" + os.sep):
+        parts = _norm.replace(os.sep, "/").split("projects/")
+        if len(parts) > 1:
+            _project_from_path = parts[1].split("/")[0]
+    PAGE_ID = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
+    print("=" * 60)
+    print("FM PUBLISHER - CONFLUENCE v2.0")
+    print("=" * 60)
+    doc = docx.Document(DOC_PATH)
+    print(f"Документ: {DOC_PATH.split('/')[-1]}")
 
-# PAGE_ID: из файла проекта (по пути к doc или env PROJECT) или из env CONFLUENCE_PAGE_ID
-_project_from_path = None
-_norm = os.path.normpath(DOC_PATH)
-if os.sep + "projects" + os.sep in _norm or _norm.startswith("projects" + os.sep):
-    parts = _norm.replace(os.sep, "/").split("projects/")
-    if len(parts) > 1:
-        _project_from_path = parts[1].split("/")[0]
-PAGE_ID = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
-
-print("=" * 60)
-print("FM PUBLISHER - CONFLUENCE v2.0")
-print("=" * 60)
-
-# Load document
-doc = docx.Document(DOC_PATH)
-print(f"Документ: {DOC_PATH.split('/')[-1]}")
-
-# Extract metadata from filename
-filename = os.path.basename(DOC_PATH)
-match = re.match(r'(FM-[A-Z-]+)-v(\d+\.\d+\.\d+)\.docx', filename)
-if match:
-    FM_CODE = match.group(1)
-    FM_VERSION = "1.0.0"  # Всегда начинаем с 1.0.0 в Confluence
-else:
-    FM_CODE = "FM-UNKNOWN"
-    FM_VERSION = "1.0.0"
-
-# Get title from first paragraph
-FM_NAME = ""
-for para in doc.paragraphs[:5]:
-    if para.style and 'Title' in para.style.name:
-        FM_NAME = para.text.strip()
-        break
-if not FM_NAME:
-    FM_NAME = FM_CODE
-
-print(f"Код: {FM_CODE}, Версия: {FM_VERSION}")
-print(f"Название: {FM_NAME[:50]}...")
+# Extract metadata from filename (только в режиме docx)
+if not FROM_FILE_MODE:
+    filename = os.path.basename(DOC_PATH)
+    match = re.match(r'(FM-[A-Z-]+)-v(\d+\.\d+\.\d+)\.docx', filename)
+    if match:
+        FM_CODE = match.group(1)
+        FM_VERSION = "1.0.0"  # Всегда начинаем с 1.0.0 в Confluence
+    else:
+        FM_CODE = "FM-UNKNOWN"
+        FM_VERSION = "1.0.0"
+    FM_NAME = ""
+    for para in doc.paragraphs[:5]:
+        if para.style and 'Title' in para.style.name:
+            FM_NAME = para.text.strip()
+            break
+    if not FM_NAME:
+        FM_NAME = FM_CODE
+    print(f"Код: {FM_CODE}, Версия: {FM_VERSION}")
+    print(f"Название: {FM_NAME[:50]}...")
 
 # === Color mapping ===
 def hex_to_confluence_color(hex_color):
@@ -341,214 +374,206 @@ def should_skip_paragraph(text, skip_mode):
 
     return False
 
-# === Build content ===
-print("\n=== ПОСТРОЕНИЕ КОНТЕНТА ===")
+# === Build content (только в режиме docx) ===
+if not FROM_FILE_MODE:
+    print("\n=== ПОСТРОЕНИЕ КОНТЕНТА ===")
 
-html_parts = []
-in_list = False
-skip_code_system_descriptions = False
-seen_code_system_table = False
-in_code_system_section = False
-code_system_items = []  # Собираем пары (код, описание)
+    html_parts = []
+    in_list = False
+    skip_code_system_descriptions = False
+    seen_code_system_table = False
+    in_code_system_section = False
+    code_system_items = []  # Собираем пары (код, описание)
 
-# Add header with metadata
-today = datetime.now().strftime("%d.%m.%Y")
-header = f'''<p><strong>Код:</strong> {FM_CODE} | <strong>Версия:</strong> {FM_VERSION} | <strong>Дата:</strong> {today}</p>
+    # Add header with metadata
+    today = datetime.now().strftime("%d.%m.%Y")
+    header = f'''<p><strong>Код:</strong> {FM_CODE} | <strong>Версия:</strong> {FM_VERSION} | <strong>Дата:</strong> {today}</p>
 <hr/>'''
-html_parts.append(header)
+    html_parts.append(header)
 
-# Iterate through document body in order
-for element in doc.element.body:
-    if isinstance(element, CT_P):
-        para = Paragraph(element, doc)
-        text = para.text.strip()
+    # Iterate through document body in order
+    for element in doc.element.body:
+        if isinstance(element, CT_P):
+            para = Paragraph(element, doc)
+            text = para.text.strip()
 
-        if not text:
-            if in_list:
-                html_parts.append('</ul>')
-                in_list = False
-            continue
-
-        # Skip date line
-        if text.startswith("Дата последнего изменения"):
-            continue
-
-        style = para.style.name if para.style else "Normal"
-
-        # === Система кодов: собираем в таблицу ===
-        # Начало секции
-        if "система кодов" in text.lower() and style in ["Heading 2", "Heading 3"]:
-            in_code_system_section = True
-            skip_code_system_descriptions = True
-            html_parts.append(para_to_html(para))  # Заголовок
-            continue
-
-        # Конец секции - генерируем таблицу из собранных items
-        if in_code_system_section and style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
-            in_code_system_section = False
-            skip_code_system_descriptions = False
-            # Генерируем таблицу из собранных кодов
-            if code_system_items:
-                tbl = '<table class="confluenceTable"><tbody>'
-                tbl += '<tr><th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Код</strong></th>'
-                tbl += '<th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Описание</strong></th></tr>'
-                for code_name, desc in code_system_items:
-                    tbl += f'<tr><td class="confluenceTd"><strong>{escape_html(code_name)}</strong></td>'
-                    tbl += f'<td class="confluenceTd">{escape_html(desc)}</td></tr>'
-                tbl += '</tbody></table>'
-                html_parts.append(tbl)
-                code_system_items = []
-            # Продолжаем обработку текущего заголовка (не continue!)
-
-        # Внутри секции - собираем пары
-        if in_code_system_section:
-            # Пропускаем вводный текст "В документе используется..."
-            if text.startswith('В документе') or text.startswith('в документе'):
+            if not text:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
                 continue
-            # Строка с кодом: "• LS-BR-XXX - Описание"
-            code_match = re.match(r'^[•\-]\s*(LS-\w+-XXX)\s*[-–]\s*(.+)', text)
-            if code_match:
-                code_system_items.append((code_match.group(1), code_match.group(2)))
+
+            # Skip date line
+            if text.startswith("Дата последнего изменения"):
                 continue
-            # Строка с описанием (продолжение предыдущего кода)
-            if code_system_items and not text.startswith('•'):
-                # Добавляем к описанию последнего кода
-                last_code, last_desc = code_system_items[-1]
-                # Убираем двойную точку при конкатенации
-                sep = ' ' if last_desc.rstrip().endswith('.') else '. '
-                code_system_items[-1] = (last_code, last_desc.rstrip() + sep + text)
+
+            style = para.style.name if para.style else "Normal"
+
+            # === Система кодов: собираем в таблицу ===
+            # Начало секции
+            if "система кодов" in text.lower() and style in ["Heading 2", "Heading 3"]:
+                in_code_system_section = True
+                skip_code_system_descriptions = True
+                html_parts.append(para_to_html(para))  # Заголовок
                 continue
-            continue  # Пропускаем остальное в этой секции
 
-        # Skip descriptions that are already in code system table (after table 24)
-        if skip_code_system_descriptions and should_skip_paragraph(text, skip_code_system_descriptions):
-            continue
+            # Конец секции - генерируем таблицу из собранных items
+            if in_code_system_section and style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
+                in_code_system_section = False
+                skip_code_system_descriptions = False
+                # Генерируем таблицу из собранных кодов
+                if code_system_items:
+                    tbl = '<table class="confluenceTable"><tbody>'
+                    tbl += '<tr><th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Код</strong></th>'
+                    tbl += '<th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Описание</strong></th></tr>'
+                    for code_name, desc in code_system_items:
+                        tbl += f'<tr><td class="confluenceTd"><strong>{escape_html(code_name)}</strong></td>'
+                        tbl += f'<td class="confluenceTd">{escape_html(desc)}</td></tr>'
+                    tbl += '</tbody></table>'
+                    html_parts.append(tbl)
+                    code_system_items = []
+                # Продолжаем обработку текущего заголовка (не continue!)
 
-        # Reset skip mode on new major section
-        if style in ["Heading 1", "Heading 2"] and not "система кодов" in text.lower():
-            skip_code_system_descriptions = False
+            # Внутри секции - собираем пары
+            if in_code_system_section:
+                # Пропускаем вводный текст "В документе используется..."
+                if text.startswith('В документе') or text.startswith('в документе'):
+                    continue
+                # Строка с кодом: "• LS-BR-XXX - Описание"
+                code_match = re.match(r'^[•\-]\s*(LS-\w+-XXX)\s*[-–]\s*(.+)', text)
+                if code_match:
+                    code_system_items.append((code_match.group(1), code_match.group(2)))
+                    continue
+                # Строка с описанием (продолжение предыдущего кода)
+                if code_system_items and not text.startswith('•'):
+                    # Добавляем к описанию последнего кода
+                    last_code, last_desc = code_system_items[-1]
+                    # Убираем двойную точку при конкатенации
+                    sep = ' ' if last_desc.rstrip().endswith('.') else '. '
+                    code_system_items[-1] = (last_code, last_desc.rstrip() + sep + text)
+                    continue
+                continue  # Пропускаем остальное в этой секции
 
-        # ⚠️ параграфы - оборачиваем в note panel (ЖЁЛТАЯ в Confluence)
-        # Убираем эмодзи - Confluence note panel уже имеет иконку !
-        if text.startswith('⚠') and style == 'Normal':
-            if in_list:
-                html_parts.append('</ul>')
-                in_list = False
-            # Убираем ⚠️ из начала текста
-            clean = re.sub(r'^[⚠️\ufe0f]+\s*', '', text)
-            warning_text = escape_html(clean)
-            html_parts.append(f'''<ac:structured-macro ac:name="note">
+            # Skip descriptions that are already in code system table (after table 24)
+            if skip_code_system_descriptions and should_skip_paragraph(text, skip_code_system_descriptions):
+                continue
+
+            # Reset skip mode on new major section
+            if style in ["Heading 1", "Heading 2"] and not "система кодов" in text.lower():
+                skip_code_system_descriptions = False
+
+            # ⚠️ параграфы - оборачиваем в note panel (ЖЁЛТАЯ в Confluence)
+            # Убираем эмодзи - Confluence note panel уже имеет иконку !
+            if text.startswith('⚠') and style == 'Normal':
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                # Убираем ⚠️ из начала текста
+                clean = re.sub(r'^[⚠️\ufe0f]+\s*', '', text)
+                warning_text = escape_html(clean)
+                html_parts.append(f'''<ac:structured-macro ac:name="note">
 <ac:rich-text-body><p>{warning_text}</p></ac:rich-text-body>
 </ac:structured-macro>''')
-            continue
+                continue
 
-        # Handle lists
-        if "List" in style or text.startswith("*") or text.startswith("-"):
-            if not in_list:
-                html_parts.append('<ul>')
-                in_list = True
-            clean_text = re.sub(r'^[*\-]\s*', '', text)
-            html_parts.append(f'<li>{escape_html(clean_text)}</li>')
-        else:
+            # Handle lists
+            if "List" in style or text.startswith("*") or text.startswith("-"):
+                if not in_list:
+                    html_parts.append('<ul>')
+                    in_list = True
+                clean_text = re.sub(r'^[*\-]\s*', '', text)
+                html_parts.append(f'<li>{escape_html(clean_text)}</li>')
+            else:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                html_parts.append(para_to_html(para))
+
+        elif isinstance(element, CT_Tbl):
             if in_list:
                 html_parts.append('</ul>')
                 in_list = False
-            html_parts.append(para_to_html(para))
 
-    elif isinstance(element, CT_Tbl):
-        if in_list:
-            html_parts.append('</ul>')
-            in_list = False
+            table = Table(element, doc)
 
-        table = Table(element, doc)
-
-        # 1) Мета-таблица (Версия/Дата/Статус/Автор) - подменяем дату
-        if is_meta_table(table):
-            html_parts.append(meta_table_to_html(table))
-            continue
-
-        # 2) История версий - обнуляем, оставляем 1 запись
-        if is_history_table(table) and len(table.rows) > 2:
-            html_parts.append(history_table_to_html(table))
-            continue
-
-        # 3) Warning/Note panel (1x1 colored)
-        if len(table.rows) == 1 and len(table.rows[0].cells) == 1:
-            panel_type = is_warning_table(table)
-            if panel_type:
-                html_parts.append(table_to_html(table, panel_type))
+            # 1) Мета-таблица (Версия/Дата/Статус/Автор) - подменяем дату
+            if is_meta_table(table):
+                html_parts.append(meta_table_to_html(table))
                 continue
 
-        # 4) Regular table
-        html_parts.append(table_to_html(table))
+            # 2) История версий - обнуляем, оставляем 1 запись
+            if is_history_table(table) and len(table.rows) > 2:
+                html_parts.append(history_table_to_html(table))
+                continue
 
-        # Mark code system table
-        first_row_text = ' '.join([c.text for c in table.rows[0].cells]).lower() if table.rows else ''
-        if 'код' in first_row_text and ('наименование' in first_row_text or 'описание' in first_row_text):
-            seen_code_system_table = True
-            skip_code_system_descriptions = True
+            # 3) Warning/Note panel (1x1 colored)
+            if len(table.rows) == 1 and len(table.rows[0].cells) == 1:
+                panel_type = is_warning_table(table)
+                if panel_type:
+                    html_parts.append(table_to_html(table, panel_type))
+                    continue
 
-if in_list:
-    html_parts.append('</ul>')
+            # 4) Regular table
+            html_parts.append(table_to_html(table))
 
-# Join all parts
-content = '\n'.join(html_parts)
-print(f"  Сгенерировано: {len(content)} символов HTML")
+            # Mark code system table
+            first_row_text = ' '.join([c.text for c in table.rows[0].cells]).lower() if table.rows else ''
+            if 'код' in first_row_text and ('наименование' in first_row_text or 'описание' in first_row_text):
+                seen_code_system_table = True
+                skip_code_system_descriptions = True
 
-# === Update Confluence page ===
-print("\n=== ОБНОВЛЕНИЕ CONFLUENCE ===")
+    if in_list:
+        html_parts.append('</ul>')
 
-def api_request(method, endpoint, data=None):
-    """Make Confluence API request"""
-    url = f"{CONFLUENCE_URL}/rest/api/{endpoint}"
+    # Join all parts
+    content = '\n'.join(html_parts)
+    print(f"  Сгенерировано: {len(content)} символов HTML")
 
-    if data:
-        data = json.dumps(data).encode('utf-8')
+# === Update Confluence page (via confluence_utils: lock + backup + retry) ===
+print("\n=== ОБНОВЛЕНИЕ CONFLUENCE (safe_publish) ===")
 
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header('Authorization', f'Bearer {TOKEN}')
-    req.add_header('Content-Type', 'application/json')
+# Import safe Confluence client (FC-01: activated confluence_utils)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
+from confluence_utils import ConfluenceClient, ConfluenceAPIError, ConfluenceLockError
 
-    try:
-        response = urllib.request.urlopen(req, timeout=30)
-        return json.load(response)
-    except urllib.error.HTTPError as e:
-        print(f"API Error: {e.code}")
-        print(e.read().decode()[:500])
-        return None
+client = ConfluenceClient(CONFLUENCE_URL, TOKEN, PAGE_ID)
 
-# Get current page version
-page_info = api_request("GET", f"content/{PAGE_ID}?expand=version")
-if not page_info:
-    print("ОШИБКА: Не удалось получить информацию о странице")
+try:
+    # Acquire lock to prevent concurrent writes from other agents
+    with client.lock():
+        print("  Lock acquired")
+
+        # Get current page info
+        page_info = client.get_page(expand="version")
+        page_title = page_info['title']
+        current_version = page_info['version']['number']
+        print(f"  Страница: {page_title}")
+        print(f"  Текущая версия: {current_version}")
+
+        # Version message
+        version_msg = version_message if FROM_FILE_MODE else "Import from docx"
+
+        # Update with backup + retry (automatic)
+        result, backup_path = client.update_page(
+            new_body=content,
+            version_message=version_msg
+        )
+
+        new_version = result.get('version', {}).get('number', '?')
+        print(f"  Новая версия: {new_version}")
+        if backup_path:
+            print(f"  Бекап: {backup_path.name}")
+        print(f"\n  ГОТОВО!")
+        print(f"URL: {CONFLUENCE_URL}/pages/viewpage.action?pageId={PAGE_ID}")
+
+except ConfluenceLockError as e:
+    print(f"  ОШИБКА БЛОКИРОВКИ: {e}")
+    print("  Другой агент обновляет эту страницу. Повторите позже.")
     sys.exit(1)
 
-current_version = page_info['version']['number']
-page_title = page_info['title']
-print(f"  Страница: {page_title}")
-print(f"  Текущая версия: {current_version}")
-
-# Update page
-update_data = {
-    "id": PAGE_ID,
-    "type": "page",
-    "title": FM_NAME,  # Без версии - используем встроенную версионность Confluence
-    "body": {
-        "storage": {
-            "value": content,
-            "representation": "storage"
-        }
-    },
-    "version": {
-        "number": current_version + 1
-    }
-}
-
-result = api_request("PUT", f"content/{PAGE_ID}", update_data)
-if result:
-    print(f"  Новая версия: {result['version']['number']}")
-    print(f"\n✅ ГОТОВО!")
-    print(f"URL: {CONFLUENCE_URL}/pages/viewpage.action?pageId={PAGE_ID}")
-else:
-    print("❌ ОШИБКА обновления страницы")
+except ConfluenceAPIError as e:
+    print(f"  ОШИБКА API: {e}")
+    if hasattr(e, 'code'):
+        print(f"  HTTP код: {e.code}")
+    print("  Бекап доступен для отката (если был создан).")
     sys.exit(1)

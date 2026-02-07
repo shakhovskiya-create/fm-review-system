@@ -22,6 +22,7 @@
 │     - Передать изменения Agent 7 для обновления в Confluence │
 │       (единственный писатель тела страницы — Agent 7)       │
 │     - Верификация: GET страницы или Agent 7 /verify         │
+│     - При APPLY_MODE=auto: применять по APPLY_SCOPE (critical_high | all) без запроса │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │

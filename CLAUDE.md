@@ -20,23 +20,33 @@
 - `agents/AGENT_8_BPMN_DESIGNER.md` — BPMN-диаграммы в Confluence (generate-bpmn.js + drawio)
 
 **Confluence ресурсы:**
-- `docs/CONFLUENCE_TEMPLATE.md` — шаблон Confluence-страницы ФМ (XHTML, макросы, панели)
-- `docs/CONFLUENCE_REQUIREMENTS.md` — требования к публикации в Confluence
-- `scripts/publish_to_confluence.py` — скрипт первичного импорта и обновления Confluence
-- `workflows/fm-workflows.md` — 5 сквозных сценариев (create, publish, review, update, export)
+- `docs/CONFLUENCE_TEMPLATE.md` - шаблон Confluence-страницы ФМ (XHTML, макросы, панели)
+- `docs/CONFLUENCE_REQUIREMENTS.md` - требования к публикации в Confluence
+- `scripts/publish_to_confluence.py` - обновление Confluence (v3.0, с блокировками и бекапами)
+- `scripts/import_docx.py` - одноразовый импорт DOCX в Confluence (symlink на publish_to_confluence.py)
+- `scripts/lib/confluence_utils.py` - Confluence API клиент (lock, backup, retry)
+- `workflows/fm-workflows.md` - 5 сквозных сценариев (create, publish, review, update, export)
 
-**Документация:**
+**Документация (актуальная):**
 - `README.md` — описание системы
-- `docs/CONTRACT_CONFLUENCE_FM.md` — закрепление: контракт Confluence как единственного источника ФМ (чеклист проверки)
-- `docs/READINESS_CHECK.md` — проверка готовности системы к работе (итоговая верификация)
+- `docs/CONTRACT_CONFLUENCE_FM.md` — контракт Confluence как единственного источника ФМ
+- `docs/LEAD_AUDITOR_FULL_AUDIT.md` — последний аудит системы (AG-12...AG-15)
+- `docs/READINESS_CHECK.md` — проверка готовности системы к работе
 - `docs/PROMPTS.md` — промпты для запуска агентов
 - `docs/CHANGELOG.md` — история изменений
-- `docs/CHAT_CONTEXT.md` — подробный контекст всех чатов (для восстановления)
-- `docs/TODOS.md` — реалтайм-трекер задач
+- `docs/CONFLUENCE_TEMPLATE.md` — шаблон страницы ФМ
+- `docs/CONFLUENCE_REQUIREMENTS.md` — требования к публикации
 
 **Рабочие файлы (обновляются автоматически):**
 - `docs/PROJECT_CONTEXT.md` — контекст проекта, находки, решения
 - `docs/WORKPLAN.md` — план работ, статус задач
+
+**Архив (устаревшие, НЕ ЧИТАТЬ для принятия решений):**
+- `docs/archive/` — CHAT_CONTEXT, AUDIT_REPORT, TODOS, SCENARIOS_RUN_REPORT и др.
+
+**Экспериментальные модули:**
+- `scripts/experimental/run_agent.py` — автономный запуск через Claude API (не в контуре)
+- `scripts/experimental/contract_validator.py` — валидация JSON-выходов (отложено)
 
 ---
 
@@ -689,6 +699,7 @@ X.Y.Z где:
 fm-review-system/
 ├── CLAUDE.md                 ← Этот файл (правила, читается Claude Code автоматически)
 ├── README.md                 ← Описание системы
+├── .env.example              ← Шаблон переменных окружения (скопировать в .env)
 │
 ├── agents/                   ← 9 АГЕНТОВ
 │   ├── AGENT_0_CREATOR.md    ← Создание ФМ
@@ -701,23 +712,30 @@ fm-review-system/
 │   ├── AGENT_7_PUBLISHER.md  ← Публикация в Confluence
 │   └── AGENT_8_BPMN_DESIGNER.md ← BPMN в Confluence
 │
-├── docs/                     ← ДОКУМЕНТАЦИЯ
+├── docs/                     ← ДОКУМЕНТАЦИЯ (актуальная)
 │   ├── PROMPTS.md            ← Промпты для запуска
 │   ├── CHANGELOG.md          ← История изменений
-│   ├── TODOS.md              ← Трекер задач
-│   ├── AUDIT_REPORT.md       ← Аудит системы
-│   ├── CHAT_CONTEXT.md       ← Контекст чатов
+│   ├── CONTRACT_CONFLUENCE_FM.md ← Контракт Confluence-only
+│   ├── LEAD_AUDITOR_FULL_AUDIT.md ← Последний аудит (AG-12...AG-15)
+│   ├── READINESS_CHECK.md    ← Проверка готовности
 │   ├── PROJECT_CONTEXT.md    ← Контекст проекта (авто)
-│   └── WORKPLAN.md           ← План работ (авто)
+│   ├── WORKPLAN.md           ← План работ (авто)
+│   └── archive/              ← Устаревшие документы (НЕ ЧИТАТЬ)
 │
 ├── projects/                 ← РАБОЧИЕ ПРОЕКТЫ
 │   ├── PROJECT_SHPMNT_PROFIT/← Контроль рентабельности
 │   └── PROJECT_SALES_PIPELINE/← Проектные продажи
 │
-├── schemas/                  ← Схемы и шаблоны (Confluence)
+├── schemas/                  ← JSON-схемы (agent-contracts.json v2.0)
 ├── templates/                ← Шаблоны страниц
 ├── workflows/                ← Сквозные сценарии
-└── scripts/                  ← Bash-скрипты запуска
+└── scripts/                  ← Скрипты и утилиты
+    ├── publish_to_confluence.py ← Обновление Confluence (v3.0)
+    ├── import_docx.py         ← Одноразовый импорт DOCX (symlink)
+    ├── lib/
+    │   ├── common.sh          ← Общие bash-функции
+    │   └── confluence_utils.py← Confluence API клиент (lock/backup/retry)
+    └── experimental/          ← Неактивные модули (run_agent.py и др.)
 ```
 
 ---
@@ -750,7 +768,7 @@ fm-review-system/
 
 | Папка | ФМ | Статус | Описание |
 |-------|-----|--------|----------|
-| `projects/PROJECT_SHPMNT_PROFIT/` | FM-SHPMNT-PROFIT v2.5.3 | В работе | Контроль рентабельности при частичных отгрузках |
+| `projects/PROJECT_SHPMNT_PROFIT/` | FM-LS-PROFIT v1.0 | Готов к разработке | Контроль рентабельности при частичных отгрузках |
 | `projects/PROJECT_SALES_PIPELINE/` | — | Планирование | Оптимизация воронки, стадии, сметы |
 
 ### Когда создавать проект
@@ -907,6 +925,48 @@ python3 scripts/publish_to_confluence.py
 | Agent 7 | Confluence (текущая страница) | Управление контентом в Confluence (обновление, версии) |
 | Agent 8 | Agent 7 (Confluence) или ФМ | BPMN-диаграммы через generate-bpmn.js → drawio |
 
+### JSON-сайдкар (_summary.json) - FC-04
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  КАЖДЫЙ АГЕНТ ПОСЛЕ ВЫПОЛНЕНИЯ СОЗДАЕТ _summary.json        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ФАЙЛ: PROJECT_*/AGENT_X_*/[command]_summary.json          │
+│  СХЕМА: schemas/agent-contracts.json → agentSummary        │
+│                                                             │
+│  ОБЯЗАТЕЛЬНЫЕ ПОЛЯ:                                        │
+│     agent       - имя агента (Agent1_Architect и т.д.)     │
+│     command     - выполненная команда (/audit, /auto)      │
+│     timestamp   - ISO 8601 дата-время                      │
+│     fmVersion   - версия ФМ (семантическая, X.Y.Z)        │
+│     project     - имя проекта (PROJECT_SHPMNT_PROFIT)      │
+│     status      - completed | partial | failed             │
+│                                                             │
+│  НЕОБЯЗАТЕЛЬНЫЕ ПОЛЯ:                                      │
+│     counts      - {critical, high, medium, low, total}     │
+│     outputFiles - список созданных Markdown-файлов         │
+│     appliedChanges - количество примененных правок         │
+│     notes       - свободный комментарий                    │
+│                                                             │
+│  ПРИМЕР:                                                    │
+│  {                                                          │
+│    "agent": "Agent1_Architect",                             │
+│    "command": "/audit",                                     │
+│    "timestamp": "2026-02-07T14:30:00Z",                    │
+│    "fmVersion": "1.0.0",                                   │
+│    "project": "PROJECT_SHPMNT_PROFIT",                     │
+│    "status": "completed",                                  │
+│    "counts": {"critical": 2, "high": 5, "total": 12},     │
+│    "outputFiles": ["audit-report-v1.0.md"]                 │
+│  }                                                          │
+│                                                             │
+│  ЗАЧЕМ: Машиночитаемая сводка для конвейера и оркестратора │
+│  Позволяет автоматически определить, прошел ли агент       │
+│  успешно и сколько находок/правок он сделал                │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 🌐 MCP-ИНТЕГРАЦИИ
@@ -1058,14 +1118,49 @@ JSON СХЕМА ПРОЦЕССА:
 
 ```
 scripts/
-├── publish_to_confluence.py ← Обновление страницы ФМ в Confluence
+├── publish_to_confluence.py ← Обновление Confluence (v3.0, confluence_utils)
+├── import_docx.py           ← Одноразовый импорт DOCX → Confluence (symlink)
 ├── orchestrate.sh           ← ГЛАВНЫЙ ЛАУНЧЕР (единая точка входа)
 ├── new_project.sh           ← Создание нового проекта из шаблона
 ├── fm_version.sh            ← Управление версиями (list/diff/bump/log)
 ├── quality_gate.sh          ← Проверка готовности к передаче
 ├── export_bpmn.sh           ← Экспорт BPMN (через Agent 8)
-└── lib/
-    └── common.sh            ← Общие функции (цвета, утилиты, проекты)
+├── lib/
+│   ├── common.sh            ← Общие функции (цвета, утилиты, проекты)
+│   └── confluence_utils.py  ← Confluence клиент: блокировки, бекапы, retry
+└── experimental/            ← Неактивные модули
+    ├── run_agent.py         ← Автономный запуск через Claude API (отложен)
+    └── contract_validator.py← Валидация JSON-схем (отложен)
 ```
 
-**Запуск:** `./scripts/orchestrate.sh` — единая точка входа для всех операций
+**Запуск:** `./scripts/orchestrate.sh` - единая точка входа для всех операций
+
+### Безопасность Confluence (confluence_utils.py)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  КАЖДОЕ ОБНОВЛЕНИЕ CONFLUENCE ПРОХОДИТ ЧЕРЕЗ:               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. БЛОКИРОВКА (file-based lock, fcntl)                    │
+│     - Исключает параллельные записи одной страницы         │
+│     - Таймаут 60 секунд                                    │
+│                                                             │
+│  2. БЕКАП (перед каждым PUT)                               │
+│     - Сохраняет текущее состояние страницы локально        │
+│     - До 10 последних бекапов (.backups/{page_id}/)        │
+│     - Позволяет откатить при ошибке                        │
+│                                                             │
+│  3. RETRY (экспоненциальная задержка)                      │
+│     - 3 попытки, задержки 1s→2s→4s                         │
+│     - Повтор при HTTP 500, 502, 503, 504, 408, 429         │
+│     - При сетевых ошибках (URLError)                       │
+│                                                             │
+│  ИСПОЛЬЗОВАНИЕ:                                             │
+│     from lib.confluence_utils import ConfluenceClient       │
+│     client = ConfluenceClient(url, token, page_id)          │
+│     with client.lock():                                     │
+│         page = client.get_page()                            │
+│         client.update_page(body, "описание изменений")      │
+└─────────────────────────────────────────────────────────────┘
+```
