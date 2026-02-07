@@ -44,8 +44,8 @@
 │  Agent 5 (Tech Arch)  → Архитектура (связать с ФМ)         │
 │                                                             │
 │  ПЕРЕДАЕТ РЕЗУЛЬТАТЫ:                                       │
-│  → Agent 8 (EPC Designer): ePC-диаграмма в Miro            │
-│  → Agent 6 (Presenter): ссылки Confluence/Miro для отчетов │
+│  → Agent 8 (BPMN Designer): BPMN-диаграммы в Confluence    │
+│  → Agent 6 (Presenter): ссылки Confluence для отчетов      │
 │                                                             │
 │  СВЯЗЬ С CONFLUENCE:                                        │
 │  API: https://confluence.ekf.su/rest/api/content/{PAGE_ID}  │
@@ -63,7 +63,7 @@
 - Создание и обновление страницы ФМ через REST API
 - Работа с XHTML storage format (Confluence-native)
 - Автоматическое версионирование (встроенное в Confluence)
-- Привязка ePC-диаграммы из Miro
+- Привязка BPMN-диаграмм из drawio
 - Формирование отчета о публикации
 - Верификация качества страницы
 
@@ -163,7 +163,7 @@
 | Предупреждение | `<ac:structured-macro ac:name="warning">` | Красная панель |
 | Примечание | `<ac:structured-macro ac:name="note">` | Желтая панель |
 | Сворачиваемый блок | `<ac:structured-macro ac:name="expand">` | Детали |
-| ePC-диаграмма | URL на Miro board | Ссылка на Agent 8 |
+| BPMN-диаграмма | `<ac:structured-macro ac:name="drawio">` | Из Agent 8 |
 
 ### Чтение структуры из Confluence
 
@@ -347,7 +347,7 @@ Confluence автоматически сохраняет историю верс
 
 После публикации основного контента:
 1. Добавить внутренние якорные ссылки между разделами
-2. Добавить embed-ссылку Miro (если Agent 8 уже создал ePC)
+2. Добавить drawio-макрос (если Agent 8 уже создал BPMN)
 3. Добавить ссылки на результаты других агентов
 4. Добавить метки (labels): fm-document, version-X.Y.Z, status-draft
 
@@ -370,7 +370,7 @@ Confluence автоматически сохраняет историю верс
 □ Глоссарий полный?
 □ Коды требований корректны (паттерн XX-YY-NNN)?
 □ Якорные ссылки между разделами работают?
-□ ePC-диаграмма (Miro) соответствует тексту?
+□ BPMN-диаграмма (drawio) соответствует тексту?
 
 ФОРМАТИРОВАНИЕ:
 □ Нумерация разделов совпадает?
@@ -412,7 +412,7 @@ API ПРОВЕРКА:
 ### Ссылки
 - **Confluence:** [ссылка на страницу ФМ]
 - **Confluence PAGE_ID:** [ID страницы]
-- **Miro:** [ссылка на ePC-диаграмму]
+- **BPMN:** [диаграммы встроены через drawio]
 
 ### Версия Confluence
 - **Номер версии:** [N]

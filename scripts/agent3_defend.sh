@@ -1,0 +1,12 @@
+#!/bin/bash
+# Интервью для Agent 3 (Defender)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/common.sh"
+check_gum
+
+SOURCE=$(gum choose --header "Откуда замечания?" \
+    "Заказчик/бизнес" \
+    "Результаты Agent 1 (аудит)" \
+    "Результаты Agent 2 (UX)" \
+    "Все выше")
+save_context "Agent3_Defender" "Источник замечаний: ${SOURCE}"

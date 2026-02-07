@@ -32,13 +32,13 @@
 │  │ Quality Gate         │ → проверка готовности                 │
 │  └──────────┬───────────┘                                      │
 │             ▼                                                   │
-│  ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + Miro)                        │
+│  ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence)                                │
 │  ┌──────────────────────┐                                      │
 │  │ Agent 7 (Publisher)  │ → создание в Confluence (Draft)        │
 │  │ /auto                │ → Confluence-страницы заполнены        │
 │  └──────────┬───────────┘                                      │
 │  ┌──────────┴───────────┐                                      │
-│  │ Agent 8 (EPC Design) │ → ePC в Miro → embed в Confluence     │
+│  │ Agent 8 (BPMN)       │ → BPMN в Confluence (drawio)          │
 │  │ /auto                │                                       │
 │  └──────────┬───────────┘                                      │
 │             ▼                                                   │
@@ -77,7 +77,7 @@
 
 # ЭТАП 3: Публикация
 /publish    # Agent 7 → Confluence
-/epc        # Agent 8 → Miro
+/bpmn       # Agent 8 → BPMN diagrams
 
 # ЭТАП 4: Бизнес-согласование
 # "Отправь ФМ на согласование" → Agent 7 меняет статус
@@ -101,7 +101,7 @@
 │      │                                                          │
 │      ▼                                                          │
 │  ┌─────────────────┐                                           │
-│  │ AGENT_7_MIGRATOR │ ← GET /rest/api/content/{PAGE_ID}        │
+│  │ AGENT_7_PUBLISHER│ ← GET /rest/api/content/{PAGE_ID}        │
 │  │ Чтение Confluence│                                           │
 │  └────────┬────────┘                                           │
 │           │                                                     │
@@ -117,15 +117,15 @@
 │      └──► PUT /rest/api/content/{PAGE_ID} (version+1)          │
 │           │                                                     │
 │           ▼                                                     │
-│  [3. Создание ePC]                                              │
+│  [3. Создание BPMN]                                             │
 │      │                                                          │
 │      ▼                                                          │
 │  ┌─────────────────┐                                           │
-│  │ AGENT_8_EPC_DESIGNER │ ← Данные процесса из Confluence      │
-│  │ Создание ePC    │                                           │
+│  │ AGENT_8_BPMN_DESIGNER│ ← Данные процесса из Confluence      │
+│  │ Создание BPMN   │                                           │
 │  └────────┬────────┘                                           │
 │           │                                                     │
-│           └──► Miro: Доска + диаграмма                         │
+│           └──► Confluence: drawio диаграмма                    │
 │           │                                                     │
 │           ▼                                                     │
 │  [4. Валидация]                                                 │
@@ -166,7 +166,7 @@
 │      │                                                          │
 │      ├──► Confluence: Получить страницу ФМ                      │
 │      ├──► Confluence: Получить требования                       │
-│      └──► Miro: Получить ePC (если есть)                       │
+│      └──► Confluence: Получить BPMN (если есть)                │
 │           │                                                     │
 │           ▼                                                     │
 │  ┌─────────────────┐                                           │
@@ -240,14 +240,14 @@
 │           │                                                     │
 │           ├──► Какие разделы затронуты?                        │
 │           ├──► Какие требования меняются?                      │
-│           └──► Нужно ли обновить ePC?                          │
+│           └──► Нужно ли обновить BPMN?                         │
 │           │                                                     │
 │           ▼                                                     │
 │  [2. Внесение изменений]                                        │
 │      │                                                          │
 │      ├──► Confluence: Обновить страницу                         │
 │      ├──► Confluence: Обновить/добавить требования              │
-│      └──► Miro: Обновить ePC (если нужно)                      │
+│      └──► Confluence: Обновить BPMN (если нужно)               │
 │           │                                                     │
 │           ▼                                                     │
 │  [3. Версионирование]                                           │
@@ -304,8 +304,8 @@ PATCH (0.0.X):
 # Добавить требование
 /add-req FM-XXX BR "Название" "Описание"
 
-# Обновить ePC
-/epc-update FM-XXX
+# Обновить BPMN
+/bpmn-update FM-XXX
 ```
 
 ---
@@ -429,23 +429,22 @@ confluence_update_page(page_id: "...", status: "Review")
 confluence_append_body(page_id: "...", body: {storage: {value: "...", representation: "storage"}})
 ```
 
-### Miro MCP (Agent 8 — основной ответственный)
+### BPMN Diagrams (Agent 8 — основной ответственный)
 
 ```
-# Получить DSL-спецификацию
-MIRO:diagram_get_dsl(board_id: "...", diagram_type: "flowchart")
+# Генерация BPMN диаграммы
+node scripts/generate-bpmn.js bpmn-processes/process.json
 
-# Создать ePC-диаграмму
-MIRO:diagram_create(board_id: "...", diagram_dsl: "...", diagram_type: "flowchart")
+# Публикация в Confluence
+python3 scripts/publish-bpmn.py --all --update-page
 
-# Добавить легенду
-MIRO:doc_create(board_id: "...", content: "# Легенда ePC\n...")
-
-# Добавить RACI-таблицу
-MIRO:table_create(board_id: "...", table_title: "RACI", columns: [...])
-
-# Проверить содержимое доски
-MIRO:context_explore(board_url: "https://miro.com/app/board/...")
+# Формат JSON для процесса:
+{
+  "name": "Название процесса",
+  "lanes": [{"id": "role1", "name": "Роль", "color": "#dae8fc"}],
+  "nodes": [{"id": "t1", "type": "task", "label": "Действие", "lane": "role1"}],
+  "edges": [{"from": "start", "to": "t1", "label": ""}]
+}
 ```
 
 ### Filesystem (Claude Code встроенный)

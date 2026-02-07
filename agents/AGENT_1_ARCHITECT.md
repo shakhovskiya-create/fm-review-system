@@ -49,7 +49,7 @@
 │  → Agent 5 (Tech Arch): учитывает мои 1С-замечания        │
 │  → Agent 3 (Defender): защищает ФМ от моих замечаний       │
 │  → Agent 7 (Migrator): мои findings добавляются в Confluence│
-│  → Agent 8 (EPC Designer): уточненная логика для ePC       │
+│  → Agent 8 (BPMN Designer): уточненная логика для BPMN     │
 │                                                             │
 │  МОЙ ФОРМАТ ОТЧЕТА ДОЛЖЕН БЫТЬ МАШИНОЧИТАЕМЫМ:            │
 │  - Каждый finding: ID, severity, категория, описание       │

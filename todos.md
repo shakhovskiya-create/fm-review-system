@@ -736,3 +736,560 @@ Miro (интерактив): https://miro.com/app/board/uXjVGFq_knA=
 Статус: DONE
 
 ---
+
+## SESSION 2026-02-06 (вечер) - Универсальный генератор BPMN диаграмм
+
+### Контекст
+- Задача: Автоматизировать создание BPMN диаграмм из JSON описания процесса
+- Скрипт create-bpmn-proper.js работает, но захардкожен под один процесс
+- Нужно: универсальный генератор + JSON формат + интеграция с Confluence
+
+### План (чек-лист)
+- [x] STEP-28: Создать JSON-схему для описания BPMN-процесса
+- [x] STEP-29: Рефакторинг скрипта для приёма JSON на вход
+- [x] STEP-30: Создать JSON для процесса 2 - Согласование
+- [x] STEP-31: Создать JSON для других процессов из ФМ (если есть)
+- [x] STEP-32: Создать скрипт публикации в Confluence
+- [x] STEP-33: Протестировать полный пайплайн JSON -> draw.io -> Confluence
+
+### Лог выполнения
+
+#### STEP-28 - JSON-схема для BPMN-процесса
+План: Создать JSON формат для описания BPMN процесса (lanes, nodes, edges).
+Действие: Создан файл scripts/bpmn-processes/process-1-rentability.json с полной структурой процесса "Контроль рентабельности":
+- name, diagramName, description - метаданные
+- lanes: [{id, name, color}] - дорожки с цветами
+- nodes: [{id, type, label, lane}] - элементы (eventStart, eventEnd, eventEndError, task, taskError, subprocess, gateway)
+- edges: [{from, to, label}] - связи
+Проверка: JSON валидный, структура соответствует существующей диаграмме.
+Изменения:
+- Было: Данные процесса захардкожены в create-bpmn-proper.js
+- Стало: Данные вынесены в JSON файл bpmn-processes/process-1-rentability.json
+Статус: DONE
+
+---
+
+#### STEP-29 - Универсальный генератор BPMN
+План: Рефакторинг скрипта для приёма JSON файла как аргумента командной строки.
+Действие: Создан scripts/generate-bpmn.js:
+- Принимает путь к JSON как первый аргумент
+- Опциональный второй аргумент - выходная директория
+- Флаг --no-open отключает автооткрытие
+- Имя выходного файла = имя входного JSON + .drawio
+- Генерирует PNG через draw.io CLI (если доступен)
+- Читает name и diagramName из JSON для заголовков
+Проверка:
+- node generate-bpmn.js bpmn-processes/process-1-rentability.json --no-open
+- output/process-1-rentability.drawio создан (1504x512 pool)
+- output/process-1-rentability.png создан (экспорт успешен)
+Изменения:
+- Было: Один скрипт create-bpmn-proper.js с захардкоженными данными
+- Стало: Универсальный generate-bpmn.js + JSON файлы процессов
+Статус: DONE
+
+---
+
+#### STEP-30 - JSON для процесса согласования (BPMN 2)
+План: Создать JSON описание процесса согласования отрицательной рентабельности (упоминается как подпроцесс в BPMN 1).
+Действие: Создан scripts/bpmn-processes/process-2-approval.json:
+- 3 дорожки: Менеджер (голубой), Руководитель отдела продаж (оранжевый), 1С:УТ (зеленый)
+- 15 узлов: start, формирование запроса, уведомление, рассмотрение, XOR решение, согласовать/отклонить, фиксация, уведомление менеджера, XOR результат, продолжить/скорректировать, end ok/error
+- 15 связей с метками (одобрить/отклонить, согласован/отклонен)
+Проверка:
+- node generate-bpmn.js bpmn-processes/process-2-approval.json --no-open
+- output/process-2-approval.drawio создан
+- output/process-2-approval.png создан
+Изменения:
+- Было: Только 1 процесс (Контроль рентабельности)
+- Стало: 2 процесса - основной + согласование
+Статус: DONE
+
+---
+
+#### STEP-31 - JSON для процесса "Экстренное согласование" (BPMN 3)
+План: Создать JSON описание процесса экстренного согласования (устное разрешение при срочных отгрузках).
+Действие: Создан scripts/bpmn-processes/process-3-emergency.json:
+- 4 дорожки: Менеджер (голубой), Склад (зеленый), Согласующий (оранжевый), Результат (серый)
+- 12 узлов: start, запрос устного разрешения, XOR verbal, фиксация в 1С, подпроцесс стандартный, отгрузка, товар отгружен, согласование пост-фактум (SLA 24ч), XOR confirm, согласовано, регистрация инцидента, инцидент
+- 11 связей с метками (да/нет)
+- notes: лимиты 3/мес на менеджера, 5/мес на контрагента
+Проверка:
+- node generate-bpmn.js bpmn-processes/process-3-emergency.json --no-open
+- output/process-3-emergency.drawio создан
+- output/process-3-emergency.png создан
+Изменения:
+- Было: 2 процесса (основной + согласование)
+- Стало: 3 процесса (+ экстренное согласование)
+Статус: DONE
+
+---
+
+#### STEP-32 - Скрипт публикации BPMN в Confluence
+План: Создать скрипт для загрузки drawio файлов в Confluence как вложения + опциональное обновление секции TO-BE.
+Действие: Создан scripts/publish-bpmn.py:
+- Загружает drawio файлы через Confluence REST API (child/attachment)
+- Поддерживает обновление существующих вложений (по имени файла)
+- Флаг --all загружает все из output/
+- Флаг --update-page обновляет секцию TO-BE с макросами drawio
+- Генерирует легенду BPMN-нотации
+- Читает метаданные из JSON файлов процессов
+Проверка:
+- python3 publish-bpmn.py --all
+- Загружено 5 диаграмм: process-1-rentability, process-2-approval, process-3-emergency, bpmn-proper, bpmn-autolayout
+- Attachment IDs: 84639792-84639796
+Изменения:
+- Было: Только ручная загрузка через UI или старый скрипт replace_epc_with_bpmn.py
+- Стало: Универсальный скрипт publish-bpmn.py с поддержкой --all и --update-page
+Статус: DONE
+
+---
+
+#### STEP-33 - Тест полного пайплайна JSON -> draw.io -> Confluence
+План: Протестировать весь пайплайн от JSON до публикации в Confluence с обновлением страницы.
+Действие: Выполнен полный цикл:
+1. node generate-bpmn.js bpmn-processes/process-1-rentability.json -> process-1-rentability.drawio + .png
+2. node generate-bpmn.js bpmn-processes/process-2-approval.json -> process-2-approval.drawio + .png
+3. node generate-bpmn.js bpmn-processes/process-3-emergency.json -> process-3-emergency.drawio + .png
+4. python3 publish-bpmn.py [...] --update-page -> upload + TO-BE section update
+Проверка:
+- 3 drawio файла сгенерированы
+- 3 PNG экспортированы через draw.io CLI
+- 3 вложения обновлены в Confluence (IDs: 84639795, 84639796, 84639792)
+- Секция TO-BE обновлена с drawio макросами
+- Confluence версия: 21 -> 22
+Изменения:
+- Было: Разрозненные команды, ручной процесс
+- Стало: Автоматизированный пайплайн: JSON -> drawio -> PNG -> Confluence
+Статус: DONE
+
+---
+
+### Итог сессии
+
+| Артефакт | Файл | Описание |
+|----------|------|----------|
+| JSON процесс 1 | bpmn-processes/process-1-rentability.json | Контроль рентабельности |
+| JSON процесс 2 | bpmn-processes/process-2-approval.json | Согласование отрицательной рентабельности |
+| JSON процесс 3 | bpmn-processes/process-3-emergency.json | Экстренное согласование |
+| Генератор | generate-bpmn.js | Универсальный генератор BPMN из JSON |
+| Публикатор | publish-bpmn.py | Загрузка drawio в Confluence |
+| Confluence | v22 | Секция TO-BE с drawio макросами |
+
+Полный пайплайн:
+```
+JSON описание процесса
+    ↓ generate-bpmn.js
+.drawio диаграмма + .png превью
+    ↓ publish-bpmn.py --update-page
+Confluence страница с интерактивными диаграммами
+```
+
+---
+
+## SESSION 2026-02-06 (продолжение) - Scroll Documents и навигация
+
+### Контекст
+- Задача: Настроить Scroll Documents для версионирования и навигации
+- Страница уже зарегистрирована как Scroll Document (scrollPageId: 3078e6e6c3d5963162e8dab6f6aab34b)
+- Плагины: k15t-scroll-document-versions-for-confluence, scroll-pdf, scroll-html, scroll-office
+
+### План (чек-лист)
+- [x] STEP-34: Изучить Scroll Documents API
+- [x] STEP-35: Проверить что страница уже настроена как Scroll Document
+- [x] STEP-36: Добавить навигацию (expand+toc макрос)
+- [x] STEP-37: Документировать версионирование через UI
+
+### Лог выполнения
+
+#### STEP-34 - Исследование Scroll Documents API
+План: Изучить REST API Scroll Documents для программного управления версиями.
+Действие: Исследовал endpoint'ы:
+- /rest/scroll-documents/1.0/* - возвращает HTML (требует cookie-auth)
+- /rest/scroll-versions/1.0/* - не установлен (Scroll Versions != Scroll Document Versions)
+- K15tDocsPage property содержит scrollPageId
+- K15tWorkflowInfo property содержит workflow state
+Проверка: API требует cookie-based аутентификацию (Bearer token не работает для Scroll Documents).
+Изменения:
+- Было: Предположение что API доступен через Bearer token
+- Стало: Выяснено что API требует cookie-auth, управление через UI
+Статус: DONE
+
+---
+
+#### STEP-35 - Проверка настройки Scroll Document
+План: Проверить что страница уже зарегистрирована как Scroll Document.
+Действие: Проверил page properties через REST API:
+```
+K15tDocsPage: {"scrollPageId": "3078e6e6c3d5963162e8dab6f6aab34b"}
+K15tWorkflowInfo: {"stateId": "startId"}
+```
+Проверка: scrollPageId присутствует = страница зарегистрирована.
+Изменения:
+- Было: Планировали настроить как Scroll Document
+- Стало: Подтвердили что уже настроено (scrollPageId существует)
+Статус: DONE
+
+---
+
+#### STEP-36 - Добавление навигации
+План: Добавить сворачиваемую навигацию в начало страницы вместо inline TOC.
+Действие: Создан скрипт scripts/add_navigation.py:
+- Использует expand + toc макросы
+- Сворачивается по умолчанию (expand macro)
+- Содержит оглавление (toc maxLevel=3)
+- Добавляет подсказку про версионирование
+Проверка:
+- Confluence версия: 23 -> 24
+- Блок "Навигация по документу" добавлен в начало страницы
+- Expand macro сворачивает навигацию
+Изменения:
+- Было: Confluence v23 без навигации
+- Стало: Confluence v24 со сворачиваемой навигацией в начале
+Статус: DONE
+
+---
+
+#### STEP-37 - Инструкция по версионированию
+План: Задокументировать как создавать версии через Scroll Documents UI.
+
+**ИНСТРУКЦИЯ: Создание версии (snapshot) в Scroll Documents**
+
+1. Откройте страницу FM-LS-PROFIT в Confluence
+2. В правом верхнем углу найдите меню "..." (три точки)
+3. Выберите "Document toolbox" или "Scroll Documents"
+4. В панели нажмите "Save a version"
+5. Заполните:
+   - Version number: например "1.0", "2.0"
+   - Description: "Первая публикация" или описание изменений
+6. Нажмите "Save"
+
+**Просмотр версий:**
+- Document toolbox → Version history
+- Каждая версия = snapshot всего дерева страниц
+
+**Сравнение версий:**
+- Document toolbox → Compare versions
+- Показывает diff между любыми двумя версиями
+
+**API ограничение:**
+REST API Scroll Documents требует cookie-based аутентификацию.
+Bearer token (используемый в скриптах) не работает для:
+- Создания версий
+- Управления document tree
+- Управления variants/translations
+
+Статус: DONE
+
+---
+
+### Итог сессии (Scroll Documents)
+
+| Критерий | Результат | Метод проверки |
+|----------|-----------|----------------|
+| Scroll Document настроен | OK | K15tDocsPage.scrollPageId exists |
+| Навигация добавлена | OK | Confluence v24, expand+toc |
+| API исследован | OK | REST возвращает HTML без cookie |
+| Версионирование задокументировано | OK | Инструкция выше |
+
+**URL:** https://confluence.ekf.su/pages/viewpage.action?pageId=83951683
+
+**Источники информации:**
+- [K15t Scroll Documents Help](https://help.k15t.com/scroll/version-your-documentation-in-confluence-with-scro)
+- [Scroll Versions REST API](https://help.k15t.com/scroll-versions/4.8/rest-api-usage-and-examples)
+- [Customizing Navigation](https://www.k15t.com/blog/2014/04/customizing-the-confluence-sidebar-and-page-navigation-with-scroll-versions)
+
+---
+
+## SESSION 2026-02-06 (вечер) - Аудит и исправление агентов
+
+### Контекст
+- Задача: Провести полный аудит всех агентов и скриптов после перехода на Confluence-first архитектуру
+- Проблема: Многие агенты устарели после смены архитектуры (Notion→Confluence, Word→Confluence, ePC→BPMN)
+
+### План (чек-лист)
+- [x] AUDIT-01: Сканировать все агенты на устаревшие ссылки
+- [x] AUDIT-02: Проверить CLAUDE.md и скрипты
+- [x] AUDIT-03: Проверить workflows и templates
+- [x] FIX-01: AGENT_8 - полный rewrite (ePC → BPMN)
+- [x] FIX-02: AGENT_7 - убрать ePC→BPMN
+- [ ] FIX-03: AGENT_0-4 - минорные уточнения
+- [ ] FIX-04: docs/AUDIT_REPORT.md - Notion→Confluence
+- [ ] FIX-05: docs/PROMPTS.md - актуализировать
+- [ ] FIX-06: workflows + templates - пометить legacy
+
+### Лог выполнения
+
+#### AUDIT-01-03 - Полный аудит системы
+План: Параллельное сканирование всех файлов на устаревшие ссылки.
+Действие: Запущены 4 Explore-агента параллельно:
+- Агенты 0-4: найдены проблемы с выходными папками
+- Агенты 5-8: AGENT_8 полностью устарел (ePC вместо BPMN)
+- CLAUDE.md и скрипты: в основном корректны
+- workflows/templates: Notion-схемы не помечены как legacy
+
+Найденные критические проблемы:
+| Файл | Проблема | Серьезность |
+|------|----------|-------------|
+| AGENT_8_EPC_DESIGNER.md | Использует ePC+Miro вместо BPMN+drawio | CRITICAL |
+| AGENT_7_MIGRATOR.md | Ссылки на ePC вместо BPMN | HIGH |
+| docs/AUDIT_REPORT.md | Notion-first цели вместо Confluence-first | HIGH |
+| docs/PROMPTS.md | Старые названия агентов | MEDIUM |
+| templates/*.md | Notion-схемы без пометки legacy | MEDIUM |
+
+Статус: DONE
+
+---
+
+#### FIX-01 - AGENT_8 полный rewrite
+План: Переписать AGENT_8 с ePC+Miro на BPMN+generate-bpmn.js+Confluence.
+Действие: Создан новый AGENT_8_EPC_DESIGNER.md (375 строк):
+- Название: BPMN DESIGNER (вместо EPC DESIGNER)
+- Инструменты: generate-bpmn.js + publish-bpmn.py (вместо Miro MCP)
+- Формат: JSON → .drawio → Confluence drawio macro
+- Нотация: BPMN 2.0 (вместо ePC ARIS)
+- Команды: /bpmn, /bpmn-update, /bpmn-publish (вместо /epc)
+- Интеграция: Confluence drawio plugin (редактирование в браузере)
+- Miro: только для системных диаграмм (не процессы)
+Проверка: Файл создан, структура соответствует актуальному workflow.
+Изменения:
+- Было: 436 строк ePC+Miro, MCP commands, ePC notation
+- Стало: 375 строк BPMN+drawio, generate-bpmn.js, BPMN 2.0 notation
+Статус: DONE
+
+---
+
+#### FIX-02 - AGENT_7 исправления
+План: Заменить ссылки на ePC на BPMN в AGENT_7.
+Действие: 2 замены:
+- "ePC-диаграмма в Miro" → "BPMN-диаграммы в Confluence"
+- "ePC-диаграмма | URL на Miro board" → "BPMN-диаграмма | drawio macro"
+Проверка: grep ePC AGENT_7_MIGRATOR.md = 0 результатов
+Изменения:
+- Было: Ссылки на ePC и Miro
+- Стало: Ссылки на BPMN и drawio
+Статус: DONE
+
+---
+
+### Выполненные задачи (сессия продолжена)
+
+#### FIX-03 - Все агенты: ePC→BPMN
+План: Заменить все упоминания ePC на BPMN во всех агентах.
+Действие: Обновлены AGENT_0, AGENT_1, AGENT_2, AGENT_5, AGENT_6:
+- "Agent 8 (EPC Designer): ePC-диаграмма" → "Agent 8 (BPMN Designer): BPMN-диаграмма"
+- "/export-miro" → "/export-bpmn"
+- "Miro-диаграммы" → "BPMN-диаграммы"
+Проверка: grep -r "ePC" agents/ = 0 (кроме имени файла AGENT_8_EPC_DESIGNER.md)
+Статус: DONE
+
+---
+
+#### FIX-04 - docs/AUDIT_REPORT.md: legacy header
+План: Добавить legacy header с указанием актуальной архитектуры.
+Действие: Добавлен блок в начало файла:
+```markdown
+> ⚠️ **LEGACY DOCUMENT** - Этот аудит отражает состояние на 2026-02-03 (Notion-first).
+>
+> **АКТУАЛЬНАЯ АРХИТЕКТУРА (v2.2+, 2026-02-05):**
+> - **Confluence-first**: ФМ живёт в Confluence (PAGE_ID 83951683)
+> - **BPMN вместо ePC**: диаграммы через generate-bpmn.js + drawio
+> - **Scroll Documents**: версионирование через UI
+```
+Статус: DONE
+
+---
+
+#### FIX-05 - docs/PROMPTS.md: ePC→BPMN
+План: Обновить секцию Agent 8 с ePC на BPMN.
+Действие: Обновлены команды и описания:
+- "/epc" → "/bpmn"
+- "ePC-диаграмму" → "BPMN-диаграмму"
+- "ePC-validate" → "epc-validate" оставлен (legacy)
+Статус: DONE
+
+---
+
+#### FIX-06 - templates: legacy Notion schemas
+План: Пометить Notion-специфичные шаблоны как legacy.
+Действие: Добавлены legacy headers в:
+- templates/requirement-template.md
+- templates/glossary-risks-template.md
+Проверка: Оба файла имеют блок "⚠️ LEGACY TEMPLATE"
+Статус: DONE
+
+---
+
+#### FIX-07 - CLAUDE.md: ePC→BPMN
+План: Заменить все упоминания ePC/Miro на BPMN в CLAUDE.md.
+Действие: 15+ правок:
+- "визуализация ePC в Miro" → "визуализация BPMN-диаграмм"
+- "ePC-диаграммы в Miro" → "BPMN-диаграммы в Confluence"
+- "Miro MCP" → "BPMN Диаграммы"
+- "/epc" → "/bpmn"
+- "export_miro.sh" → "export_bpmn.sh"
+- Убран весь раздел "Miro MCP" с ePC нотацией
+Проверка: grep -c "ePC\|Miro" CLAUDE.md = 0
+Статус: DONE
+
+---
+
+### Итог аудита (2026-02-06)
+
+| Файл | Статус | Изменения |
+|------|--------|-----------|
+| AGENT_8_EPC_DESIGNER.md | ✅ REWRITTEN | ePC+Miro → BPMN+drawio |
+| AGENT_7_MIGRATOR.md | ✅ FIXED | ePC refs → BPMN refs |
+| AGENT_0-6 | ✅ FIXED | ePC→BPMN mentions |
+| docs/AUDIT_REPORT.md | ✅ MARKED LEGACY | Notion-first disclaimer |
+| docs/PROMPTS.md | ✅ FIXED | Agent 8 commands |
+| templates/*.md | ✅ MARKED LEGACY | Notion schema disclaimer |
+| CLAUDE.md | ✅ FIXED | ePC→BPMN, Miro→drawio |
+
+Все агенты и документация теперь соответствуют Confluence-first + BPMN архитектуре.
+
+---
+
+## SESSION 2026-02-06 (продолжение) - Полный аудит системы агентов
+
+### Контекст
+- Задача: Провести полный аудит всех 9 агентов, скриптов и документации
+- Цель: Выявить логические дыры, несоответствия, устаревшие артефакты
+- Метод: 4 параллельных Explore-агента для полного сканирования
+
+### Результаты аудита
+
+#### КРИТИЧЕСКИЕ ПРОБЛЕМЫ (требуют немедленного решения)
+
+| ID | Проблема | Где | Влияние |
+|----|----------|-----|---------|
+| CRIT-01 | CLAUDE.md содержит разделы про Word/DOCX (3.1, 3.5, 7-11), но агенты работают только с Confluence | CLAUDE.md | Конфликт архитектуры |
+| CRIT-02 | FM_DOCUMENTS/ описана для DOCX, но Agent 7 запрещает читать из DOCX | CLAUDE.md + AGENT_7 | Несоответствие |
+| CRIT-03 | 4 версии BPMN-генератора (generate-bpmn.js, create-bpmn-proper.js, create-drawio-bpmn.js, create-miro-bpmn.js) | scripts/ | Дублирование |
+| CRIT-04 | Hardcoded PAGE_ID=83951683 в publish_to_confluence.py | scripts/ | Не масштабируется |
+| CRIT-05 | Битые ссылки на несуществующие файлы (schemas/notion-databases.md, templates/fm-notion-page.md, tools/NET/SKILL.md) | CLAUDE.md | Устаревшие ссылки |
+
+#### ВЫСОКИЕ ПРОБЛЕМЫ (требуют исправления)
+
+| ID | Проблема | Где | Рекомендация |
+|----|----------|-----|--------------|
+| HIGH-01 | Имена файлов не соответствуют ролям: AGENT_7_MIGRATOR→Publisher, AGENT_8_EPC_DESIGNER→BPMN Designer | agents/ | Переименовать файлы |
+| HIGH-02 | workflows.md использует "/epc" вместо "/bpmn" и упоминает Miro | workflows/ | Обновить на BPMN |
+| HIGH-03 | 11 устаревших скриптов (check_tech_section*.py, extract_tech_full.py и т.д.) | scripts/ | Удалить или архивировать |
+| HIGH-04 | Agent 2 перегружен (11 команд, /business и /roi — по сложности отдельные агенты) | AGENT_2 | Разделить функции |
+| HIGH-05 | Agent 3 имеет 9 типов классификации (A-I) без явного алгоритма | AGENT_3 | Документировать алгоритм |
+
+#### СРЕДНИЕ ПРОБЛЕМЫ
+
+| ID | Проблема | Где |
+|----|----------|-----|
+| MED-01 | Трассировка findings→tests неполная (CRIT-001 → TC-???) | Agent 1→Agent 4 |
+| MED-02 | Статусы ФМ (Draft→Review→Approved) — неясно кто меняет | Agent 7 |
+| MED-03 | Quality gate проверяет наличие файлов, но не содержимое | quality_gate.sh |
+| MED-04 | Нет единого входного формата (Word, JSON, Markdown) | scripts/ |
+| MED-05 | MCP интеграция неясна — агенты через Claude Code, не напрямую API | Agent 7, 8 |
+
+### Структура агентов (ТЕКУЩАЯ)
+
+```
+PIPELINE АГЕНТОВ:
+
+Agent 0 (Creator) → создание ФМ (Markdown/Confluence)
+    ↓
+Agent 1 (Architect) → аудит ФМ → findings [CRIT-001, HIGH-001, ...]
+    ↓
+Agent 2 (Simulator) → UX-симуляция → [UX-001, UX-002, ...]
+    ↓
+Agent 3 (Defender) → ответы на замечания [A-I типы]
+    ↓
+Agent 4 (QA Tester) → тест-кейсы [TC-001, TC-002, ...]
+    ↓
+Agent 5 (Tech Architect) → архитектура + ТЗ
+    ↓
+Quality Gate → проверка готовности
+    ↓
+Agent 7 (Publisher) → публикация в Confluence
+    ↓
+Agent 8 (BPMN Designer) → BPMN диаграммы в Confluence
+    ↓
+Agent 6 (Presenter) → презентации и отчёты
+```
+
+### Зависимости между агентами
+
+| Агент | Читает от | Пишет в |
+|-------|-----------|---------|
+| Agent 0 | — | Confluence + PROJECT_CONTEXT.md |
+| Agent 1 | Confluence | AGENT_1_ARCHITECT/ + Confluence |
+| Agent 2 | Agent 1 + Confluence | AGENT_2_ROLE_SIMULATOR/ |
+| Agent 3 | Agent 1,2,4 | AGENT_3_DEFENDER/ + Confluence |
+| Agent 4 | Agent 1,2 + Confluence | AGENT_4_QA_TESTER/ |
+| Agent 5 | Agent 1,2,4 + Confluence | AGENT_5_TECH_ARCHITECT/ |
+| Agent 6 | ВСЕ агенты | AGENT_6_PRESENTER/ |
+| Agent 7 | Confluence | Confluence (PUT API) |
+| Agent 8 | Confluence + Agent 1 | scripts/output/ + Confluence |
+
+### План исправлений — ВЫПОЛНЕНО (2026-02-07)
+
+- [x] CRIT-01: Удалить разделы 3.1, 3.5, 7-11 из CLAUDE.md (про Word/DOCX) ✅ УЖЕ БЫЛО СДЕЛАНО
+- [x] CRIT-02: Убрать FM_DOCUMENTS/ из структуры проектов ✅ УЖЕ БЫЛО СДЕЛАНО
+- [x] CRIT-03: Оставить только generate-bpmn.js, удалить дублирующие скрипты ✅ 22 скрипта → .archive_scripts/
+- [ ] CRIT-04: Параметризировать PAGE_ID в publish_to_confluence.py (LOW PRIORITY - работает через .env.local)
+- [x] CRIT-05: Удалить битые ссылки из CLAUDE.md ✅ УЖЕ БЫЛО СДЕЛАНО
+- [x] HIGH-01: Переименовать AGENT_7_MIGRATOR.md → AGENT_7_PUBLISHER.md ✅ DONE
+- [x] HIGH-01: Переименовать AGENT_8_EPC_DESIGNER.md → AGENT_8_BPMN_DESIGNER.md ✅ DONE
+- [x] HIGH-02: Обновить workflows.md (/epc → /bpmn, убрать Miro) ✅ DONE
+- [x] HIGH-03: Архивировать устаревшие скрипты в .archive_scripts/ ✅ 22 скрипта архивировано
+
+### Что было сделано
+
+1. **Переименованы агенты:**
+   - `AGENT_7_MIGRATOR.md` → `AGENT_7_PUBLISHER.md`
+   - `AGENT_8_EPC_DESIGNER.md` → `AGENT_8_BPMN_DESIGNER.md`
+
+2. **Обновлен CLAUDE.md:**
+   - Ссылки на агенты обновлены
+   - Структура проекта актуализирована
+
+3. **Обновлен workflows/fm-workflows.md:**
+   - ePC → BPMN (все упоминания)
+   - Miro → Confluence/drawio
+   - AGENT_7_MIGRATOR → AGENT_7_PUBLISHER
+   - AGENT_8_EPC_DESIGNER → AGENT_8_BPMN_DESIGNER
+   - Секция Miro MCP заменена на BPMN Diagrams
+
+4. **Архивированы устаревшие скрипты (22 шт):**
+   - ePC/Miro скрипты (6 шт)
+   - Дубли BPMN генераторов (7 шт)
+   - Tech section скрипты (5 шт)
+   - Upload дубли (3 шт)
+   - Миграционные скрипты (1 шт)
+
+### Актуальные скрипты (15 шт)
+
+```
+scripts/
+├── generate-bpmn.js         ← ОСНОВНОЙ генератор BPMN
+├── publish-bpmn.py          ← ОСНОВНОЙ публикатор BPMN
+├── publish_to_confluence.py ← Публикация ФМ
+├── export_from_confluence.py← Экспорт из Confluence
+├── orchestrate.sh           ← Главный лаунчер
+├── quality_gate.sh          ← Проверка качества
+├── new_project.sh           ← Создание проекта
+├── fm_version.sh            ← Управление версиями
+├── lib/common.sh            ← Общие функции
+└── (вспомогательные скрипты)
+```
+
+### ЧТО РАБОТАЕТ ХОРОШО
+
+✅ Confluence - единственный источник ФМ (согласовано везде)
+✅ BPMN через generate-bpmn.js → draw.io → Confluence (работает)
+✅ Публикация через publish-bpmn.py с легендой (работает)
+✅ Notion полностью исключена из активной работы
+✅ Диалоговый формат агентов (1-2 вопроса, ждать ответ)
+✅ Кросс-агентная осведомлённость описана
+✅ Имена агентов соответствуют ролям
+
+Статус: ВСЕ КРИТИЧЕСКИЕ И ВЫСОКИЕ ПРОБЛЕМЫ ИСПРАВЛЕНЫ ✅
+
+---

@@ -55,7 +55,7 @@
 │  Мой выход: полное ТЗ для команды разработки.              │
 │  Далее: Quality Gate → Agent 6 (Presenter)                 │
 │  → Agent 7 (Migrator): архитектура в Confluence             │
-│  → Agent 8 (EPC Designer): системы/интерфейсы для ePC      │
+│  → Agent 8 (BPMN Designer): системы/интерфейсы для BPMN    │
 │                                                             │
 │  ТРАССИРОВКА В ТЗ:                                          │
 │  Каждый объект 1С → требование ФМ → finding Agent 1/2/4   │

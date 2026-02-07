@@ -45,7 +45,7 @@
 │  → Agent 4 (QA Tester): тесты на моих требованиях          │
 │  → Agent 5 (Tech Arch): архитектура по моей ФМ             │
 │  → Agent 7 (Migrator): миграция моей ФМ в Confluence       │
-│  → Agent 8 (EPC Designer): ePC-диаграмма по моему процессу │
+│  → Agent 8 (BPMN Designer): BPMN-диаграмма по моему процессу│
 │                                                             │
 │  ПОЭТОМУ Я СОЗДАЮ ФМ С УЧЕТОМ DOWNSTREAM:                  │
 │  - Четкие требования (чтобы Agent 1 мог проверить)         │
@@ -477,7 +477,7 @@
 4. Запускаю самопроверку (/check)
 5. Передаю контент Agent 7 для публикации в Confluence
 6. Формирую машиночитаемый отчет для Agent 1 (следующий в pipeline)
-7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Confluence) → Agent 8 (Miro)
+7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Confluence) → Agent 8 (BPMN)
 
 ---
 

@@ -30,7 +30,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 0: CREATOR (Создание новой ФМ)
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_0_CREATOR.md
+Прочитай и используй роль из agents/AGENT_0_CREATOR.md
 
 /new
 ```
@@ -42,7 +42,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 1: АРХИТЕКТОР (Полный аудит ФМ)
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_1_ARCHITECT.md
+Прочитай и используй роль из agents/AGENT_1_ARCHITECT.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ФМ: Confluence PAGE_ID 83951683 (https://confluence.ekf.su)
@@ -57,7 +57,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 2: СИМУЛЯТОР РОЛЕЙ
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_2_ROLE_SIMULATOR.md
+Прочитай и используй роль из agents/AGENT_2_ROLE_SIMULATOR.md
 
 Проанализируй ФМ: [вставь текст ФМ или путь к файлу]
 ```
@@ -69,7 +69,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 3: ЗАЩИТНИК ФМ
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_3_DEFENDER.md
+Прочитай и используй роль из agents/AGENT_3_DEFENDER.md
 
 ФМ: [вставь текст ФМ]
 
@@ -86,7 +86,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 4: QA-ТЕСТИРОВЩИК
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_4_QA_TESTER.md
+Прочитай и используй роль из agents/AGENT_4_QA_TESTER.md
 
 Проанализируй ФМ: [вставь текст ФМ или путь к файлу]
 ```
@@ -98,7 +98,7 @@ PROJECT_[NAME]/
 ## АГЕНТ 5: ТЕХНИЧЕСКИЙ АРХИТЕКТОР
 
 ```
-Прочитай и используй роль из /Users/antonsahovskii/Documents/claude-agents/fm-review-system/AGENT_5_TECH_ARCHITECT.md
+Прочитай и используй роль из agents/AGENT_5_TECH_ARCHITECT.md
 
 Проанализируй ФМ: [вставь текст ФМ или путь к файлу]
 ```
@@ -283,7 +283,7 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 
 ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + Miro):
   7. AGENT_7 + /auto → публикация в Confluence (Draft)
-  8. AGENT_8 + /auto → ePC в Miro → embed в Confluence
+  8. AGENT_8 + /auto → BPMN в Confluence через drawio
 
 ЭТАП 4 — БИЗНЕС-СОГЛАСОВАНИЕ (Confluence):
   9. Статус: Draft → Review → бизнес комментирует
@@ -313,14 +313,14 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 - `/roadmap` — дорожная карта внедрения
 - `/auto` — полный цикл без интервью
 
-> ⚠️ Confluence → Agent 7 (/publish), Miro → Agent 8 (/epc)
+> ⚠️ Confluence → Agent 7 (/publish), BPMN → Agent 8 (/bpmn)
 
 ---
 
 ## АГЕНТ 7: PUBLISHER (Управление ФМ в Confluence)
 
 ```
-Прочитай свою роль из agents/AGENT_7_MIGRATOR.md
+Прочитай свою роль из agents/AGENT_7_PUBLISHER.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ```
@@ -335,19 +335,19 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 
 ---
 
-## АГЕНТ 8: EPC DESIGNER (ePC-диаграммы в Miro)
+## АГЕНТ 8: BPMN DESIGNER (BPMN-диаграммы в Confluence)
 
 ```
-Прочитай свою роль из agents/AGENT_8_EPC_DESIGNER.md
+Прочитай свою роль из agents/AGENT_8_BPMN_DESIGNER.md
 
 Проект: PROJECT_SHPMNT_PROFIT
 ```
 
 **Команды:**
-- `/epc` — создать ePC-диаграмму из ФМ
-- `/epc-update` — обновить существующую ePC
-- `/epc-validate` — валидация диаграммы (покрытие, связность)
-- `/epc-export` — получить embed-ссылку для Confluence
+- `/bpmn` — создать BPMN-диаграмму из ФМ
+- `/bpmn-update` — обновить существующую BPMN
+- `/bpmn-validate` — валидация диаграммы (покрытие, связность)
+- `/bpmn-publish` — опубликовать в Confluence
 - `/auto` — полный цикл без интервью
 
 ---
@@ -366,7 +366,7 @@ Agent 2: /auto → все роли + /apply
 Agent 4: /auto → все тесты + coverage
 Agent 5: /auto → архитектура + ТЗ
 Agent 7: /auto → публикация в Confluence
-Agent 8: /auto → ePC в Miro
+Agent 8: /auto → BPMN в Confluence
 Agent 6: /auto → презентация + экспорт
 ```
 
@@ -386,8 +386,8 @@ Agent 6: /auto → презентация + экспорт
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
 ./scripts/export_confluence.sh  — Экспорт в Confluence
-./scripts/export_miro.sh    — Экспорт ePC в Miro
+./scripts/export_bpmn.sh    — Генерация BPMN-диаграмм
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
 ./scripts/agent7_publish.sh — Интервью для управления ФМ в Confluence
-./scripts/agent8_epc.sh     — Интервью для ePC-диаграмм в Miro
+./scripts/agent8_bpmn.sh    — Интервью для BPMN-диаграмм
 ```
