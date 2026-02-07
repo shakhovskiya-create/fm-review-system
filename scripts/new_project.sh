@@ -49,7 +49,7 @@ FM_SOURCE=$(gum choose --header "Откуда берем ФМ?" \
 # Создаем структуру
 subheader "Создание структуры"
 
-mkdir -p "${PROJECT_DIR}"/{FM_DOCUMENTS,AGENT_0_CREATOR,AGENT_1_ARCHITECT,AGENT_2_ROLE_SIMULATOR,AGENT_3_DEFENDER,AGENT_4_QA_TESTER,AGENT_5_TECH_ARCHITECT,AGENT_6_PRESENTER,AGENT_7_MIGRATOR,AGENT_8_EPC_DESIGNER,REPORTS}
+mkdir -p "${PROJECT_DIR}"/{FM_DOCUMENTS,CHANGES,AGENT_0_CREATOR,AGENT_1_ARCHITECT,AGENT_2_ROLE_SIMULATOR,AGENT_3_DEFENDER,AGENT_4_QA_TESTER,AGENT_5_TECH_ARCHITECT,AGENT_6_PRESENTER,AGENT_7_PUBLISHER,AGENT_8_BPMN_DESIGNER,REPORTS}
 
 # README
 cat > "${PROJECT_DIR}/README.md" <<EOF
@@ -73,7 +73,9 @@ cat > "${PROJECT_DIR}/README.md" <<EOF
 \`\`\`
 PROJECT_${NAME}/
 ├── README.md              ← Этот файл
+├── CONFLUENCE_PAGE_ID     ← ID страницы Confluence (заполнить при публикации)
 ├── FM_DOCUMENTS/          ← Все версии ФМ
+├── CHANGES/               ← FM-*-CHANGES.md по версиям
 ├── AGENT_0_CREATOR/       ← Черновик ФМ
 ├── AGENT_1_ARCHITECT/     ← Результаты аудита
 ├── AGENT_2_ROLE_SIMULATOR/← Симуляции ролей
@@ -81,8 +83,8 @@ PROJECT_${NAME}/
 ├── AGENT_4_QA_TESTER/     ← Тест-кейсы
 ├── AGENT_5_TECH_ARCHITECT/← Архитектура + ТЗ
 ├── AGENT_6_PRESENTER/     ← Презентации
-├── AGENT_7_MIGRATOR/      ← Публикация в Confluence
-├── AGENT_8_EPC_DESIGNER/  ← ePC диаграммы (Miro ссылки)
+├── AGENT_7_PUBLISHER/     ← Публикация в Confluence
+├── AGENT_8_BPMN_DESIGNER/ ← BPMN-диаграммы в Confluence
 └── REPORTS/               ← Итоговые отчеты
 \`\`\`
 EOF
@@ -123,6 +125,9 @@ cat > "${PROJECT_DIR}/CHANGELOG.md" <<EOF
 - Инициализирована структура папок
 - Конфигурация: ${CONFIG}
 EOF
+
+# CONFLUENCE_PAGE_ID — заполняется при первой публикации (Agent 7) (AG-08)
+echo "# ID страницы Confluence (заполнить при первой публикации)" > "${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
 
 success "Проект создан: PROJECT_${NAME}"
 echo ""

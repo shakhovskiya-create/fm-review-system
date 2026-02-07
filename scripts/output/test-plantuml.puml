@@ -1,0 +1,38 @@
+@startuml
+|#lightblue|Менеджер|
+start
+:Создать Заказ клиента;
+
+|#lightgreen|Система 1С:УТ|
+:Проверить актуальность НПСС;
+if (< 90 дней?) then (да)
+  :Расчет рентабельности;
+  if (>= 0%?) then (да)
+    #palegreen:Автосогласование;
+    stop
+  else (нет)
+    if (от -5% до 0%?) then (да)
+      |#lightyellow|РБЮ|
+      :Принять решение\n(SLA 4ч);
+    else (нет)
+      if (от -15% до -5%?) then (да)
+        |#lightyellow|ДП|
+        :Принять решение\n(SLA 8ч);
+      else (нет)
+        |#lightyellow|ГД|
+        :Принять решение\n(SLA 24ч);
+      endif
+    endif
+    if (Согласовано?) then (да)
+      #palegreen:Завершение;
+      stop
+    else (нет)
+      #pink:Отклонено;
+      stop
+    endif
+  endif
+else (нет)
+  #pink:Блокировка заказа;
+  stop
+endif
+@enduml

@@ -12,12 +12,15 @@
 PROJECT_[NAME]/
 ├── README.md              ← Обзор проекта
 ├── CONFLUENCE_PAGE_ID     ← ID страницы ФМ в Confluence
+├── CHANGES/               ← FM-*-CHANGES.md по версиям
 ├── AGENT_1_ARCHITECT/     ← Результаты аудита
 ├── AGENT_2_ROLE_SIMULATOR/← Симуляции ролей
 ├── AGENT_3_DEFENDER/      ← Ответы на замечания
 ├── AGENT_4_QA_TESTER/     ← Тест-кейсы
 ├── AGENT_5_TECH_ARCHITECT/← ТЗ
-├── AGENT_6_PRESENTER/    ← Презентации и экспорт
+├── AGENT_6_PRESENTER/     ← Презентации и экспорт
+├── AGENT_7_PUBLISHER/     ← Публикация в Confluence
+├── AGENT_8_BPMN_DESIGNER/ ← BPMN-диаграммы
 └── REPORTS/               ← Итоговые отчёты
 
 ТЕКУЩИЕ ПРОЕКТЫ:
@@ -281,7 +284,7 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
   5. AGENT_5 + /auto → архитектура + ТЗ → FM v1.4
   6. Quality Gate → проверка готовности
 
-ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + Miro):
+ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + BPMN):
   7. AGENT_7 + /auto → публикация в Confluence (Draft)
   8. AGENT_8 + /auto → BPMN в Confluence через drawio
 

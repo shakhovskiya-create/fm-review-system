@@ -34,35 +34,47 @@ check_warn() { ((WARN++)); echo -e "  ${YELLOW}⚠️  $1${NC}"; }
 # ─── 1. СТРУКТУРА ПРОЕКТА ───────────────────────────────────
 subheader "1. Структура проекта"
 
-[[ -d "${PROJECT_DIR}/FM_DOCUMENTS" ]] && check_pass "FM_DOCUMENTS/" || check_fail "FM_DOCUMENTS/ отсутствует"
+# AG-02: FM_DOCUMENTS необязателен при Confluence-only
+[[ -d "${PROJECT_DIR}/FM_DOCUMENTS" ]] && check_pass "FM_DOCUMENTS/" || check_warn "FM_DOCUMENTS/ отсутствует (допустимо при Confluence-only)"
 [[ -f "${PROJECT_DIR}/README.md" ]] && check_pass "README.md" || check_warn "README.md отсутствует"
 [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]] && check_pass "PROJECT_CONTEXT.md" || check_warn "PROJECT_CONTEXT.md отсутствует"
+[[ -d "${PROJECT_DIR}/CHANGES" ]] && check_pass "CHANGES/" || check_warn "CHANGES/ отсутствует"
 
 # ─── 2. ФМ ──────────────────────────────────────────────────
 subheader "2. Функциональная модель"
 
-FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null)
+FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
 if [[ -n "$FM_PATH" ]]; then
     check_pass "ФМ найдена: $(basename "$FM_PATH")"
     FM_VER=$(get_fm_version "$FM_PATH")
     [[ -n "$FM_VER" ]] && check_pass "Версия: ${FM_VER}" || check_warn "Версия не определена в имени файла"
 else
-    check_fail "ФМ не найдена в FM_DOCUMENTS/"
+    check_warn "ФМ не найдена в FM_DOCUMENTS/ (допустимо при Confluence-only)"
 fi
 
 # ─── 3. РЕЗУЛЬТАТЫ АГЕНТОВ ──────────────────────────────────
 subheader "3. Результаты агентов"
 
-AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура" "AGENT_7_MIGRATOR:Публикация в Confluence" "AGENT_8_EPC_DESIGNER:BPMN диаграмма")
+# AG-11: учитываем старые и новые имена папок 7/8
+AGENTS=("AGENT_1_ARCHITECT:Аудит" "AGENT_2_ROLE_SIMULATOR:Симуляция ролей" "AGENT_4_QA_TESTER:Тест-кейсы" "AGENT_5_TECH_ARCHITECT:Архитектура" "AGENT_7:Публикация в Confluence" "AGENT_8:BPMN диаграмма")
 
 for agent_info in "${AGENTS[@]}"; do
-    agent_dir=$(echo "$agent_info" | cut -d: -f1)
+    agent_key=$(echo "$agent_info" | cut -d: -f1)
     agent_name=$(echo "$agent_info" | cut -d: -f2)
-    agent_path="${PROJECT_DIR}/${agent_dir}"
+    # AGENT_7: PUBLISHER или MIGRATOR; AGENT_8: BPMN_DESIGNER или EPC_DESIGNER
+    if [[ "$agent_key" == "AGENT_7" ]]; then
+        agent_path="${PROJECT_DIR}/AGENT_7_PUBLISHER"
+        [[ -d "$agent_path" ]] || agent_path="${PROJECT_DIR}/AGENT_7_MIGRATOR"
+    elif [[ "$agent_key" == "AGENT_8" ]]; then
+        agent_path="${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER"
+        [[ -d "$agent_path" ]] || agent_path="${PROJECT_DIR}/AGENT_8_EPC_DESIGNER"
+    else
+        agent_path="${PROJECT_DIR}/${agent_key}"
+    fi
     
     if [[ -d "$agent_path" ]]; then
-        md_count=$(ls "$agent_path"/*.md 2>/dev/null | wc -l | tr -d ' ')
-        if [[ "$md_count" -gt 0 ]]; then
+        md_count=$(find "$agent_path" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "${md_count:-0}" -gt 0 ]]; then
             check_pass "${agent_name}: ${md_count} отчет(ов)"
         else
             check_warn "${agent_name}: папка есть, отчетов нет"
@@ -78,11 +90,13 @@ subheader "4. Открытые замечания"
 OPEN_CRITICAL=0
 OPEN_HIGH=0
 
+# AG-07: статус открыто — "Открыт" или "Open"
 for report in "${PROJECT_DIR}"/AGENT_1_ARCHITECT/*.md; do
     [[ -f "$report" ]] || continue
-    # Ищем незакрытые CRITICAL/HIGH
-    OPEN_CRITICAL=$((OPEN_CRITICAL + $(grep -c "CRITICAL.*Открыт" "$report" 2>/dev/null || echo 0)))
-    OPEN_HIGH=$((OPEN_HIGH + $(grep -c "HIGH.*Открыт" "$report" 2>/dev/null || echo 0)))
+    n_c=$(grep -cE "CRITICAL.*(Открыт|Open)" "$report" 2>/dev/null) || n_c=0
+    n_h=$(grep -cE "HIGH.*(Открыт|Open)" "$report" 2>/dev/null) || n_h=0
+    OPEN_CRITICAL=$((OPEN_CRITICAL + ${n_c:-0}))
+    OPEN_HIGH=$((OPEN_HIGH + ${n_h:-0}))
 done
 
 [[ $OPEN_CRITICAL -eq 0 ]] && check_pass "Нет открытых CRITICAL" || check_fail "${OPEN_CRITICAL} открытых CRITICAL"
@@ -94,16 +108,16 @@ subheader "5. Документация"
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
 # ─── 6. CONFLUENCE & MIRO ──────────────────────────────────
-subheader "6. Confluence & Miro"
+subheader "6. Confluence & BPMN/диаграммы"
 
 if [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]]; then
-    CONFLUENCE_URL=$(grep -o "https://[^ ]*atlassian.net/wiki/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
-    MIRO_URL=$(grep -o "https://miro.com/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    CONFLUENCE_URL=$(grep -o "https://[^ ]*atlassian.net/wiki/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1) || true
+    MIRO_URL=$(grep -o "https://miro.com/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1) || true
     
     [[ -n "$CONFLUENCE_URL" ]] && check_pass "Confluence URL: найден" || check_warn "Confluence URL: не найден (Agent 7 не выполнен?)"
-    [[ -n "$MIRO_URL" ]] && check_pass "Miro Board: найден" || check_warn "Miro Board: не найден (Agent 8 не выполнен?)"
+    [[ -n "$MIRO_URL" ]] && check_pass "Miro/диаграммы URL: найден" || check_warn "URL диаграмм не найден (Agent 8: BPMN в Confluence или Miro)"
 else
-    check_warn "PROJECT_CONTEXT.md не найден — Confluence/Miro статус не проверен"
+    check_warn "PROJECT_CONTEXT.md не найден — статус Confluence не проверен"
 fi
 
 # ─── ИТОГ ────────────────────────────────────────────────────

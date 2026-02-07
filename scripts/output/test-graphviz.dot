@@ -1,0 +1,71 @@
+digraph ProcessFlow {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11];
+    edge [fontname="Arial", fontsize=10];
+    compound=true;
+    newrank=true;
+
+    // Swimlane: Менеджер
+    subgraph cluster_manager {
+        label="Менеджер";
+        style=filled;
+        fillcolor="#dae8fc";
+        color="#6c8ebf";
+        fontname="Arial Bold";
+        fontsize=12;
+
+        start [label="●", shape=circle, fillcolor="#82b366", width=0.3, height=0.3];
+        task1 [label="Создать заказ\nклиента", fillcolor="#dae8fc"];
+    }
+
+    // Swimlane: Система 1С:УТ
+    subgraph cluster_system {
+        label="Система 1С:УТ";
+        style=filled;
+        fillcolor="#d5e8d4";
+        color="#82b366";
+        fontname="Arial Bold";
+        fontsize=12;
+
+        task2 [label="Проверить\nактуальность НПСС", fillcolor="#d5e8d4"];
+        gw1 [label="НПСС\nактуальна?", shape=diamond, fillcolor="#fff2cc"];
+        task3 [label="Блокировка\nзаказа", fillcolor="#f8cecc"];
+        end1 [label="✕", shape=circle, fillcolor="#f8cecc", width=0.3, height=0.3];
+        task4 [label="Рассчитать\nрентабельность", fillcolor="#d5e8d4"];
+        gw2 [label="Рент\n>= 0%?", shape=diamond, fillcolor="#fff2cc"];
+        task5 [label="Авто-\nсогласование", fillcolor="#d5e8d4"];
+        end2 [label="✓", shape=circle, fillcolor="#82b366", width=0.3, height=0.3];
+        task6 [label="Отправить на\nсогласование", fillcolor="#d5e8d4"];
+    }
+
+    // Swimlane: Согласующий
+    subgraph cluster_approver {
+        label="Согласующий (РБЮ/ДП/ГД)";
+        style=filled;
+        fillcolor="#fff2cc";
+        color="#d6b656";
+        fontname="Arial Bold";
+        fontsize=12;
+
+        task7 [label="Принять\nрешение", fillcolor="#fff2cc"];
+        gw3 [label="Решение?", shape=diamond, fillcolor="#fff2cc"];
+        end3 [label="✓", shape=circle, fillcolor="#82b366", width=0.3, height=0.3];
+        end4 [label="✕", shape=circle, fillcolor="#f8cecc", width=0.3, height=0.3];
+    }
+
+    // Connections
+    start -> task1;
+    task1 -> task2;
+    task2 -> gw1;
+    gw1 -> task3 [label="Нет"];
+    task3 -> end1;
+    gw1 -> task4 [label="Да"];
+    task4 -> gw2;
+    gw2 -> task5 [label="Да"];
+    task5 -> end2;
+    gw2 -> task6 [label="Нет"];
+    task6 -> task7;
+    task7 -> gw3;
+    gw3 -> end3 [label="Да"];
+    gw3 -> end4 [label="Нет"];
+}

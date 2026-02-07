@@ -16,6 +16,7 @@
   CONFLUENCE_PAGE_ID=12345678
 """
 
+import os
 import urllib.request
 import urllib.parse
 import json
@@ -27,13 +28,27 @@ from pathlib import Path
 ssl._create_default_https_context = ssl._create_unverified_context
 
 SCRIPT_DIR = Path(__file__).parent
+ROOT_DIR = SCRIPT_DIR.parent
 ENV_FILE = SCRIPT_DIR / ".env.local"
 OUTPUT_DIR = SCRIPT_DIR / "output"
 BPMN_PROCESSES_DIR = SCRIPT_DIR / "bpmn-processes"
 
 
+def _get_page_id_from_project(project_name: str):
+    """Читает PAGE_ID из projects/PROJECT_NAME/CONFLUENCE_PAGE_ID (первая строка с цифрами)."""
+    path = ROOT_DIR / "projects" / project_name / "CONFLUENCE_PAGE_ID"
+    if not path.is_file():
+        return None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and line.isdigit():
+                return line
+    return None
+
+
 def load_env():
-    """Load environment from .env.local"""
+    """Load environment from .env.local; PAGE_ID может быть переопределён из projects/PROJECT/CONFLUENCE_PAGE_ID."""
     if not ENV_FILE.exists():
         print(f"ERROR: {ENV_FILE} not found")
         print("Create .env.local with CONFLUENCE_URL, CONFLUENCE_TOKEN, CONFLUENCE_PAGE_ID")
@@ -46,6 +61,13 @@ def load_env():
             if line and not line.startswith('#') and '=' in line:
                 key, value = line.split('=', 1)
                 config[key.strip()] = value.strip()
+
+    # Единый источник PAGE_ID: 1) env PROJECT → файл проекта, 2) .env.local
+    project = os.environ.get("PROJECT")
+    if project:
+        pid = _get_page_id_from_project(project)
+        if pid:
+            config["CONFLUENCE_PAGE_ID"] = pid
     return config
 
 

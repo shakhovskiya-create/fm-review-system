@@ -3,3 +3,19 @@
 scripts/.env.local
 .env.local
 *.local
+
+# Secrets
+.env
+.env.local
+scripts/.env.local
+
+# Node
+node_modules/
+scripts/node_modules/
+
+# Exports (generated)
+exports/
+
+# OS
+.DS_Store
+**/.DS_Store

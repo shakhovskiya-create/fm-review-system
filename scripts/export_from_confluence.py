@@ -22,8 +22,24 @@ if sys.platform == "darwin" and "DYLD_LIBRARY_PATH" not in os.environ:
 
 # Config - set CONFLUENCE_TOKEN environment variable before running
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-PAGE_ID = os.environ.get("CONFLUENCE_PAGE_ID", "83951683")
 TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+
+
+def _get_page_id(project_name=None):
+    """PAGE_ID: 1) файл projects/PROJECT/CONFLUENCE_PAGE_ID, 2) env CONFLUENCE_PAGE_ID, 3) fallback для совместимости."""
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    if project_name:
+        path = os.path.join(root, "projects", project_name, "CONFLUENCE_PAGE_ID")
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and line.isdigit():
+                        return line
+    return os.environ.get("CONFLUENCE_PAGE_ID") or "83951683"
+
+
+PAGE_ID = _get_page_id(os.environ.get("PROJECT"))
 
 if not TOKEN:
     print("ERROR: CONFLUENCE_TOKEN environment variable not set")
@@ -47,9 +63,10 @@ def api_request(method, endpoint):
         return None
 
 
-def fetch_page():
+def fetch_page(page_id=None):
     """Fetch page content and metadata from Confluence"""
-    data = api_request("GET", f"content/{PAGE_ID}?expand=body.storage,version")
+    pid = page_id or PAGE_ID
+    data = api_request("GET", f"content/{pid}?expand=body.storage,version")
     if not data:
         print("Failed to fetch page")
         sys.exit(1)
@@ -478,6 +495,7 @@ def main():
     # Parse arguments
     fmt = "both"  # pdf, docx, both
     page_id = PAGE_ID
+    project_arg = None
 
     for arg in sys.argv[1:]:
         if arg in ("--pdf", "-p"):
@@ -488,13 +506,20 @@ def main():
             fmt = "both"
         elif arg.startswith("--page="):
             page_id = arg.split("=")[1]
+        elif arg.startswith("--project="):
+            project_arg = arg.split("=")[1]
         elif arg in ("--help", "-h"):
-            print("Usage: export_from_confluence.py [--pdf|--docx|--both] [--page=ID]")
-            print("  --pdf   Export PDF only")
-            print("  --docx  Export Word only")
-            print("  --both  Export both (default)")
-            print(f"  --page  Page ID (default: {PAGE_ID})")
+            print("Usage: export_from_confluence.py [--pdf|--docx|--both] [--page=ID] [--project=PROJECT_NAME]")
+            print("  --pdf      Export PDF only")
+            print("  --docx     Export Word only")
+            print("  --both     Export both (default)")
+            print("  --page=ID  Page ID (overrides project file)")
+            print("  --project  Read PAGE_ID from projects/PROJECT_NAME/CONFLUENCE_PAGE_ID")
+            print(f"  Default PAGE_ID: env CONFLUENCE_PAGE_ID or PROJECT, or {PAGE_ID}")
             sys.exit(0)
+
+    if project_arg:
+        page_id = _get_page_id(project_arg)
 
     print("=" * 60)
     print("FM EXPORTER - CONFLUENCE v1.0")
@@ -505,7 +530,7 @@ def main():
 
     # Fetch page
     print("\n=== ЗАГРУЗКА СТРАНИЦЫ ===")
-    page = fetch_page()
+    page = fetch_page(page_id)
     print(f"  Название: {page['title']}")
     print(f"  Версия: {page['version']}")
     print(f"  HTML: {len(page['html'])} символов")

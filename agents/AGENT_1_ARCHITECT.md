@@ -82,7 +82,9 @@
 │     PROJECT_[NAME]/AGENT_1_ARCHITECT/                       │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Обновление ФМ → Confluence (PUT API)                  │
+│     - Передать изменения Agent 7 для обновления в Confluence│
+│       (единственный писатель тела страницы — Agent 7)       │
+│     - Верификация: GET страницы или Agent 7 /verify         │
 │     - CHANGES.md → PROJECT_[NAME]/CHANGES/                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │

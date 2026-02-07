@@ -19,7 +19,9 @@
 │     PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/                  │
 │                                                             │
 │  3. ПОСЛЕ /apply:                                           │
-│     - Обновление ФМ → Confluence (PUT API)                  │
+│     - Передать изменения Agent 7 для обновления в Confluence │
+│       (единственный писатель тела страницы — Agent 7)       │
+│     - Верификация: GET страницы или Agent 7 /verify         │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
