@@ -43,11 +43,13 @@ case "$ACTION" in
     header "ПОЛНЫЙ ЦИКЛ REVIEW"
     
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
-    FM_VER=$(get_fm_version "$FM_PATH")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
+    FM_VER=""
+    [[ -n "$FM_PATH" ]] && FM_VER=$(get_fm_version "$FM_PATH")
     
     info "Проект: ${PROJECT}"
-    info "ФМ: $(basename "$FM_PATH") (${FM_VER})"
+    [[ -n "$FM_PATH" ]] && info "ФМ: $(basename "$FM_PATH") (${FM_VER})" || info "ФМ: Confluence (PAGE_ID из проекта)"
     echo ""
     
     # Выбор этапов
@@ -60,7 +62,7 @@ case "$ACTION" in
         "Agent 7: Публикация в Confluence" \
         "Agent 8: BPMN в Confluence")
     
-    init_pipeline_state "$PROJECT" "$FM_PATH"
+    init_pipeline_state "$PROJECT" "${FM_PATH:-Confluence}"
     
     echo ""
     subheader "PIPELINE"
@@ -147,6 +149,7 @@ ${PREV_CONTEXT}"
     else
         PROJECT=$(select_project)
     fi
+    export PROJECT
     
     # Запускаем интервью Agent 0
     bash "${SCRIPTS_DIR}/agent0_new.sh"
@@ -154,7 +157,7 @@ ${PREV_CONTEXT}"
     # Добавляем контекст проекта
     CONTEXT=$(load_context)
     CONTEXT="${CONTEXT}\nПроект: ${PROJECT}"
-    echo -e "$CONTEXT" > "${CONTEXT_FILE}"
+    echo -e "$CONTEXT" > "$(get_context_file)"
     
     launch_claude_code "${ROOT_DIR}/agents/AGENT_0_CREATOR.md" "/new" "$CONTEXT"
     ;;
@@ -164,7 +167,8 @@ ${PREV_CONTEXT}"
 # ═══════════════════════════════════════════════════════════════
 "3."*)
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
     bash "${SCRIPTS_DIR}/agent1_audit.sh"
     CONTEXT=$(load_context)
     CONTEXT="${CONTEXT}\nПроект: ${PROJECT}\nФМ: ${FM_PATH}"
@@ -173,7 +177,8 @@ ${PREV_CONTEXT}"
 
 "4."*)
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
     bash "${SCRIPTS_DIR}/agent2_simulate.sh"
     CONTEXT=$(load_context)
     launch_claude_code "${ROOT_DIR}/agents/AGENT_2_ROLE_SIMULATOR.md" "/simulate-all" "$CONTEXT"
@@ -181,7 +186,8 @@ ${PREV_CONTEXT}"
 
 "5."*)
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
     bash "${SCRIPTS_DIR}/agent3_defend.sh"
     CONTEXT=$(load_context)
     launch_claude_code "${ROOT_DIR}/agents/AGENT_3_DEFENDER.md" "/respond-all" "$CONTEXT"
@@ -189,7 +195,8 @@ ${PREV_CONTEXT}"
 
 "6."*)
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
     bash "${SCRIPTS_DIR}/agent4_test.sh"
     CONTEXT=$(load_context)
     launch_claude_code "${ROOT_DIR}/agents/AGENT_4_QA_TESTER.md" "/generate-all" "$CONTEXT"
@@ -197,7 +204,8 @@ ${PREV_CONTEXT}"
 
 "7."*)
     PROJECT=$(select_project)
-    FM_PATH=$(get_latest_fm "$PROJECT")
+    export PROJECT
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
     bash "${SCRIPTS_DIR}/agent5_architect.sh"
     CONTEXT=$(load_context)
     launch_claude_code "${ROOT_DIR}/agents/AGENT_5_TECH_ARCHITECT.md" "/full" "$CONTEXT"
@@ -291,16 +299,28 @@ ${PREV_CONTEXT}"
         "1. Создать новый проект" \
         "2. Версия ФМ: diff между версиями" \
         "3. Версия ФМ: создать новую версию" \
-        "4. Экспорт ФМ в Confluence" \
-        "5. Экспорт процесса в Miro" \
+        "4. Публикация ФМ в Confluence" \
+        "5. Публикация BPMN в Confluence" \
         "6. Список проектов и статусы")
-    
+
     case "$PROJ_ACTION" in
         "1."*) bash "${SCRIPTS_DIR}/new_project.sh" ;;
         "2."*) bash "${SCRIPTS_DIR}/fm_version.sh" diff ;;
         "3."*) bash "${SCRIPTS_DIR}/fm_version.sh" bump ;;
-        "4."*) bash "${SCRIPTS_DIR}/export_confluence.sh" ;;
-        "5."*) bash "${SCRIPTS_DIR}/export_miro.sh" ;;
+        "4."*)
+            # Публикация ФМ в Confluence
+            PROJECT=$(select_project)
+            FM_PATH=$(get_latest_fm "$PROJECT")
+            if [[ -n "$FM_PATH" ]]; then
+                python3 "${SCRIPTS_DIR}/publish_to_confluence.py" "$FM_PATH"
+            else
+                error "ФМ не найдена в проекте $PROJECT"
+            fi
+            ;;
+        "5."*)
+            # Публикация BPMN в Confluence
+            python3 "${SCRIPTS_DIR}/publish-bpmn.py" --all --update-page
+            ;;
         "6."*)
             header "ПРОЕКТЫ"
             for dir in "${ROOT_DIR}"/projects/PROJECT_*/; do

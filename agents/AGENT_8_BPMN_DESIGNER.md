@@ -11,7 +11,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  РЕЗУЛЬТАТЫ СОХРАНЯЮ В:                                     │
-│  PROJECT_[NAME]/AGENT_8_EPC_DESIGNER/                       │
+│  PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/                       │
 │  scripts/bpmn-processes/                                    │
 │  scripts/output/                                            │
 │                                                             │
@@ -304,7 +304,7 @@ python3 publish-bpmn.py --all --update-page
 1. СОХРАНИТЬ JSON в scripts/bpmn-processes/
    - process-N-shortname.json
 
-2. СОХРАНИТЬ МЕТАДАННЫЕ в PROJECT_[NAME]/AGENT_8_EPC_DESIGNER/:
+2. СОХРАНИТЬ МЕТАДАННЫЕ в PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/:
    - BPMN-METADATA-[дата].md (ссылки, версия, процессы)
    - BPMN-VALIDATION-[дата].md (результаты валидации)
 
@@ -369,6 +369,6 @@ Miro используется для **системных диаграмм**, н
 3. **Все gateway имеют labels** - "да"/"нет" на ребрах
 4. **Цвета по схеме** - swimlanes и узлы по таблице выше
 5. **Версия в заголовке** - совпадает с версией ФМ
-6. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_8_EPC_DESIGNER/
+6. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/
 7. **Публикация в Confluence** - через publish-bpmn.py --update-page
 8. **Редактирование** - в Confluence через draw.io плагин

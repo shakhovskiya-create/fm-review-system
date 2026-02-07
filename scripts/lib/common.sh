@@ -6,10 +6,12 @@
 set -euo pipefail
 
 # ─── ПУТИ ───────────────────────────────────────────────────
-ROOT_DIR="/Users/antonsahovskii/Documents/claude-agents/fm-review-system"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 TEMPLATES_DIR="${ROOT_DIR}/templates"
-CONTEXT_FILE="${ROOT_DIR}/.interview_context.txt"
+# Контекст интервью: по проекту или общий (AG-04). Вычисляется при вызове.
+get_context_file() { echo "${ROOT_DIR}/.interview_context_${PROJECT:-global}.txt"; }
+CONTEXT_FILE="${ROOT_DIR}/.interview_context_global.txt"
 PIPELINE_STATE="${ROOT_DIR}/.pipeline_state.json"
 
 # ─── ЦВЕТА ──────────────────────────────────────────────────
@@ -75,6 +77,22 @@ check_gum() {
 check_jq() {
     if ! command -v jq &>/dev/null; then
         warn "jq не установлен (brew install jq). Некоторые функции недоступны."
+    fi
+}
+
+# Кроссплатформенное копирование в буфер обмена
+copy_to_clipboard() {
+    if command -v pbcopy &>/dev/null; then
+        pbcopy
+    elif command -v xclip &>/dev/null; then
+        xclip -selection clipboard
+    elif command -v xsel &>/dev/null; then
+        xsel --clipboard --input
+    elif command -v clip.exe &>/dev/null; then
+        clip.exe
+    else
+        warn "Буфер обмена недоступен. Установите xclip или xsel."
+        return 1
     fi
 }
 
@@ -180,10 +198,14 @@ launch_claude_code() {
     
     prompt="${prompt}\n\n${command}"
     
-    echo -e "$prompt" | pbcopy
-    
-    success "Промпт скопирован в буфер обмена"
-    echo -e "${CYAN}  Вставьте в Claude Code (Cmd+V) и нажмите Enter${NC}"
+    if echo -e "$prompt" | copy_to_clipboard; then
+        success "Промпт скопирован в буфер обмена"
+        echo -e "${CYAN}  Вставьте в Claude Code (Cmd+V / Ctrl+V) и нажмите Enter${NC}"
+    else
+        echo -e "$prompt"
+        echo ""
+        warn "Скопируйте текст выше вручную"
+    fi
     echo ""
 }
 
@@ -191,6 +213,8 @@ launch_claude_code() {
 
 save_context() {
     local agent="$1"
+    local ctx_file
+    ctx_file=$(get_context_file)
     shift
     {
         echo "КОНТЕКСТ ИНТЕРВЬЮ (${agent}):"
@@ -198,13 +222,15 @@ save_context() {
         for line in "$@"; do
             echo "- ${line}"
         done
-    } > "${CONTEXT_FILE}"
-    success "Контекст сохранен: ${CONTEXT_FILE}"
+    } > "${ctx_file}"
+    success "Контекст сохранен: ${ctx_file}"
 }
 
 load_context() {
-    if [[ -f "${CONTEXT_FILE}" ]]; then
-        cat "${CONTEXT_FILE}"
+    local ctx_file
+    ctx_file=$(get_context_file)
+    if [[ -f "$ctx_file" ]]; then
+        cat "$ctx_file"
     else
         echo ""
     fi

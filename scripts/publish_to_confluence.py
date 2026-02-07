@@ -20,8 +20,26 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 # Config - set CONFLUENCE_TOKEN environment variable before running
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-PAGE_ID = os.environ.get("CONFLUENCE_PAGE_ID", "83951683")  # FM-LS-PROFIT page
 TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+
+
+def _get_page_id(project_name=None):
+    """PAGE_ID: 1) файл projects/PROJECT/CONFLUENCE_PAGE_ID, 2) env CONFLUENCE_PAGE_ID, 3) fallback только для совместимости."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_name:
+        path = os.path.join(root, "projects", project_name, "CONFLUENCE_PAGE_ID")
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and line.isdigit():
+                        return line
+    pid = os.environ.get("CONFLUENCE_PAGE_ID")
+    if pid:
+        return pid
+    # Fallback только для одного известного проекта (совместимость)
+    return "83951683"
+
 
 if not TOKEN:
     print("ERROR: CONFLUENCE_TOKEN environment variable not set")
@@ -39,11 +57,22 @@ SKIP_AFTER_CODE_SYSTEM = [
     "Автоматические проверки",
 ]
 
-# Document path
+# Document path and project (for PAGE_ID from file)
 if len(sys.argv) > 1:
     DOC_PATH = sys.argv[1]
 else:
-    DOC_PATH = "/Users/antonsahovskii/Documents/claude-agents/fm-review-system/projects/PROJECT_SHPMNT_PROFIT/FM_DOCUMENTS/FM-LS-PROFIT-v1.2.1.docx"
+    print("Usage: python3 publish_to_confluence.py <path-to-docx>")
+    print("Example: python3 publish_to_confluence.py projects/PROJECT_SHPMNT_PROFIT/FM_DOCUMENTS/FM-LS-PROFIT-v1.2.1.docx")
+    sys.exit(1)
+
+# PAGE_ID: из файла проекта (по пути к doc или env PROJECT) или из env CONFLUENCE_PAGE_ID
+_project_from_path = None
+_norm = os.path.normpath(DOC_PATH)
+if os.sep + "projects" + os.sep in _norm or _norm.startswith("projects" + os.sep):
+    parts = _norm.replace(os.sep, "/").split("projects/")
+    if len(parts) > 1:
+        _project_from_path = parts[1].split("/")[0]
+PAGE_ID = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
 
 print("=" * 60)
 print("FM PUBLISHER - CONFLUENCE v2.0")
