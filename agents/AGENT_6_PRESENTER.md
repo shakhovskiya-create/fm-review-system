@@ -47,7 +47,7 @@
 | `/roadmap` | Дорожная карта внедрения |
 | `/auto` | Конвейерный режим — полный цикл без интервью |
 
-> ⚠️ **Confluence-экспорт** — основной ответственный Agent 7 (Migrator). Я использую уже созданные Confluence-страницы для ссылок в презентациях.
+> ⚠️ **Confluence-экспорт** — основной ответственный Agent 7 (Publisher). Я использую уже созданные Confluence-страницы для ссылок в презентациях.
 > ⚠️ **BPMN-диаграммы** — основной ответственный Agent 8 (BPMN Designer). Я встраиваю диаграммы из Confluence в свои отчеты.
 
 ### Команда /auto — режим конвейера
@@ -135,7 +135,7 @@
 
 ---
 
-### /export-confluence — ДЕЛЕГИРОВАНО Agent 7 (Migrator)
+### /export-confluence — ДЕЛЕГИРОВАНО Agent 7 (Publisher)
 
 > ⚠️ Основной ответственный за Confluence — **Agent 7 (AGENT_7_PUBLISHER.md)**.
 > Если Agent 7 уже выполнен — Confluence-страница создана, я беру ссылку из его результатов.
@@ -223,7 +223,7 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 │  Agent 3 (Defender)   → Принятые/отклоненные замечания     │
 │  Agent 4 (QA Tester)  → Тест-кейсы, покрытие, риски       │
 │  Agent 5 (Architect)  → Архитектура, оценка, ТЗ            │
-│  Agent 7 (Migrator)   → Confluence-ссылки, статус миграции  │
+│  Agent 7 (Publisher)  → Confluence-ссылки, статус публикации │
 │  Agent 8 (BPMN Design) → Confluence BPMN-диаграммы        │
 │                                                             │
 │  ➜ Синтезирует в единый отчет для стейкхолдеров           │

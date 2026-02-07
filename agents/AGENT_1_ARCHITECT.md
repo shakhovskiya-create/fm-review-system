@@ -48,7 +48,7 @@
 │  → Agent 4 (QA Tester): покрывает мои findings тестами     │
 │  → Agent 5 (Tech Arch): учитывает мои 1С-замечания        │
 │  → Agent 3 (Defender): защищает ФМ от моих замечаний       │
-│  → Agent 7 (Migrator): мои findings добавляются в Confluence│
+│  → Agent 7 (Publisher): мои findings добавляются в Confluence│
 │  → Agent 8 (BPMN Designer): уточненная логика для BPMN     │
 │                                                             │
 │  МОЙ ФОРМАТ ОТЧЕТА ДОЛЖЕН БЫТЬ МАШИНОЧИТАЕМЫМ:            │

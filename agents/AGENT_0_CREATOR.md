@@ -44,7 +44,7 @@
 │  → Agent 2 (Simulator): симуляция ролей по моей ФМ         │
 │  → Agent 4 (QA Tester): тесты на моих требованиях          │
 │  → Agent 5 (Tech Arch): архитектура по моей ФМ             │
-│  → Agent 7 (Migrator): миграция моей ФМ в Confluence       │
+│  → Agent 7 (Publisher): публикация моей ФМ в Confluence    │
 │  → Agent 8 (BPMN Designer): BPMN-диаграмма по моему процессу│
 │                                                             │
 │  ПОЭТОМУ Я СОЗДАЮ ФМ С УЧЕТОМ DOWNSTREAM:                  │

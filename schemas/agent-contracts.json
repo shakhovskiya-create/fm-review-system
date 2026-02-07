@@ -1,0 +1,288 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FM Review System Agent Contracts v1.0 (R-08)",
+  "description": "JSON Schema for inter-agent communication validation",
+
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": ["id", "severity", "category", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(CRITICAL|HIGH|MEDIUM|LOW)-[0-9]{3}$",
+          "description": "Finding ID, e.g. CRITICAL-001"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        },
+        "category": {
+          "type": "string",
+          "enum": ["LOGIC", "UX", "PERFORMANCE", "SECURITY", "INTEGRATION", "1C"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "Resolved", "Wontfix", "Deferred"]
+        },
+        "location": {
+          "type": "string",
+          "description": "Section or line reference in FM"
+        }
+      }
+    },
+
+    "testCase": {
+      "type": "object",
+      "required": ["id", "title", "steps", "expected"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^TC-[0-9]{3}$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "traceability": {
+          "type": "string",
+          "description": "Reference to finding or requirement"
+        },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "expected": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["P1", "P2", "P3"]
+        }
+      }
+    },
+
+    "uxFinding": {
+      "type": "object",
+      "required": ["id", "role", "scenario", "problem", "impact"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^UX-(CRITICAL|HIGH|MEDIUM|LOW)-[0-9]{3}$"
+        },
+        "role": {
+          "type": "string",
+          "description": "User role affected"
+        },
+        "scenario": {
+          "type": "string"
+        },
+        "problem": {
+          "type": "string"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Impact on time/efficiency"
+        },
+        "recommendation": {
+          "type": "string"
+        }
+      }
+    },
+
+    "defenseResponse": {
+      "type": "object",
+      "required": ["commentId", "response", "action"],
+      "properties": {
+        "commentId": {
+          "type": "string"
+        },
+        "originalComment": {
+          "type": "string"
+        },
+        "response": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["Accept", "Reject", "Partial", "Defer"]
+        },
+        "changes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "publishResult": {
+      "type": "object",
+      "required": ["pageId", "version", "url", "timestamp"],
+      "properties": {
+        "pageId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "fmVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "partial", "failed"]
+        }
+      }
+    },
+
+    "bpmnResult": {
+      "type": "object",
+      "required": ["diagramName", "format", "status"],
+      "properties": {
+        "diagramName": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["drawio", "png", "svg"]
+        },
+        "confluenceUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "lanes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "nodeCount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failed"]
+        }
+      }
+    }
+  },
+
+  "agentOutputs": {
+    "Agent0_Creator": {
+      "type": "object",
+      "properties": {
+        "fmContent": { "type": "string" },
+        "version": { "type": "string" },
+        "sections": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "Agent1_Architect": {
+      "type": "object",
+      "required": ["findings", "summary"],
+      "properties": {
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/finding" }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "critical": { "type": "integer" },
+            "high": { "type": "integer" },
+            "medium": { "type": "integer" },
+            "low": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "Agent2_Simulator": {
+      "type": "object",
+      "required": ["uxFindings", "roles"],
+      "properties": {
+        "uxFindings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/uxFinding" }
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "Agent3_Defender": {
+      "type": "object",
+      "required": ["responses"],
+      "properties": {
+        "responses": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/defenseResponse" }
+        },
+        "accepted": { "type": "integer" },
+        "rejected": { "type": "integer" }
+      }
+    },
+
+    "Agent4_QA": {
+      "type": "object",
+      "required": ["testCases"],
+      "properties": {
+        "testCases": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/testCase" }
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "requirements": { "type": "number" },
+            "findings": { "type": "number" }
+          }
+        }
+      }
+    },
+
+    "Agent5_TechArchitect": {
+      "type": "object",
+      "properties": {
+        "objects1C": { "type": "array", "items": { "type": "string" } },
+        "integrations": { "type": "array", "items": { "type": "string" } },
+        "estimate": { "type": "string" }
+      }
+    },
+
+    "Agent7_Publisher": {
+      "type": "object",
+      "required": ["result"],
+      "properties": {
+        "result": { "$ref": "#/definitions/publishResult" }
+      }
+    },
+
+    "Agent8_BPMN": {
+      "type": "object",
+      "required": ["result"],
+      "properties": {
+        "result": { "$ref": "#/definitions/bpmnResult" }
+      }
+    }
+  }
+}

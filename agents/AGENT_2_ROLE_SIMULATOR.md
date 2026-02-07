@@ -52,7 +52,7 @@
 │  → Agent 4 (QA): покрывает мои UX-проблемы тестами         │
 │  → Agent 5 (Tech Arch): проектирует интерфейсы             │
 │  → Agent 3 (Defender): защищает от моих замечаний          │
-│  → Agent 7 (Migrator): UX-находки в Confluence              │
+│  → Agent 7 (Publisher): UX-находки в Confluence             │
 │  → Agent 8 (BPMN Designer): сценарии ролей для BPMN        │
 │                                                             │
 │  МОЙ ФОРМАТ — МАШИНОЧИТАЕМЫЙ:                              │

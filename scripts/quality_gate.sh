@@ -43,7 +43,11 @@ subheader "1. Структура проекта"
 # ─── 2. ФМ ──────────────────────────────────────────────────
 subheader "2. Функциональная модель"
 
-FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
+if [[ -d "${PROJECT_DIR}/FM_DOCUMENTS" ]]; then
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
+else
+    FM_PATH=""
+fi
 if [[ -n "$FM_PATH" ]]; then
     check_pass "ФМ найдена: $(basename "$FM_PATH")"
     FM_VER=$(get_fm_version "$FM_PATH")
@@ -127,9 +131,15 @@ echo -e "  ${GREEN}Passed: ${PASS}${NC}  ${YELLOW}Warnings: ${WARN}${NC}  ${RED}
 
 if [[ $FAIL -eq 0 && $WARN -eq 0 ]]; then
     echo -e "  ${GREEN}${BOLD}ГОТОВО К ПЕРЕДАЧЕ В РАЗРАБОТКУ ${ICO_OK}${NC}"
+    EXIT_CODE=0
 elif [[ $FAIL -eq 0 ]]; then
     echo -e "  ${YELLOW}${BOLD}ГОТОВО С ОГОВОРКАМИ ${ICO_WARN}${NC}"
+    EXIT_CODE=2
 else
     echo -e "  ${RED}${BOLD}НЕ ГОТОВО — ЕСТЬ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ${ICO_FAIL}${NC}"
+    EXIT_CODE=1
 fi
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"
+
+# Exit codes: 0=ready, 1=critical fail, 2=warnings
+exit $EXIT_CODE
