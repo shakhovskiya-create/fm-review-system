@@ -117,7 +117,8 @@ ${PREV_CONTEXT}"
                 *) CMD="/audit" ;;
             esac
             
-            # Автономный режим: вызов через Claude API (run_agent.py)
+            # Автономный режим: вызов через Claude API (experimental/run_agent.py)
+            # ПРИМЕЧАНИЕ: run_agent.py перенесен в experimental/ (FC-03)
             if [[ -n "${AUTONOMOUS:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
                 AGENT_NUM=1
                 case "${agent_md}" in
@@ -132,7 +133,7 @@ ${PREV_CONTEXT}"
                     AGENT_8_BPMN_DESIGNER.md) AGENT_NUM=8 ;;
                 esac
                 export FM_PATH FM_VER
-                if python3 "${SCRIPTS_DIR}/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
+                if python3 "${SCRIPTS_DIR}/experimental/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
                     complete_pipeline_agent "${PIPELINE_ORDER[$i]}" "done"
                     success "${agent} завершен (autonomous)"
                 else

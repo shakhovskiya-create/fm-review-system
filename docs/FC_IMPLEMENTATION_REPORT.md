@@ -140,6 +140,38 @@
 
 ---
 
+## Самопроверка (раунд 2)
+
+Проведена полная повторная верификация после основных изменений. Выявлено и исправлено:
+
+| # | Проблема | Критичность | Исправлено |
+|---|----------|-------------|-----------|
+| S-01 | orchestrate.sh ссылался на scripts/run_agent.py (старый путь) | CRITICAL | Путь обновлен → scripts/experimental/run_agent.py |
+| S-02 | CLAUDE.md: мертвая ссылка export_bpmn.sh | HIGH | Убрана, добавлены generate-bpmn.js + publish-bpmn.py + export_from_confluence.py |
+| S-03 | CLAUDE.md: пример FM-SHPMNT-PROFIT-v2.5.3-CHANGES.md | MEDIUM | Обновлен → FM-LS-PROFIT-v1.0.1-CHANGES.md |
+| S-04 | CLAUDE.md: fallback "допустимо FM_DOCUMENTS/" | MEDIUM | Убран, заменен на "создать CHANGES/" |
+| S-05 | README.md: устаревшая структура проекта | HIGH | Полностью обновлена (убраны CHAT_CONTEXT, TODOS, run_agent.py и т.д.) |
+| S-06 | README.md: секция "Автономный режим" ссылалась на scripts/run_agent.py | MEDIUM | Обновлена → scripts/experimental/run_agent.py |
+| S-07 | CONTRACT_CONFLUENCE_FM.md: путь к run_agent.py | MEDIUM | Обновлен → scripts/experimental/run_agent.py |
+| S-08 | docs/PROMPTS.md: export_bpmn.sh | HIGH | Заменен на generate-bpmn.js и export_from_confluence.py |
+| S-09 | docs/READINESS_CHECK.md: ссылка на CHAT_CONTEXT.md и todos.md | LOW | Обновлена с пояснением (перенесены в archive/) |
+| S-10 | todos.md: орфанный файл в корне (1731 строка) | MEDIUM | Перенесен в docs/archive/ |
+| S-11 | CONFLUENCE_PAGE_ID файл отсутствовал | CRITICAL | Создан с ID 83951683 (из scripts/.env.local) |
+| S-12 | CHANGES/ директория отсутствовала | MEDIUM | Создана |
+| S-13 | Вложенная папка PROJECT_SHPMNT_PROFIT/PROJECT_SHPMNT_PROFIT/ (артефакт) | LOW | Удалена (была пустой) |
+
+### Моделирование сценариев
+
+| Сценарий | Результат |
+|----------|-----------|
+| Новый агент читает CLAUDE.md | PASS - все файлы на месте, структура актуальна |
+| Agent 1 /audit для PROJECT_SHPMNT_PROFIT | PASS (после S-11, S-12) |
+| orchestrate.sh AUTONOMOUS режим | PASS (после S-01) |
+| publish_to_confluence.py --from-file | PASS - import confluence_utils корректен |
+| Агент создает _summary.json | PASS - схема валидна, 6 обязательных полей |
+
+---
+
 ## Автономность (итого)
 
 | Метрика | До | После |

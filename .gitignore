@@ -16,6 +16,17 @@ scripts/node_modules/
 # Exports (generated)
 exports/
 
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Confluence utils (runtime artifacts)
+.backups/
+.locks/
+**/.backups/
+**/.locks/
+
 # OS
 .DS_Store
 **/.DS_Store
