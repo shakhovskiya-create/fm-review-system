@@ -157,9 +157,9 @@ ${PREV_CONTEXT}"
                 echo ""
             fi
 
-            # Автономный режим: вызов через Claude API (experimental/run_agent.py)
-            # ПРИМЕЧАНИЕ: run_agent.py перенесен в experimental/ (FC-03)
-            if [[ -n "${AUTONOMOUS:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
+            # Автономный режим: вызов через Claude Code CLI (run_agent.py)
+            # FC-22: перенесен из experimental/ в scripts/, использует claude -p
+            if [[ -n "${AUTONOMOUS:-}" ]]; then
                 AGENT_NUM=1
                 case "${agent_md}" in
                     AGENT_0_CREATOR.md) AGENT_NUM=0 ;;
@@ -173,7 +173,7 @@ ${PREV_CONTEXT}"
                     AGENT_8_BPMN_DESIGNER.md) AGENT_NUM=8 ;;
                 esac
                 export FM_PATH FM_VER
-                if python3 "${SCRIPTS_DIR}/experimental/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
+                if python3 "${SCRIPTS_DIR}/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
                     complete_pipeline_agent "${PIPELINE_ORDER[$i]}" "done"
                     success "${agent} завершен (autonomous)"
                 else

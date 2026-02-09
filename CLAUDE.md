@@ -49,8 +49,10 @@
 **Архив (устаревшие, НЕ ЧИТАТЬ для принятия решений):**
 - `docs/archive/` — CHAT_CONTEXT, AUDIT_REPORT, TODOS, SCENARIOS_RUN_REPORT и др.
 
+**Автономный пайплайн:**
+- `scripts/run_agent.py` — автономный запуск агентов через Claude Code CLI (`claude -p`)
+
 **Экспериментальные модули:**
-- `scripts/experimental/run_agent.py` — автономный запуск через Claude API (не в контуре)
 - `scripts/experimental/contract_validator.py` — валидация JSON-выходов (отложено)
 
 ---
@@ -738,12 +740,13 @@ fm-review-system/
 ├── templates/                ← Шаблоны страниц
 ├── workflows/                ← Сквозные сценарии
 └── scripts/                  ← Скрипты и утилиты
+    ├── run_agent.py           ← Автономный запуск агентов (claude -p, --pipeline)
     ├── publish_to_confluence.py ← Обновление Confluence (v3.0)
     ├── import_docx.py         ← Одноразовый импорт DOCX (symlink)
     ├── lib/
     │   ├── common.sh          ← Общие bash-функции
     │   └── confluence_utils.py← Confluence API клиент (lock/backup/retry)
-    └── experimental/          ← Неактивные модули (run_agent.py и др.)
+    └── experimental/          ← Неактивные модули (contract_validator.py)
 ```
 
 ---
@@ -882,11 +885,23 @@ PROJECT_[NAME]/
 ### Запуск конвейера
 
 ```
-# Через оркестратор (рекомендуется):
+# Автономный конвейер (все агенты автоматически):
+python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT
+
+# Выборочные агенты:
+python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT --agents 1,2,4
+
+# Один агент автономно:
+python3 scripts/run_agent.py --agent 1 --project PROJECT_SHPMNT_PROFIT
+
+# Пробный запуск (показать промпты без выполнения):
+python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT --dry-run
+
+# Через оркестратор (интерактивный режим):
 ./scripts/orchestrate.sh → "Полный цикл review"
 
-# Публикация в Confluence (обновление страницы):
-python3 scripts/publish_to_confluence.py
+# Автономный оркестратор:
+AUTONOMOUS=1 ./scripts/orchestrate.sh
 
 # Natural language (в Claude Code):
 "Запусти аудит ФМ FM-LS-PROFIT"       → Agent 1 /audit
@@ -1151,6 +1166,7 @@ scripts/
 ├── new_project.sh            ← Создание нового проекта из шаблона
 ├── fm_version.sh             ← Управление версиями (list/diff/bump/log)
 ├── quality_gate.sh           ← Проверка готовности к передаче
+├── run_agent.py              ← АВТОНОМНЫЙ ЗАПУСК агентов (claude -p, --pipeline)
 │
 ├── ЛАУНЧЕРЫ АГЕНТОВ (интерактивные):
 ├── agent0_new.sh             ← Запуск Agent 0 (Creator) - интервью + создание ФМ
@@ -1165,11 +1181,12 @@ scripts/
 │   └── confluence_utils.py   ← Confluence клиент: блокировки, бекапы, retry
 │
 └── experimental/             ← Неактивные модули
-    ├── run_agent.py          ← Автономный запуск через Claude API (отложен)
     └── contract_validator.py ← Валидация JSON-схем (отложен)
 ```
 
-**Запуск:** `./scripts/orchestrate.sh` - единая точка входа для всех операций
+**Запуск:**
+- Интерактивный: `./scripts/orchestrate.sh`
+- Автономный: `python3 scripts/run_agent.py --pipeline --project PROJECT_NAME`
 
 ### Безопасность Confluence (confluence_utils.py v1.1)
 
