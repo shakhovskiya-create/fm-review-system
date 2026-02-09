@@ -1,0 +1,62 @@
+{
+  "name": "Закрытие ЛС",
+  "diagramName": "BPMN 8: Закрытие локальной сметы",
+  "description": "Процесс закрытия ЛС с проверкой рентабельности и согласованием",
+  "lanes": [
+    { "id": "manager", "name": "Менеджер", "color": "#dae8fc" },
+    { "id": "system", "name": "1С:УТ", "color": "#d5e8d4" },
+    { "id": "approver", "name": "Согласующий\n(РБЮ / ДП / ГД)", "color": "#ffe6cc" }
+  ],
+  "nodes": [
+    { "id": "start", "type": "eventStart", "label": "", "lane": "system" },
+    { "id": "x_trigger", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_auto_close", "type": "task", "label": "Автозакрытие\n(все отгружено)", "lane": "system" },
+    { "id": "t_manual_close", "type": "task", "label": "Инициация\nзакрытия\nменеджером", "lane": "manager" },
+    { "id": "t_expired", "type": "task", "label": "ЛС истекла\n(срок вышел)", "lane": "system" },
+    { "id": "x_shipments", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_cancel", "type": "task", "label": "Статус:\nОтменена\n(0 отгрузок)", "lane": "system" },
+    { "id": "t_calc", "type": "task", "label": "Расчет\nнакопленной\nрентабельности", "lane": "system" },
+    { "id": "x_deviation", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_close_auto", "type": "task", "label": "Закрытие\nбез согласования", "lane": "system" },
+    { "id": "t_approve_rbu", "type": "task", "label": "Согласование\nРБЮ\n(1-15 п.п.)", "lane": "approver" },
+    { "id": "t_approve_dp", "type": "task", "label": "Согласование\nДП\n(15.01-25 п.п.)", "lane": "approver" },
+    { "id": "t_approve_gd", "type": "task", "label": "Согласование\nГД\n(> 25 п.п.)", "lane": "approver" },
+    { "id": "x_result", "type": "gateway", "label": "X", "lane": "approver" },
+    { "id": "t_closed", "type": "task", "label": "Статус: Закрыта\n(товар в своб. остаток)", "lane": "system" },
+    { "id": "t_rejected", "type": "task", "label": "ЛС остается\nактивной", "lane": "system" },
+    { "id": "sub_sanctions", "type": "subprocess", "label": "Расчет санкций\n(см. BPMN 10)", "lane": "system" },
+    { "id": "end_ok", "type": "eventEnd", "label": "ЛС закрыта", "lane": "system" },
+    { "id": "end_cancel", "type": "eventEndError", "label": "ЛС отменена", "lane": "system" }
+  ],
+  "edges": [
+    { "from": "start", "to": "x_trigger" },
+    { "from": "x_trigger", "to": "t_auto_close", "label": "остаток = 0" },
+    { "from": "x_trigger", "to": "t_manual_close", "label": "вручную" },
+    { "from": "x_trigger", "to": "t_expired", "label": "срок истек" },
+    { "from": "t_auto_close", "to": "t_closed" },
+    { "from": "t_manual_close", "to": "x_shipments" },
+    { "from": "t_expired", "to": "x_shipments" },
+    { "from": "x_shipments", "to": "t_cancel", "label": "0 отгрузок" },
+    { "from": "x_shipments", "to": "t_calc", "label": "есть отгрузки" },
+    { "from": "t_calc", "to": "x_deviation" },
+    { "from": "x_deviation", "to": "t_close_auto", "label": "< 1 п.п." },
+    { "from": "x_deviation", "to": "t_approve_rbu", "label": "1-15 п.п." },
+    { "from": "x_deviation", "to": "t_approve_dp", "label": "15.01-25" },
+    { "from": "x_deviation", "to": "t_approve_gd", "label": "> 25 п.п." },
+    { "from": "t_close_auto", "to": "t_closed" },
+    { "from": "t_approve_rbu", "to": "x_result" },
+    { "from": "t_approve_dp", "to": "x_result" },
+    { "from": "t_approve_gd", "to": "x_result" },
+    { "from": "x_result", "to": "t_closed", "label": "одобрено" },
+    { "from": "x_result", "to": "t_rejected", "label": "отклонено" },
+    { "from": "t_closed", "to": "sub_sanctions" },
+    { "from": "sub_sanctions", "to": "end_ok" },
+    { "from": "t_cancel", "to": "end_cancel" }
+  ],
+  "notes": [
+    {
+      "text": "SLA согласования:\nРБЮ: 4 часа\nДП: 8 часов\nГД: 24 часа",
+      "position": "top-right"
+    }
+  ]
+}

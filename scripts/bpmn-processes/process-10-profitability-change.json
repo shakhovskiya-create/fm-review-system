@@ -1,0 +1,55 @@
+{
+  "name": "Изменение плановой рентабельности ЛС",
+  "diagramName": "BPMN 10: Изменение плановой рентабельности ЛС",
+  "description": "Процесс согласования изменения плановой рентабельности локальной сметы",
+  "lanes": [
+    { "id": "manager", "name": "Менеджер", "color": "#dae8fc" },
+    { "id": "system", "name": "1С:УТ", "color": "#d5e8d4" },
+    { "id": "approver", "name": "Согласующий\n(РБЮ / ДП / ГД)", "color": "#ffe6cc" }
+  ],
+  "nodes": [
+    { "id": "start", "type": "eventStart", "label": "", "lane": "manager" },
+    { "id": "t1", "type": "task", "label": "Запрос на\nизменение плановой\nрентабельности", "lane": "manager" },
+    { "id": "x_direction", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_increase", "type": "task", "label": "Повышение\n(без согласования)", "lane": "system" },
+    { "id": "x_cause", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_npss", "type": "task", "label": "Снижение из-за\nпересчета НПСС\n(без согласования)", "lane": "system" },
+    { "id": "x_level", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_rbu", "type": "task", "label": "Согласование РБЮ\n(0-3 п.п.)", "lane": "approver" },
+    { "id": "t_dp", "type": "task", "label": "Согласование ДП\n(3.01-10 п.п.)", "lane": "approver" },
+    { "id": "t_gd", "type": "task", "label": "Согласование ГД\n(> 10 п.п.)", "lane": "approver" },
+    { "id": "x_result", "type": "gateway", "label": "X", "lane": "approver" },
+    { "id": "t_apply", "type": "task", "label": "Применение\nизменения\n(запись в журнал)", "lane": "system" },
+    { "id": "t_annul", "type": "task", "label": "Аннулирование\nсогласований\n(если уровень\nизменился)", "lane": "system" },
+    { "id": "t_reject", "type": "taskError", "label": "Отказ\n(изменение\nне применено)", "lane": "system" },
+    { "id": "end_ok", "type": "eventEnd", "label": "Изменено", "lane": "system" },
+    { "id": "end_reject", "type": "eventEndError", "label": "Отклонено", "lane": "system" }
+  ],
+  "edges": [
+    { "from": "start", "to": "t1" },
+    { "from": "t1", "to": "x_direction" },
+    { "from": "x_direction", "to": "t_increase", "label": "повышение" },
+    { "from": "x_direction", "to": "x_cause", "label": "снижение" },
+    { "from": "x_cause", "to": "t_npss", "label": "пересчет НПСС" },
+    { "from": "x_cause", "to": "x_level", "label": "ручной запрос" },
+    { "from": "x_level", "to": "t_rbu", "label": "0-3 п.п." },
+    { "from": "x_level", "to": "t_dp", "label": "3.01-10" },
+    { "from": "x_level", "to": "t_gd", "label": "> 10 п.п." },
+    { "from": "t_rbu", "to": "x_result" },
+    { "from": "t_dp", "to": "x_result" },
+    { "from": "t_gd", "to": "x_result" },
+    { "from": "x_result", "to": "t_apply", "label": "одобрено" },
+    { "from": "x_result", "to": "t_reject", "label": "отклонено" },
+    { "from": "t_increase", "to": "t_apply" },
+    { "from": "t_npss", "to": "t_apply" },
+    { "from": "t_apply", "to": "t_annul" },
+    { "from": "t_annul", "to": "end_ok" },
+    { "from": "t_reject", "to": "end_reject" }
+  ],
+  "notes": [
+    {
+      "text": "Журнал аудита:\nавтор, дата, старое/новое\nзначение, причина.\nХранение: 5 лет.",
+      "position": "top-right"
+    }
+  ]
+}

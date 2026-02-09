@@ -1,0 +1,57 @@
+{
+  "name": "Жизненный цикл ЛС",
+  "diagramName": "BPMN 5: Жизненный цикл локальной сметы",
+  "description": "Статусы и переходы локальной сметы от создания до закрытия",
+  "lanes": [
+    { "id": "manager", "name": "Менеджер", "color": "#dae8fc" },
+    { "id": "system", "name": "1С:УТ", "color": "#d5e8d4" },
+    { "id": "approver", "name": "Согласующий\n(РБЮ / ДП / ГД)", "color": "#ffe6cc" }
+  ],
+  "nodes": [
+    { "id": "start", "type": "eventStart", "label": "", "lane": "manager" },
+    { "id": "t_create", "type": "task", "label": "Создание ЛС\n(НПСС фиксируется)", "lane": "manager" },
+    { "id": "s_active", "type": "task", "label": "Активна\n(создание заказов\nразрешено)", "lane": "system" },
+    { "id": "x_event", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_order", "type": "subprocess", "label": "Заказы клиента\n(см. BPMN 4)", "lane": "manager" },
+    { "id": "x_shipped", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "s_closed", "type": "task", "label": "Закрыта\n(все отгружено)", "lane": "system" },
+    { "id": "s_expired", "type": "task", "label": "Истекла\n(срок вышел)", "lane": "system" },
+    { "id": "x_expired", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_extend", "type": "task", "label": "Продление\n(макс. 2 раза)", "lane": "manager" },
+    { "id": "t_close_manual", "type": "task", "label": "Закрытие\nс частичной\nотгрузкой", "lane": "manager" },
+    { "id": "x_close_approval", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t_close_auto", "type": "task", "label": "Закрытие\nбез согласования\n(< 1 п.п.)", "lane": "system" },
+    { "id": "t_close_approve", "type": "task", "label": "Согласование\nзакрытия", "lane": "approver" },
+    { "id": "s_cancelled", "type": "task", "label": "Отменена\n(0 отгрузок)", "lane": "system" },
+    { "id": "end_ok", "type": "eventEnd", "label": "ЛС завершена", "lane": "system" },
+    { "id": "end_cancel", "type": "eventEndError", "label": "ЛС отменена", "lane": "system" }
+  ],
+  "edges": [
+    { "from": "start", "to": "t_create" },
+    { "from": "t_create", "to": "s_active" },
+    { "from": "s_active", "to": "x_event" },
+    { "from": "x_event", "to": "t_order", "label": "новый заказ" },
+    { "from": "x_event", "to": "s_expired", "label": "срок истек" },
+    { "from": "x_event", "to": "s_cancelled", "label": "отмена\n(0 отгрузок)" },
+    { "from": "t_order", "to": "x_shipped" },
+    { "from": "x_shipped", "to": "s_closed", "label": "все отгружено" },
+    { "from": "x_shipped", "to": "s_active", "label": "есть остаток" },
+    { "from": "s_expired", "to": "x_expired" },
+    { "from": "x_expired", "to": "t_extend", "label": "продлить" },
+    { "from": "x_expired", "to": "t_close_manual", "label": "закрыть" },
+    { "from": "t_extend", "to": "s_active" },
+    { "from": "t_close_manual", "to": "x_close_approval" },
+    { "from": "x_close_approval", "to": "t_close_auto", "label": "< 1 п.п." },
+    { "from": "x_close_approval", "to": "t_close_approve", "label": ">= 1 п.п." },
+    { "from": "t_close_auto", "to": "s_closed" },
+    { "from": "t_close_approve", "to": "s_closed" },
+    { "from": "s_closed", "to": "end_ok" },
+    { "from": "s_cancelled", "to": "end_cancel" }
+  ],
+  "notes": [
+    {
+      "text": "Продление:\nмакс. 2 раза;\nесли > 3 мес. -\nпересчет НПСС",
+      "position": "top-right"
+    }
+  ]
+}

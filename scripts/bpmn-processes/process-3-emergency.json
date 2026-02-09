@@ -16,7 +16,6 @@
     { "id": "t3", "type": "subprocess", "label": "Стандартный процесс\n(см. BPMN 2)", "lane": "manager" },
 
     { "id": "t4", "type": "task", "label": "Отгрузка\nтовара", "lane": "warehouse" },
-    { "id": "e1", "type": "eventEnd", "label": "Товар\nотгружен", "lane": "warehouse" },
 
     { "id": "t5", "type": "task", "label": "Согласование\nпост-фактум\n(SLA 24ч)", "lane": "approver" },
     { "id": "x2", "type": "gateway", "label": "X", "lane": "approver" },
@@ -31,8 +30,7 @@
     { "from": "x1", "to": "t2", "label": "да" },
     { "from": "x1", "to": "t3", "label": "нет" },
     { "from": "t2", "to": "t4" },
-    { "from": "t4", "to": "e1" },
-    { "from": "e1", "to": "t5" },
+    { "from": "t4", "to": "t5" },
     { "from": "t5", "to": "x2" },
     { "from": "x2", "to": "e2", "label": "да" },
     { "from": "x2", "to": "t6", "label": "нет" },

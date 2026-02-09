@@ -79,12 +79,23 @@ function calculateTaskSize(label) {
 
 function calculateLayout(process) {
   const g = new dagre.graphlib.Graph();
+  const nodeCount = process.nodes.length;
+  const edgeCount = process.edges.length;
+  // Адаптивные отступы: 3 уровня сложности
+  const complexity = (nodeCount > 18 || edgeCount > 25) ? 'high' : (nodeCount > 10 || edgeCount > 14) ? 'medium' : 'low';
+  const spacingMap = {
+    low:    { nodesep: 20, ranksep: 25 },
+    medium: { nodesep: 25, ranksep: 30 },
+    high:   { nodesep: 35, ranksep: 40 }
+  };
+  const spacing = spacingMap[complexity];
+
   g.setGraph({
     rankdir: 'LR',
-    nodesep: 70,
-    ranksep: 70,
-    marginx: 40,
-    marginy: 50
+    nodesep: process.layout?.nodesep || spacing.nodesep,
+    ranksep: process.layout?.ranksep || spacing.ranksep,
+    marginx: 15,
+    marginy: 15
   });
   g.setDefaultEdgeLabel(() => ({}));
 
@@ -117,6 +128,85 @@ function calculateLayout(process) {
       laneNodes[node.lane].push({ ...node, id: nodeId });
     }
   });
+
+  // Компактификация: переназначаем Y внутри каждой дорожки
+  // dagre раскидывает узлы по Y глобально, но внутри lane нужна компактность
+  for (const lane of process.lanes) {
+    const nodes = laneNodes[lane.id];
+    if (nodes.length <= 1) continue;
+
+    // Группируем узлы по "колонкам" (перекрывающиеся X-диапазоны)
+    nodes.sort((a, b) => a.x - b.x);
+    const columns = [];
+    let col = [nodes[0]];
+    for (let i = 1; i < nodes.length; i++) {
+      const prevMaxX = Math.max(...col.map(n => n.x + n.width / 2));
+      const currMinX = nodes[i].x - nodes[i].width / 2;
+      if (currMinX < prevMaxX + 15) {
+        col.push(nodes[i]);
+      } else {
+        columns.push(col);
+        col = [nodes[i]];
+      }
+    }
+    columns.push(col);
+
+    // Находим самую высокую колонку
+    let maxColHeight = 0;
+    for (const c of columns) {
+      const h = c.reduce((sum, n) => sum + n.height, 0) + (c.length - 1) * 20;
+      maxColHeight = Math.max(maxColHeight, h);
+    }
+
+    // Переназначаем Y для каждой колонки - центрирование
+    const centerY = maxColHeight / 2;
+    for (const c of columns) {
+      c.sort((a, b) => a.y - b.y); // сохраняем порядок dagre
+      const colHeight = c.reduce((sum, n) => sum + n.height, 0) + (c.length - 1) * 20;
+      let y = centerY - colHeight / 2;
+      for (const node of c) {
+        node.y = y + node.height / 2;
+        y += node.height + 20;
+      }
+    }
+  }
+
+  // X-компактификация: сжимаем горизонтальные промежутки между dagre-ранками
+  const allNodesForXCompact = [];
+  for (const lane of process.lanes) {
+    allNodesForXCompact.push(...laneNodes[lane.id]);
+  }
+  if (allNodesForXCompact.length > 2) {
+    allNodesForXCompact.sort((a, b) => a.x - b.x);
+    const rankGroups = [];
+    let rg = [allNodesForXCompact[0]];
+    for (let i = 1; i < allNodesForXCompact.length; i++) {
+      if (Math.abs(allNodesForXCompact[i].x - rg[0].x) < 30) {
+        rg.push(allNodesForXCompact[i]);
+      } else {
+        rankGroups.push(rg);
+        rg = [allNodesForXCompact[i]];
+      }
+    }
+    rankGroups.push(rg);
+
+    // Адаптивный минимальный промежуток: сложные диаграммы не сжимаем слишком сильно
+    const minRankGapMap = { low: 25, medium: 30, high: 45 };
+    const minRankGap = minRankGapMap[complexity];
+    for (let i = 1; i < rankGroups.length; i++) {
+      const prevRight = Math.max(...rankGroups[i-1].map(n => n.x + n.width / 2));
+      const currLeft = Math.min(...rankGroups[i].map(n => n.x - n.width / 2));
+      const currentGap = currLeft - prevRight;
+      if (currentGap > minRankGap) {
+        const shift = currentGap - minRankGap;
+        for (let j = i; j < rankGroups.length; j++) {
+          for (const node of rankGroups[j]) {
+            node.x -= shift;
+          }
+        }
+      }
+    }
+  }
 
   const laneInfo = {};
   let currentY = 0;
@@ -161,7 +251,7 @@ function calculateLayout(process) {
     const info = laneInfo[lane.id];
 
     for (const node of nodes) {
-      const relX = (node.x - globalMinX) + 80 + CONFIG.lanePadding;
+      const relX = (node.x - globalMinX) + 20 + CONFIG.lanePadding;
       const relY = (node.y - info.minContentY) + CONFIG.lanePadding;
 
       layoutedNodes.push({
@@ -273,16 +363,111 @@ function generateDrawioXml(layout, processName, diagramName) {
     }
   }
 
+  // Собираем позиции узлов для расчета waypoints
+  const nodePositions = {};
+  for (const node of layout.nodes) {
+    nodePositions[node.id] = {
+      x: node.x,
+      y: node.y,
+      width: node.width,
+      height: node.height,
+      lane: node.lane,
+      laneY: node.laneY
+    };
+  }
+
+  // Предварительный расчет: группировка cross-lane ребер по источнику для разноса
+  const crossLaneGroups = {};
+  for (const edge of layout.edges) {
+    const srcNode = nodePositions[edge.from];
+    const tgtNode = nodePositions[edge.to];
+    if (srcNode && tgtNode && srcNode.lane !== tgtNode.lane) {
+      if (!crossLaneGroups[edge.from]) crossLaneGroups[edge.from] = [];
+      crossLaneGroups[edge.from].push(edge);
+    }
+  }
+
   for (const edge of layout.edges) {
     const id = cellId++;
     const sourceId = nodeIdMap[edge.from];
     const targetId = nodeIdMap[edge.to];
     if (!sourceId || !targetId) continue;
 
-    cells.push(`
-      <mxCell id="${id}" value="${xmlEncode(edge.label || '')}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="${poolId}" source="${sourceId}" target="${targetId}">
+    const srcNode = nodePositions[edge.from];
+    const tgtNode = nodePositions[edge.to];
+    const isCrossLane = srcNode && tgtNode && srcNode.lane !== tgtNode.lane;
+
+    if (isCrossLane && srcNode && tgtNode) {
+      // Cross-lane: Z-path waypoints (horizontal -> vertical -> horizontal)
+      const srcPoolX = 30 + srcNode.x;
+      const srcPoolY = srcNode.laneY + srcNode.y;
+      const tgtPoolX = 30 + tgtNode.x;
+      const tgtPoolY = tgtNode.laneY + tgtNode.y;
+
+      const srcRightEdge = srcPoolX + srcNode.width / 2;
+      const tgtLeftEdge = tgtPoolX - tgtNode.width / 2;
+
+      // Разнос параллельных ребер от одного источника
+      const group = crossLaneGroups[edge.from] || [];
+      const edgeIndex = group.indexOf(edge);
+      const groupSize = group.length;
+      const spreadOffset = groupSize > 1 ? (edgeIndex - (groupSize - 1) / 2) * 20 : 0;
+
+      const edgeStyle = 'rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;labelBackgroundColor=#ffffff;fontSize=10;';
+
+      // Функция проверки коллизий: сдвигает midX если вертикальный сегмент проходит через узел
+      const avoidCollisions = (candidateX) => {
+        let x = candidateX;
+        const minPoolY = Math.min(srcPoolY, tgtPoolY);
+        const maxPoolY = Math.max(srcPoolY, tgtPoolY);
+        for (const n of layout.nodes) {
+          if (n.id === edge.from || n.id === edge.to) continue;
+          const nPoolX = 30 + n.x;
+          const nPoolY = n.laneY + n.y;
+          if (nPoolY > minPoolY - 5 && nPoolY < maxPoolY + 5) {
+            const nLeft = nPoolX - n.width / 2 - 8;
+            const nRight = nPoolX + n.width / 2 + 8;
+            if (x >= nLeft && x <= nRight) {
+              x = nRight + 10; // сдвигаем вправо за узел
+            }
+          }
+        }
+        return Math.round(x);
+      };
+
+      if (tgtLeftEdge > srcRightEdge + 10) {
+        const midX = avoidCollisions((srcRightEdge + tgtLeftEdge) / 2 + spreadOffset);
+        cells.push(`
+      <mxCell id="${id}" value="${xmlEncode(edge.label || '')}" style="${edgeStyle}" edge="1" parent="${poolId}" source="${sourceId}" target="${targetId}">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="${midX}" y="${Math.round(srcPoolY)}"/>
+            <mxPoint x="${midX}" y="${Math.round(tgtPoolY)}"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>`);
+      } else {
+        const bypassX = avoidCollisions(Math.max(srcPoolX + srcNode.width / 2, tgtPoolX + tgtNode.width / 2) + 30 + Math.abs(spreadOffset));
+        cells.push(`
+      <mxCell id="${id}" value="${xmlEncode(edge.label || '')}" style="${edgeStyle}" edge="1" parent="${poolId}" source="${sourceId}" target="${targetId}">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="${bypassX}" y="${Math.round(srcPoolY)}"/>
+            <mxPoint x="${bypassX}" y="${Math.round(tgtPoolY)}"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>`);
+      }
+    } else {
+      // Same-lane: parent = lane, orthogonal routing видит узлы как siblings и обходит их
+      const parentId = (srcNode && laneIdMap[srcNode.lane]) ? laneIdMap[srcNode.lane] : poolId;
+      const edgeStyle = 'edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;labelBackgroundColor=#ffffff;fontSize=10;';
+
+      cells.push(`
+      <mxCell id="${id}" value="${xmlEncode(edge.label || '')}" style="${edgeStyle}" edge="1" parent="${parentId}" source="${sourceId}" target="${targetId}">
         <mxGeometry relative="1" as="geometry"/>
       </mxCell>`);
+    }
   }
 
   // Легенда убрана - описание есть в тексте ФМ
@@ -290,7 +475,7 @@ function generateDrawioXml(layout, processName, diagramName) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="BPMN Generator" version="21.0.0">
   <diagram name="${xmlEncode(diagramName)}" id="bpmn-1">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${Math.max(1600, totalWidth + 120)}" pageHeight="${Math.max(900, totalHeight + 160)}">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>

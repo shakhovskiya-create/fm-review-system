@@ -18,7 +18,6 @@
     { "id": "t5", "type": "task", "label": "Отклонить\nс причиной", "lane": "head" },
 
     { "id": "t6", "type": "task", "label": "Фиксация\nрешения", "lane": "system" },
-    { "id": "x2", "type": "gateway", "label": "X", "lane": "system" },
 
     { "id": "t7", "type": "task", "label": "Получить\nуведомление", "lane": "manager" },
     { "id": "x3", "type": "gateway", "label": "X", "lane": "manager" },
@@ -37,8 +36,7 @@
     { "from": "x1", "to": "t5", "label": "отклонить" },
     { "from": "t4", "to": "t6" },
     { "from": "t5", "to": "t6" },
-    { "from": "t6", "to": "x2" },
-    { "from": "x2", "to": "t7" },
+    { "from": "t6", "to": "t7" },
     { "from": "t7", "to": "x3" },
     { "from": "x3", "to": "t8", "label": "согласован" },
     { "from": "x3", "to": "t9", "label": "отклонен" },

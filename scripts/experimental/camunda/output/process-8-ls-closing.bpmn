@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="fm-review-system"
+                  exporterVersion="1.0">
+  <bpmn:error id="Error_end_cancel" name="ЛС отменена" errorCode="END_CANCEL" />
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Закрытие ЛС" processRef="Process_zakrytie_ls" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_zakrytie_ls" name="Закрытие ЛС" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_manager" name="Менеджер">
+        <bpmn:flowNodeRef>t_manual_close</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_system" name="1С:УТ">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_trigger</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_auto_close</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_shipments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_cancel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_calc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_deviation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_close_auto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_closed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_rejected</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sub_sanctions</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_approver" name="Согласующий (РБЮ / ДП / ГД)">
+        <bpmn:flowNodeRef>t_approve_rbu</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_approve_dp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_approve_gd</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_result</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="">
+      <bpmn:outgoing>Flow_start_x_trigger</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="x_trigger" name="X" default="Flow_x_trigger_t_expired">
+      <bpmn:incoming>Flow_start_x_trigger</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_trigger_t_auto_close</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_trigger_t_manual_close</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_trigger_t_expired</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_auto_close" name="Автозакрытие (все отгружено)">
+      <bpmn:incoming>Flow_x_trigger_t_auto_close</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_auto_close_t_closed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_manual_close" name="Инициация закрытия менеджером">
+      <bpmn:incoming>Flow_x_trigger_t_manual_close</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_manual_close_x_shipments</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_expired" name="ЛС истекла (срок вышел)">
+      <bpmn:incoming>Flow_x_trigger_t_expired</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_expired_x_shipments</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_shipments" name="X" default="Flow_x_shipments_t_calc">
+      <bpmn:incoming>Flow_t_manual_close_x_shipments</bpmn:incoming>
+      <bpmn:incoming>Flow_t_expired_x_shipments</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_shipments_t_cancel</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_shipments_t_calc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_cancel" name="Статус: Отменена (0 отгрузок)">
+      <bpmn:incoming>Flow_x_shipments_t_cancel</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_cancel_end_cancel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_calc" name="Расчет накопленной рентабельности">
+      <bpmn:incoming>Flow_x_shipments_t_calc</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_calc_x_deviation</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_deviation" name="X" default="Flow_x_deviation_t_approve_gd">
+      <bpmn:incoming>Flow_t_calc_x_deviation</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_deviation_t_close_auto</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_deviation_t_approve_rbu</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_deviation_t_approve_dp</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_deviation_t_approve_gd</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_close_auto" name="Закрытие без согласования">
+      <bpmn:incoming>Flow_x_deviation_t_close_auto</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_close_auto_t_closed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_approve_rbu" name="Согласование РБЮ (1-15 п.п.)">
+      <bpmn:incoming>Flow_x_deviation_t_approve_rbu</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_approve_rbu_x_result</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_approve_dp" name="Согласование ДП (15.01-25 п.п.)">
+      <bpmn:incoming>Flow_x_deviation_t_approve_dp</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_approve_dp_x_result</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_approve_gd" name="Согласование ГД (&gt; 25 п.п.)">
+      <bpmn:incoming>Flow_x_deviation_t_approve_gd</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_approve_gd_x_result</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_result" name="X" default="Flow_x_result_t_rejected">
+      <bpmn:incoming>Flow_t_approve_rbu_x_result</bpmn:incoming>
+      <bpmn:incoming>Flow_t_approve_dp_x_result</bpmn:incoming>
+      <bpmn:incoming>Flow_t_approve_gd_x_result</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_result_t_closed</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_result_t_rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_closed" name="Статус: Закрыта (товар в своб. остаток)">
+      <bpmn:incoming>Flow_t_auto_close_t_closed</bpmn:incoming>
+      <bpmn:incoming>Flow_t_close_auto_t_closed</bpmn:incoming>
+      <bpmn:incoming>Flow_x_result_t_closed</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_closed_sub_sanctions</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_rejected" name="ЛС остается активной">
+      <bpmn:incoming>Flow_x_result_t_rejected</bpmn:incoming>
+    </bpmn:task>
+    <bpmn:callActivity id="sub_sanctions" name="Расчет санкций (см. BPMN 10)">
+      <bpmn:incoming>Flow_t_closed_sub_sanctions</bpmn:incoming>
+      <bpmn:outgoing>Flow_sub_sanctions_end_ok</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="end_ok" name="ЛС закрыта">
+      <bpmn:incoming>Flow_sub_sanctions_end_ok</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_cancel" name="ЛС отменена">
+      <bpmn:incoming>Flow_t_cancel_end_cancel</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_end_cancel" errorRef="Error_end_cancel" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_x_trigger" sourceRef="start" targetRef="x_trigger" />
+    <bpmn:sequenceFlow id="Flow_x_trigger_t_auto_close" name="остаток = 0" sourceRef="x_trigger" targetRef="t_auto_close">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=остаток = 0</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_trigger_t_manual_close" name="вручную" sourceRef="x_trigger" targetRef="t_manual_close">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=вручную</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_trigger_t_expired" name="срок истек" sourceRef="x_trigger" targetRef="t_expired" />
+    <bpmn:sequenceFlow id="Flow_t_auto_close_t_closed" sourceRef="t_auto_close" targetRef="t_closed" />
+    <bpmn:sequenceFlow id="Flow_t_manual_close_x_shipments" sourceRef="t_manual_close" targetRef="x_shipments" />
+    <bpmn:sequenceFlow id="Flow_t_expired_x_shipments" sourceRef="t_expired" targetRef="x_shipments" />
+    <bpmn:sequenceFlow id="Flow_x_shipments_t_cancel" name="0 отгрузок" sourceRef="x_shipments" targetRef="t_cancel">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=0 отгрузок</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_shipments_t_calc" name="есть отгрузки" sourceRef="x_shipments" targetRef="t_calc" />
+    <bpmn:sequenceFlow id="Flow_t_calc_x_deviation" sourceRef="t_calc" targetRef="x_deviation" />
+    <bpmn:sequenceFlow id="Flow_x_deviation_t_close_auto" name="&lt; 1 п.п." sourceRef="x_deviation" targetRef="t_close_auto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt; 1 п.п.</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_rbu" name="1-15 п.п." sourceRef="x_deviation" targetRef="t_approve_rbu">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=1-15 п.п.</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_dp" name="15.01-25" sourceRef="x_deviation" targetRef="t_approve_dp">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=15.01-25</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_gd" name="&gt; 25 п.п." sourceRef="x_deviation" targetRef="t_approve_gd" />
+    <bpmn:sequenceFlow id="Flow_t_close_auto_t_closed" sourceRef="t_close_auto" targetRef="t_closed" />
+    <bpmn:sequenceFlow id="Flow_t_approve_rbu_x_result" sourceRef="t_approve_rbu" targetRef="x_result" />
+    <bpmn:sequenceFlow id="Flow_t_approve_dp_x_result" sourceRef="t_approve_dp" targetRef="x_result" />
+    <bpmn:sequenceFlow id="Flow_t_approve_gd_x_result" sourceRef="t_approve_gd" targetRef="x_result" />
+    <bpmn:sequenceFlow id="Flow_x_result_t_closed" name="одобрено" sourceRef="x_result" targetRef="t_closed">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрено</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_result_t_rejected" name="отклонено" sourceRef="x_result" targetRef="t_rejected" />
+    <bpmn:sequenceFlow id="Flow_t_closed_sub_sanctions" sourceRef="t_closed" targetRef="sub_sanctions" />
+    <bpmn:sequenceFlow id="Flow_sub_sanctions_end_ok" sourceRef="sub_sanctions" targetRef="end_ok" />
+    <bpmn:sequenceFlow id="Flow_t_cancel_end_cancel" sourceRef="t_cancel" targetRef="end_cancel" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="2360" height="840" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_manager_di" bpmnElement="Lane_manager" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="2330" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_system_di" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="130" y="220" width="2330" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_approver_di" bpmnElement="Lane_approver" isHorizontal="true">
+        <dc:Bounds x="130" y="500" width="2330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="200" y="320" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_trigger_di" bpmnElement="x_trigger">
+        <dc:Bounds x="380" y="320" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_auto_close_di" bpmnElement="t_auto_close">
+        <dc:Bounds x="560" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_manual_close_di" bpmnElement="t_manual_close">
+        <dc:Bounds x="560" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_expired_di" bpmnElement="t_expired">
+        <dc:Bounds x="560" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_shipments_di" bpmnElement="x_shipments">
+        <dc:Bounds x="740" y="320" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_cancel_di" bpmnElement="t_cancel">
+        <dc:Bounds x="920" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_calc_di" bpmnElement="t_calc">
+        <dc:Bounds x="920" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_deviation_di" bpmnElement="x_deviation">
+        <dc:Bounds x="1100" y="260" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_close_auto_di" bpmnElement="t_close_auto">
+        <dc:Bounds x="1280" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_approve_rbu_di" bpmnElement="t_approve_rbu">
+        <dc:Bounds x="1280" y="540" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_approve_dp_di" bpmnElement="t_approve_dp">
+        <dc:Bounds x="1280" y="660" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_approve_gd_di" bpmnElement="t_approve_gd">
+        <dc:Bounds x="1280" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_result_di" bpmnElement="x_result">
+        <dc:Bounds x="1460" y="660" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_closed_di" bpmnElement="t_closed">
+        <dc:Bounds x="1640" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_rejected_di" bpmnElement="t_rejected">
+        <dc:Bounds x="1640" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sub_sanctions_di" bpmnElement="sub_sanctions">
+        <dc:Bounds x="1820" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ok_di" bpmnElement="end_ok">
+        <dc:Bounds x="2000" y="320" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cancel_di" bpmnElement="end_cancel">
+        <dc:Bounds x="1100" y="380" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_x_trigger_di" bpmnElement="Flow_start_x_trigger">
+        <di:waypoint x="236" y="338" />
+        <di:waypoint x="308" y="338" />
+        <di:waypoint x="308" y="345" />
+        <di:waypoint x="380" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_trigger_t_auto_close_di" bpmnElement="Flow_x_trigger_t_auto_close">
+        <di:waypoint x="430" y="345" />
+        <di:waypoint x="495" y="345" />
+        <di:waypoint x="495" y="300" />
+        <di:waypoint x="560" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_trigger_t_manual_close_di" bpmnElement="Flow_x_trigger_t_manual_close">
+        <di:waypoint x="430" y="345" />
+        <di:waypoint x="495" y="345" />
+        <di:waypoint x="495" y="140" />
+        <di:waypoint x="560" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_trigger_t_expired_di" bpmnElement="Flow_x_trigger_t_expired">
+        <di:waypoint x="430" y="345" />
+        <di:waypoint x="495" y="345" />
+        <di:waypoint x="495" y="420" />
+        <di:waypoint x="560" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_auto_close_t_closed_di" bpmnElement="Flow_t_auto_close_t_closed">
+        <di:waypoint x="660" y="300" />
+        <di:waypoint x="1640" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_manual_close_x_shipments_di" bpmnElement="Flow_t_manual_close_x_shipments">
+        <di:waypoint x="660" y="140" />
+        <di:waypoint x="700" y="140" />
+        <di:waypoint x="700" y="345" />
+        <di:waypoint x="740" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_expired_x_shipments_di" bpmnElement="Flow_t_expired_x_shipments">
+        <di:waypoint x="660" y="420" />
+        <di:waypoint x="700" y="420" />
+        <di:waypoint x="700" y="345" />
+        <di:waypoint x="740" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_shipments_t_cancel_di" bpmnElement="Flow_x_shipments_t_cancel">
+        <di:waypoint x="790" y="345" />
+        <di:waypoint x="855" y="345" />
+        <di:waypoint x="855" y="300" />
+        <di:waypoint x="920" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_shipments_t_calc_di" bpmnElement="Flow_x_shipments_t_calc">
+        <di:waypoint x="790" y="345" />
+        <di:waypoint x="855" y="345" />
+        <di:waypoint x="855" y="420" />
+        <di:waypoint x="920" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_calc_x_deviation_di" bpmnElement="Flow_t_calc_x_deviation">
+        <di:waypoint x="1020" y="420" />
+        <di:waypoint x="1060" y="420" />
+        <di:waypoint x="1060" y="285" />
+        <di:waypoint x="1100" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_deviation_t_close_auto_di" bpmnElement="Flow_x_deviation_t_close_auto">
+        <di:waypoint x="1150" y="285" />
+        <di:waypoint x="1215" y="285" />
+        <di:waypoint x="1215" y="360" />
+        <di:waypoint x="1280" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_deviation_t_approve_rbu_di" bpmnElement="Flow_x_deviation_t_approve_rbu">
+        <di:waypoint x="1150" y="285" />
+        <di:waypoint x="1215" y="285" />
+        <di:waypoint x="1215" y="580" />
+        <di:waypoint x="1280" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_deviation_t_approve_dp_di" bpmnElement="Flow_x_deviation_t_approve_dp">
+        <di:waypoint x="1150" y="285" />
+        <di:waypoint x="1215" y="285" />
+        <di:waypoint x="1215" y="700" />
+        <di:waypoint x="1280" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_deviation_t_approve_gd_di" bpmnElement="Flow_x_deviation_t_approve_gd">
+        <di:waypoint x="1150" y="285" />
+        <di:waypoint x="1215" y="285" />
+        <di:waypoint x="1215" y="820" />
+        <di:waypoint x="1280" y="820" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_close_auto_t_closed_di" bpmnElement="Flow_t_close_auto_t_closed">
+        <di:waypoint x="1380" y="360" />
+        <di:waypoint x="1510" y="360" />
+        <di:waypoint x="1510" y="300" />
+        <di:waypoint x="1640" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_approve_rbu_x_result_di" bpmnElement="Flow_t_approve_rbu_x_result">
+        <di:waypoint x="1380" y="580" />
+        <di:waypoint x="1420" y="580" />
+        <di:waypoint x="1420" y="685" />
+        <di:waypoint x="1460" y="685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_approve_dp_x_result_di" bpmnElement="Flow_t_approve_dp_x_result">
+        <di:waypoint x="1380" y="700" />
+        <di:waypoint x="1420" y="700" />
+        <di:waypoint x="1420" y="685" />
+        <di:waypoint x="1460" y="685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_approve_gd_x_result_di" bpmnElement="Flow_t_approve_gd_x_result">
+        <di:waypoint x="1380" y="820" />
+        <di:waypoint x="1420" y="820" />
+        <di:waypoint x="1420" y="685" />
+        <di:waypoint x="1460" y="685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_result_t_closed_di" bpmnElement="Flow_x_result_t_closed">
+        <di:waypoint x="1510" y="685" />
+        <di:waypoint x="1575" y="685" />
+        <di:waypoint x="1575" y="300" />
+        <di:waypoint x="1640" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_result_t_rejected_di" bpmnElement="Flow_x_result_t_rejected">
+        <di:waypoint x="1510" y="685" />
+        <di:waypoint x="1575" y="685" />
+        <di:waypoint x="1575" y="420" />
+        <di:waypoint x="1640" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_closed_sub_sanctions_di" bpmnElement="Flow_t_closed_sub_sanctions">
+        <di:waypoint x="1740" y="300" />
+        <di:waypoint x="1780" y="300" />
+        <di:waypoint x="1780" y="360" />
+        <di:waypoint x="1820" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_sub_sanctions_end_ok_di" bpmnElement="Flow_sub_sanctions_end_ok">
+        <di:waypoint x="1920" y="360" />
+        <di:waypoint x="1960" y="360" />
+        <di:waypoint x="1960" y="338" />
+        <di:waypoint x="2000" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_cancel_end_cancel_di" bpmnElement="Flow_t_cancel_end_cancel">
+        <di:waypoint x="1020" y="300" />
+        <di:waypoint x="1060" y="300" />
+        <di:waypoint x="1060" y="398" />
+        <di:waypoint x="1100" y="398" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
