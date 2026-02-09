@@ -621,3 +621,26 @@
 ```
 
 **НЕ СПРАШИВАЙ пользователя "сохранить?" — сохраняй ВСЕГДА автоматически.**
+
+---
+
+## ОБЯЗАТЕЛЬНЫЙ САЙДКАР _summary.json (FC-07A)
+
+После КАЖДОГО выполнения команды создать файл:
+`PROJECT_*/AGENT_2_ROLE_SIMULATOR/[command]_summary.json`
+
+```json
+{
+  "agent": "Agent2_RoleSimulator",
+  "command": "/simulate-all",
+  "timestamp": "ISO 8601",
+  "fmVersion": "X.Y.Z",
+  "project": "PROJECT_NAME",
+  "status": "completed | partial | failed",
+  "counts": {"critical": N, "high": N, "medium": N, "low": N, "total": N},
+  "outputFiles": ["simulation-report-v1.0.md"],
+  "notes": ""
+}
+```
+
+Без этого файла Quality Gate (FC-08C) выдаст предупреждение.

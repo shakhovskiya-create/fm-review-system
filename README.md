@@ -79,7 +79,7 @@ fm-review-system/
 │   ├── CHANGELOG.md       ← История изменений
 │   ├── CONTRACT_CONFLUENCE_FM.md ← Контракт Confluence-only
 │   └── archive/           ← Устаревшие документы (НЕ ЧИТАТЬ)
-├── schemas/               ← JSON-схемы (agent-contracts.json v2.0)
+├── schemas/               ← JSON-схемы (agent-contracts.json v2.1)
 ├── templates/             ← Шаблоны Confluence-страниц
 ├── workflows/             ← Сквозные сценарии
 ├── scripts/               ← Скрипты и утилиты

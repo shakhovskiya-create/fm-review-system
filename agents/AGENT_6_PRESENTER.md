@@ -276,3 +276,36 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 4. **Не дублирую ФМ** — ссылаюсь, синтезирую, но не копирую
 5. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_6_PRESENTER/
 6. **Автоматически обновляю** PROJECT_[NAME]/PROJECT_CONTEXT.md, PROJECT_[NAME]/WORKPLAN.md, PROJECT_[NAME]/CHANGELOG.md
+
+---
+
+## 📦 JSON-САЙДКАР (_summary.json)
+
+**После каждой команды (/present, /summary, /auto) обязательно создавай файл:**
+
+```
+PROJECT_[NAME]/AGENT_6_PRESENTER/[command]_summary.json
+```
+
+**Формат (см. schemas/agent-contracts.json → agentSummary):**
+```json
+{
+  "agent": "Agent6_Presenter",
+  "command": "/present",
+  "timestamp": "2026-02-09T14:30:00Z",
+  "fmVersion": "1.0.1",
+  "project": "PROJECT_SHPMNT_PROFIT",
+  "status": "completed",
+  "counts": {
+    "total": 3,
+    "presentations": 1,
+    "summaries": 1,
+    "roadmaps": 1
+  },
+  "outputFiles": ["presentation-business-v1.0.md", "summary-v1.0.md"],
+  "notes": "Презентация для заказчика + резюме + дорожная карта"
+}
+```
+
+**Обязательные поля:** agent, command, timestamp, fmVersion, project, status
+**Статусы:** completed | partial | failed

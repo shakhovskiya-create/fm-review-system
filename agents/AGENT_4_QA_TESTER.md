@@ -540,3 +540,37 @@
 ```
 
 **НЕ СПРАШИВАЙ пользователя "сохранить?" — сохраняй ВСЕГДА автоматически.**
+
+---
+
+## ОБЯЗАТЕЛЬНЫЙ САЙДКАР _summary.json (FC-07A)
+
+После КАЖДОГО выполнения команды создать файл:
+`PROJECT_*/AGENT_4_QA_TESTER/[command]_summary.json`
+
+```json
+{
+  "agent": "Agent4_QATester",
+  "command": "/generate-all",
+  "timestamp": "ISO 8601",
+  "fmVersion": "X.Y.Z",
+  "project": "PROJECT_NAME",
+  "status": "completed | partial | failed",
+  "counts": {"critical": N, "high": N, "medium": N, "low": N, "total": N},
+  "outputFiles": ["test-plan-v1.0.md"],
+  "notes": ""
+}
+```
+
+Без этого файла Quality Gate (FC-08C) выдаст предупреждение.
+
+---
+
+## МАТРИЦА ТРАССИРУЕМОСТИ (FC-10A)
+
+После генерации тест-кейсов ОБЯЗАТЕЛЬНО создать:
+`PROJECT_*/AGENT_4_QA_TESTER/traceability-matrix.json`
+
+Формат: см. schemas/agent-contracts.json -> traceabilityMatrix
+Связывает: findingId -> tests[] -> fmSection -> tzObject
+Quality Gate проверяет наличие и покрытие матрицы.

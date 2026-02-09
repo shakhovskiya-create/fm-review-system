@@ -391,6 +391,5 @@ Agent 6: /auto → презентация + экспорт
 python3 scripts/export_from_confluence.py  — Экспорт ФМ из Confluence (PDF/Word)
 node scripts/generate-bpmn.js              — Генерация BPMN-диаграмм
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
-./scripts/agent7_publish.sh — Интервью для управления ФМ в Confluence
-./scripts/agent8_bpmn.sh    — Интервью для BPMN-диаграмм
+# Agent 7 и 8 запускаются через orchestrate.sh (пп. 9, 10) или Claude Code напрямую
 ```

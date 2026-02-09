@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FM Review System Agent Contracts v2.0 (FC-04)",
+  "title": "FM Review System Agent Contracts v2.1 (FC-10A: traceability, FC-09C: context schema)",
   "description": "JSON Schema for inter-agent communication. v2.0: added agentSummary sidecar, Agent6_Presenter",
 
   "definitions": {
@@ -126,6 +126,106 @@
         "priority": {
           "type": "string",
           "enum": ["P1", "P2", "P3"]
+        }
+      }
+    },
+
+    "traceabilityEntry": {
+      "type": "object",
+      "required": ["findingId", "tests", "fmSection"],
+      "description": "Links a finding to its test cases and FM section (FC-10A)",
+      "properties": {
+        "findingId": {
+          "type": "string",
+          "pattern": "^(CRITICAL|HIGH|MEDIUM|LOW)-[0-9]{3}$",
+          "description": "Finding ID from Agent 1 audit"
+        },
+        "tests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Test case IDs covering this finding"
+        },
+        "fmSection": {
+          "type": "string",
+          "description": "FM section reference (e.g. 3.4, 3.7.1)"
+        },
+        "tzObject": {
+          "type": "string",
+          "description": "TZ object reference from Agent 5 (optional)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["covered", "partial", "uncovered"],
+          "description": "Coverage status"
+        }
+      }
+    },
+    "traceabilityMatrix": {
+      "type": "object",
+      "required": ["project", "fmVersion", "timestamp", "entries"],
+      "description": "Full traceability matrix linking findings to tests and TZ objects (FC-10A)",
+      "properties": {
+        "project": { "type": "string" },
+        "fmVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/traceabilityEntry" }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "totalFindings": { "type": "integer" },
+            "covered": { "type": "integer" },
+            "partial": { "type": "integer" },
+            "uncovered": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "contextSchema": {
+      "type": "object",
+      "required": ["project", "pageId", "fmVersion"],
+      "description": "Required context keys for /auto mode (FC-09C). Core keys are required; agent-specific are optional with defaults.",
+      "properties": {
+        "project": {
+          "type": "string",
+          "description": "REQUIRED. Project name (e.g. PROJECT_SHPMNT_PROFIT)"
+        },
+        "pageId": {
+          "type": "string",
+          "description": "REQUIRED. Confluence PAGE_ID"
+        },
+        "fmVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "REQUIRED. Current FM version (semantic)"
+        },
+        "applyScope": {
+          "type": "string",
+          "enum": ["all", "critical_high", "critical_only", "none"],
+          "default": "critical_high",
+          "description": "OPTIONAL. Scope for /apply (default: critical_high)"
+        },
+        "focus": {
+          "type": "string",
+          "enum": ["full", "logic", "1c", "speed", "manipulations", "ux"],
+          "default": "full",
+          "description": "OPTIONAL. Audit/simulation focus (default: full)"
+        },
+        "audience": {
+          "type": "string",
+          "enum": ["business", "executive", "developer", "universal"],
+          "default": "business",
+          "description": "OPTIONAL. Presentation audience (default: business)"
+        },
+        "applyMode": {
+          "type": "string",
+          "enum": ["auto", "interactive"],
+          "default": "interactive",
+          "description": "OPTIONAL. Apply mode (default: interactive)"
         }
       }
     },

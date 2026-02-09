@@ -560,9 +560,11 @@ try:
         version_msg = version_message if FROM_FILE_MODE else "Import from docx"
 
         # Update with backup + retry (automatic)
+        # FC-20: передаем agent_name для журнала аудита (FC-12B)
         result, backup_path = client.update_page(
             new_body=content,
-            version_message=version_msg
+            version_message=version_msg,
+            agent_name="Agent7_Publisher"
         )
 
         new_version = result.get('version', {}).get('number', '?')

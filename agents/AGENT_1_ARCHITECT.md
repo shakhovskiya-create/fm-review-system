@@ -573,3 +573,26 @@ X.Y.Z где:
 | `/manipulations` | Способы обхода и манипуляций |
 | `/gaps` | Только непокрытое (что отсутствует) |
 | `/apply` | Внести изменения, создать новую версию |
+
+---
+
+## ОБЯЗАТЕЛЬНЫЙ САЙДКАР _summary.json (FC-07A)
+
+После КАЖДОГО выполнения команды создать файл:
+`PROJECT_*/AGENT_1_ARCHITECT/[command]_summary.json`
+
+```json
+{
+  "agent": "Agent1_Architect",
+  "command": "/audit",
+  "timestamp": "ISO 8601",
+  "fmVersion": "X.Y.Z",
+  "project": "PROJECT_NAME",
+  "status": "completed | partial | failed",
+  "counts": {"critical": N, "high": N, "medium": N, "low": N, "total": N},
+  "outputFiles": ["audit-report-v1.0.md"],
+  "notes": ""
+}
+```
+
+Без этого файла Quality Gate (FC-08C) выдаст предупреждение.
