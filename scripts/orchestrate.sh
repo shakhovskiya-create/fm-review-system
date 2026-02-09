@@ -69,7 +69,7 @@ case "$ACTION" in
     
     # Определяем порядок
     PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_7" "AGENT_8" "AGENT_6")
-    PIPELINE_NAMES=("Аудит" "Симуляция" "Тесты" "Архитектура" "Публикация" "BPMN" "Презентация")
+    PIPELINE_NAMES=("Аудит" "Симуляция" "Тест-кейсы" "Архитектура" "Публикация" "BPMN" "Презентация")
     PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_7_PUBLISHER" "AGENT_8_BPMN_DESIGNER" "AGENT_6_PRESENTER")
     
     for i in "${!PIPELINE_ORDER[@]}"; do
@@ -114,9 +114,49 @@ ${PREV_CONTEXT}"
             case "${agent_md}" in
                 AGENT_7_PUBLISHER.md) CMD="/publish" ;;
                 AGENT_8_BPMN_DESIGNER.md) CMD="/bpmn" ;;
-                *) CMD="/audit" ;;
+                AGENT_1_ARCHITECT.md) CMD="/audit" ;;
+                AGENT_2_ROLE_SIMULATOR.md) CMD="/simulate-all" ;;
+                AGENT_4_QA_TESTER.md) CMD="/generate-all" ;;
+                AGENT_5_TECH_ARCHITECT.md) CMD="/full" ;;
+                AGENT_6_PRESENTER.md) CMD="/auto" ;;
+                *) CMD="/auto" ;;
             esac
-            
+
+            # FC-08C: Обязательный Quality Gate перед Agent 7 (после Agent 5)
+            if [[ "${agent_md}" == "AGENT_7_PUBLISHER.md" ]]; then
+                subheader "QUALITY GATE (FC-08C): обязательная проверка перед публикацией"
+                QG_EXIT=0
+                bash "${SCRIPTS_DIR}/quality_gate.sh" "${PROJECT}" || QG_EXIT=$?
+
+                if [[ $QG_EXIT -eq 1 ]]; then
+                    error "Quality Gate: КРИТИЧЕСКИЕ ОШИБКИ. Публикация заблокирована."
+                    error "Исправьте ошибки и запустите pipeline повторно."
+                    exit 1
+                elif [[ $QG_EXIT -eq 2 ]]; then
+                    warn "Quality Gate: есть предупреждения."
+                    if [[ -n "${AUTONOMOUS:-}" ]]; then
+                        warn "Автономный режим: предупреждения пропускаются автоматически."
+                        bash "${SCRIPTS_DIR}/quality_gate.sh" "${PROJECT}" --reason "Автопропуск в автономном режиме" >/dev/null 2>&1 || true
+                    else
+                        if gum confirm "Продолжить публикацию с предупреждениями?"; then
+                            REASON=$(gum input --placeholder "Причина пропуска предупреждений..." --header "Укажите причину (обязательно):")
+                            if [[ -z "$REASON" ]]; then
+                                error "Причина пропуска не указана. Публикация отменена."
+                                continue
+                            fi
+                            bash "${SCRIPTS_DIR}/quality_gate.sh" "${PROJECT}" --reason "$REASON" >/dev/null 2>&1 || true
+                            success "Предупреждения пропущены. Причина записана."
+                        else
+                            warn "Публикация отменена. Исправьте предупреждения."
+                            continue
+                        fi
+                    fi
+                else
+                    success "Quality Gate: все проверки пройдены."
+                fi
+                echo ""
+            fi
+
             # Автономный режим: вызов через Claude API (experimental/run_agent.py)
             # ПРИМЕЧАНИЕ: run_agent.py перенесен в experimental/ (FC-03)
             if [[ -n "${AUTONOMOUS:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then

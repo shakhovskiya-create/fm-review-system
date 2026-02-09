@@ -30,8 +30,8 @@ menu)
 list)
     header "ВЕРСИИ ФМ"
     PROJECT=$(select_project)
-    FM_DIR="${ROOT_DIR}/${PROJECT}/FM_DOCUMENTS"
-    
+    FM_DIR="${ROOT_DIR}/projects/${PROJECT}/FM_DOCUMENTS"
+
     echo -e "${BOLD}Проект: ${PROJECT}${NC}"
     echo ""
     
@@ -55,8 +55,8 @@ list)
 diff)
     header "СРАВНЕНИЕ ВЕРСИЙ ФМ"
     PROJECT=$(select_project)
-    FM_DIR="${ROOT_DIR}/${PROJECT}/FM_DOCUMENTS"
-    
+    FM_DIR="${ROOT_DIR}/projects/${PROJECT}/FM_DOCUMENTS"
+
     # Собираем список файлов с изменениями
     CHANGES_FILES=()
     for f in "${FM_DIR}"/*-CHANGES.md; do
@@ -110,7 +110,7 @@ bump)
     info "Копируйте текущую ФМ и внесите изменения через агента"
     
     # Создаем файл изменений
-    FM_DIR="${ROOT_DIR}/${PROJECT}/FM_DOCUMENTS"
+    FM_DIR="${ROOT_DIR}/projects/${PROJECT}/FM_DOCUMENTS"
     BASENAME=$(basename "$FM_PATH" | sed "s/${CURRENT_VER}/${NEW_VER}/")
     CHANGES_FILE="${FM_DIR}/$(echo "$BASENAME" | sed 's/\.docx$/-CHANGES.md/' | sed 's/\.md$/-CHANGES.md/')"
     
@@ -137,7 +137,7 @@ log)
     header "ИСТОРИЯ ИЗМЕНЕНИЙ"
     PROJECT=$(select_project)
     
-    CHANGELOG="${ROOT_DIR}/${PROJECT}/CHANGELOG.md"
+    CHANGELOG="${ROOT_DIR}/projects/${PROJECT}/CHANGELOG.md"
     if [[ -f "$CHANGELOG" ]]; then
         cat "$CHANGELOG"
     else
@@ -145,8 +145,67 @@ log)
     fi
     ;;
 
+# ─── АВТОМАТИЧЕСКИЙ ПАТЧ (FC-11C) ──────────────────────────
+auto-patch)
+    # Вызывается агентами при /apply для автоматического увеличения Z
+    # Использование: fm_version.sh auto-patch PROJECT "описание изменений"
+    PROJECT="${2:-}"
+    DESCRIPTION="${3:-Автоматический патч после /apply}"
+
+    if [[ -z "$PROJECT" ]]; then
+        error "Укажите проект: fm_version.sh auto-patch PROJECT_NAME \"описание\""
+        exit 1
+    fi
+
+    # Пытаемся определить текущую версию из Confluence PAGE_ID или FM_DOCUMENTS
+    PAGE_ID_FILE="${ROOT_DIR}/projects/${PROJECT}/CONFLUENCE_PAGE_ID"
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
+
+    if [[ -n "$FM_PATH" ]]; then
+        CURRENT_VER=$(get_fm_version "$FM_PATH")
+    else
+        CURRENT_VER=""
+    fi
+
+    # Если версия не определена из файла, читаем из PROJECT_CONTEXT.md
+    if [[ -z "$CURRENT_VER" ]]; then
+        CONTEXT_FILE="${ROOT_DIR}/projects/${PROJECT}/PROJECT_CONTEXT.md"
+        if [[ -f "$CONTEXT_FILE" ]]; then
+            CURRENT_VER=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' "$CONTEXT_FILE" | tail -1)
+        fi
+    fi
+
+    if [[ -z "$CURRENT_VER" ]]; then
+        CURRENT_VER="v1.0.0"
+        echo "Версия не определена, используется v1.0.0"
+    fi
+
+    # Парсим и увеличиваем патч
+    IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VER#v}"
+    PATCH=$((PATCH + 1))
+    NEW_VER="v${MAJOR}.${MINOR}.${PATCH}"
+
+    # Создаем файл изменений в CHANGES/
+    CHANGES_DIR="${ROOT_DIR}/projects/${PROJECT}/CHANGES"
+    mkdir -p "$CHANGES_DIR"
+    CHANGES_FILE="${CHANGES_DIR}/FM-${NEW_VER}-CHANGES.md"
+
+    cat > "$CHANGES_FILE" <<EOFCHANGES
+# Изменения ${NEW_VER} ($(date '+%Y-%m-%d'))
+
+**Предыдущая версия:** ${CURRENT_VER}
+**Тип:** patch (автоматический, FC-11C)
+
+## Описание
+
+${DESCRIPTION}
+EOFCHANGES
+
+    echo "${NEW_VER}"
+    ;;
+
 *)
     error "Неизвестная команда: ${COMMAND}"
-    echo "Использование: fm_version.sh {list|diff|bump|log}"
+    echo "Использование: fm_version.sh {list|diff|bump|auto-patch|log}"
     ;;
 esac

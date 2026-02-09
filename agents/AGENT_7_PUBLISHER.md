@@ -171,20 +171,18 @@
 ### Чтение структуры из Confluence
 
 ```python
-import requests
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "scripts", "lib"))
+from confluence_utils import ConfluenceClient
 
-CONFLUENCE_URL = "https://confluence.ekf.su"
-PAGE_ID = "83951683"  # из PROJECT_[NAME]/CONFLUENCE_PAGE_ID
-TOKEN = "..."  # Personal Access Token
+CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
+TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+PAGE_ID = "..."  # из PROJECT_[NAME]/CONFLUENCE_PAGE_ID
 
-# Прочитать текущую ФМ
-response = requests.get(
-    f"{CONFLUENCE_URL}/rest/api/content/{PAGE_ID}",
-    params={"expand": "body.storage,version"},
-    headers={"Authorization": f"Bearer {TOKEN}"}
-)
+client = ConfluenceClient(CONFLUENCE_URL, TOKEN, PAGE_ID)
 
-page = response.json()
+# Прочитать текущую ФМ (с retry при сетевых ошибках)
+page = client.get_page(expand="body.storage,version")
 xhtml_content = page["body"]["storage"]["value"]
 current_version = page["version"]["number"]
 title = page["title"]
@@ -478,3 +476,32 @@ API ПРОВЕРКА:
 ```
 
 **НЕ СПРАШИВАЙ пользователя "сохранить?" - сохраняй ВСЕГДА автоматически.**
+
+---
+
+## ОБЯЗАТЕЛЬНЫЙ САЙДКАР _summary.json (FC-07A)
+
+После КАЖДОГО выполнения команды создать файл:
+`PROJECT_*/AGENT_7_PUBLISHER/[command]_summary.json`
+
+```json
+{
+  "agent": "Agent7_Publisher",
+  "command": "/publish",
+  "timestamp": "ISO 8601",
+  "fmVersion": "X.Y.Z",
+  "project": "PROJECT_NAME",
+  "status": "completed | partial | failed",
+  "outputFiles": [],
+  "notes": ""
+}
+```
+
+---
+
+## ЖУРНАЛ АУДИТА (FC-12B)
+
+При каждом вызове `update_page()` ОБЯЗАТЕЛЬНО указывать `agent_name="Agent7_Publisher"`.
+Все записи в Confluence логируются в `scripts/.audit_log/confluence_{PAGE_ID}.jsonl`.
+
+Quality Gate проверяет, что записи в Confluence только от Agent 7.

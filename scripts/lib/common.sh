@@ -14,7 +14,7 @@ get_context_file() { echo "${ROOT_DIR}/.interview_context_${PROJECT:-global}.txt
 CONTEXT_FILE="${ROOT_DIR}/.interview_context_global.txt"
 # Pipeline state: per-project (AG-14). Глобальный путь — только до вызова init_pipeline_state(project).
 get_pipeline_state_file() { echo "${ROOT_DIR}/projects/${1:-_global}/.pipeline_state.json"; }
-PIPELINE_STATE="${ROOT_DIR}/.pipeline_state.json"
+# PIPELINE_STATE: вычисляется per-project через get_pipeline_state_file() или init_pipeline_state()
 
 # ─── ЦВЕТА ──────────────────────────────────────────────────
 RED='\033[0;31m'

@@ -76,12 +76,13 @@
 
 ---
 
-## 8. Библиотеки scripts/lib (AG-13)
+## 8. Библиотеки scripts/lib (AG-13, FC-01)
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
-| confluence_utils.py, contract_validator.py — вне текущего контура публикации; скрипты publish_to_confluence.py и оркестрация их не используют | README, этот раздел | ✅ |
-| При необходимости retry/lock/валидации контрактов — подключать явно и описать в контракте | Контракт (этот раздел) | ✅ |
+| confluence_utils.py v1.1: интегрирован в publish_to_confluence.py v3.0 (lock, backup, retry, audit log) | scripts/publish_to_confluence.py, scripts/lib/confluence_utils.py | ✅ |
+| contract_validator.py — в experimental/, вне текущего контура | scripts/experimental/ | ✅ |
+| Журнал аудита (FC-12B): каждый PUT логируется в .audit_log/confluence_{PAGE_ID}.jsonl | confluence_utils.py (_audit_log), quality_gate.sh секция 7 | ✅ |
 
 ## 9. Автономный /apply (APPLY_MODE, APPLY_SCOPE)
 
@@ -123,5 +124,5 @@ python3 scripts/export_from_confluence.py --project=PROJECT_SHPMNT_PROFIT --both
 
 ---
 
-**Дата закрепления:** 2025-02-06  
+**Дата закрепления:** 2026-02-06
 **Следующая проверка:** при изменении правил Confluence/агентов/скриптов — пройти чеклист выше.

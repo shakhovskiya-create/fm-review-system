@@ -1,20 +1,37 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-# QUALITY_GATE.SH — Проверка качества ФМ перед передачей
+# QUALITY_GATE.SH — Проверка качества ФМ перед передачей v2.0
 # ═══════════════════════════════════════════════════════════════
-# Запуск: ./scripts/quality_gate.sh [PROJECT_NAME]
+# Запуск: ./scripts/quality_gate.sh [PROJECT_NAME] [--reason "текст"]
 #
 # Проверяет:
 # 1. Наличие обязательных разделов ФМ
 # 2. Наличие результатов работы агентов
-# 3. Отсутствие открытых CRITICAL/HIGH замечаний
-# 4. Полноту метаданных (версия, дата, паспорт)
-# 5. Готовность к передаче в разработку
+# 3. Наличие _summary.json сайдкаров (FC-07A)
+# 4. Отсутствие открытых CRITICAL/HIGH замечаний
+# 5. Матрица трассируемости (FC-10A)
+# 6. Журнал аудита Confluence (FC-12B)
+# 7. Полноту метаданных (версия, дата, паспорт)
+# 8. Готовность к передаче в разработку
+#
+# Коды выхода: 0=готово, 1=критические ошибки, 2=предупреждения
+# FC-08C: При коде 2 можно пропустить с --reason "обоснование"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 PROJECT="${1:-}"
+SKIP_REASON=""
+
+# FC-08C: Обработка --reason для пропуска предупреждений
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reason) SKIP_REASON="$2"; shift 2 ;;
+        --reason=*) SKIP_REASON="${1#*=}"; shift ;;
+        *) [[ -z "$PROJECT" ]] && PROJECT="$1"; shift ;;
+    esac
+done
+
 if [[ -z "$PROJECT" ]]; then
     check_gum
     PROJECT=$(select_project)
@@ -106,22 +123,112 @@ done
 [[ $OPEN_CRITICAL -eq 0 ]] && check_pass "Нет открытых CRITICAL" || check_fail "${OPEN_CRITICAL} открытых CRITICAL"
 [[ $OPEN_HIGH -eq 0 ]] && check_pass "Нет открытых HIGH" || check_warn "${OPEN_HIGH} открытых HIGH"
 
-# ─── 5. CHANGELOG ───────────────────────────────────────────
-subheader "5. Документация"
+# ─── 5. _SUMMARY.JSON САЙДКАРЫ (FC-07A) ─────────────────────
+subheader "5. Сайдкары _summary.json (FC-07A)"
+
+SUMMARY_COUNT=0
+SUMMARY_FAILED=0
+for agent_dir in "${PROJECT_DIR}"/AGENT_*/; do
+    [[ -d "$agent_dir" ]] || continue
+    agent_name=$(basename "$agent_dir")
+    summary_found=$(find "$agent_dir" -maxdepth 2 -name '*_summary.json' 2>/dev/null | head -1)
+    if [[ -n "$summary_found" ]]; then
+        # Проверяем обязательные поля
+        if command -v jq &>/dev/null; then
+            has_required=$(jq -e '.agent and .command and .status and .project' "$summary_found" 2>/dev/null && echo "yes" || echo "no")
+            if [[ "$has_required" == "yes" ]]; then
+                status=$(jq -r '.status' "$summary_found")
+                check_pass "${agent_name}: _summary.json (status=${status})"
+                ((SUMMARY_COUNT++))
+            else
+                check_warn "${agent_name}: _summary.json невалидный (нет обязательных полей)"
+                ((SUMMARY_FAILED++))
+            fi
+        else
+            check_pass "${agent_name}: _summary.json найден"
+            ((SUMMARY_COUNT++))
+        fi
+    else
+        md_count=$(find "$agent_dir" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "${md_count:-0}" -gt 0 ]]; then
+            check_warn "${agent_name}: отчеты есть, но _summary.json отсутствует"
+        fi
+    fi
+done
+[[ $SUMMARY_COUNT -gt 0 ]] && check_pass "Всего валидных _summary.json: ${SUMMARY_COUNT}" || check_warn "Ни одного _summary.json не найдено"
+
+# ─── 6. МАТРИЦА ТРАССИРУЕМОСТИ (FC-10A) ─────────────────────
+subheader "6. Трассируемость (FC-10A)"
+
+TRACE_MATRIX=$(find "${PROJECT_DIR}/AGENT_4_QA_TESTER" -name 'traceability-matrix.json' 2>/dev/null | head -1)
+if [[ -n "$TRACE_MATRIX" ]]; then
+    if command -v jq &>/dev/null; then
+        total=$(jq -r '.summary.totalFindings // 0' "$TRACE_MATRIX" 2>/dev/null)
+        covered=$(jq -r '.summary.covered // 0' "$TRACE_MATRIX" 2>/dev/null)
+        uncovered=$(jq -r '.summary.uncovered // 0' "$TRACE_MATRIX" 2>/dev/null)
+        check_pass "Матрица трассируемости: ${total} замечаний, ${covered} покрыто, ${uncovered} без тестов"
+        [[ "${uncovered:-0}" -gt 0 ]] && check_warn "${uncovered} замечаний без тестов"
+    else
+        check_pass "Матрица трассируемости найдена"
+    fi
+else
+    check_warn "Матрица трассируемости отсутствует (создается Agent 4)"
+fi
+
+# ─── 7. ЖУРНАЛ АУДИТА CONFLUENCE (FC-12B) ────────────────────
+subheader "7. Журнал аудита Confluence (FC-12B)"
+
+AUDIT_LOG_DIR="${SCRIPTS_DIR}/.audit_log"
+if [[ -d "$AUDIT_LOG_DIR" ]]; then
+    log_files=$(find "$AUDIT_LOG_DIR" -name '*.jsonl' 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "${log_files:-0}" -gt 0 ]]; then
+        check_pass "Журнал аудита: ${log_files} файл(ов)"
+        # Проверяем что все записи от Agent 7
+        if command -v jq &>/dev/null; then
+            for logfile in "${AUDIT_LOG_DIR}"/*.jsonl; do
+                [[ -f "$logfile" ]] || continue
+                non_publisher=$(jq -r 'select(.agent != "Agent7_Publisher" and .agent != "unknown" and .agent != "system") | .agent' "$logfile" 2>/dev/null | sort -u)
+                if [[ -n "$non_publisher" ]]; then
+                    check_warn "Записи в Confluence от агентов кроме Agent 7: ${non_publisher}"
+                fi
+            done
+        fi
+    else
+        check_warn "Журнал аудита пуст"
+    fi
+else
+    check_warn "Журнал аудита отсутствует (создается при первой записи в Confluence)"
+fi
+
+# ─── 8. CHANGELOG ───────────────────────────────────────────
+subheader "8. Документация"
 
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
-# ─── 6. CONFLUENCE & MIRO ──────────────────────────────────
-subheader "6. Confluence & BPMN/диаграммы"
+# ─── 9. CONFLUENCE & BPMN ──────────────────────────────────
+subheader "9. Confluence & BPMN/диаграммы"
 
-if [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]]; then
-    CONFLUENCE_URL=$(grep -o "https://[^ ]*atlassian.net/wiki/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1) || true
-    MIRO_URL=$(grep -o "https://miro.com/[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1) || true
-    
-    [[ -n "$CONFLUENCE_URL" ]] && check_pass "Confluence URL: найден" || check_warn "Confluence URL: не найден (Agent 7 не выполнен?)"
-    [[ -n "$MIRO_URL" ]] && check_pass "Miro/диаграммы URL: найден" || check_warn "URL диаграмм не найден (Agent 8: BPMN в Confluence или Miro)"
+# FC-14: Проверяем наличие CONFLUENCE_PAGE_ID и URL Confluence (ekf.su, не atlassian.net)
+PAGE_ID_FILE="${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
+if [[ -f "$PAGE_ID_FILE" ]]; then
+    PAGE_ID=$(cat "$PAGE_ID_FILE" | tr -d '[:space:]')
+    [[ -n "$PAGE_ID" ]] && check_pass "Confluence PAGE_ID: ${PAGE_ID}" || check_warn "CONFLUENCE_PAGE_ID файл пуст"
 else
-    check_warn "PROJECT_CONTEXT.md не найден — статус Confluence не проверен"
+    # Альтернатива: искать PAGE_ID в PROJECT_CONTEXT.md
+    if [[ -f "${PROJECT_DIR}/PROJECT_CONTEXT.md" ]]; then
+        CONFLUENCE_URL=$(grep -o "https://confluence[^ ]*ekf[^ ]*" "${PROJECT_DIR}/PROJECT_CONTEXT.md" 2>/dev/null | head -1) || true
+        [[ -n "$CONFLUENCE_URL" ]] && check_pass "Confluence URL: найден" || check_warn "Confluence PAGE_ID и URL не найдены (Agent 7 не выполнен?)"
+    else
+        check_warn "CONFLUENCE_PAGE_ID и PROJECT_CONTEXT.md не найдены"
+    fi
+fi
+
+# Проверка BPMN-диаграмм (drawio attachments или файлы)
+BPMN_COUNT=$(find "${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER" -name '*.drawio' 2>/dev/null | wc -l | tr -d ' ')
+if [[ "${BPMN_COUNT:-0}" -gt 0 ]]; then
+    check_pass "BPMN-диаграммы: ${BPMN_COUNT} файл(ов)"
+else
+    check_warn "BPMN-диаграммы не найдены (Agent 8 не выполнен?)"
 fi
 
 # ─── ИТОГ ────────────────────────────────────────────────────
@@ -133,13 +240,28 @@ if [[ $FAIL -eq 0 && $WARN -eq 0 ]]; then
     echo -e "  ${GREEN}${BOLD}ГОТОВО К ПЕРЕДАЧЕ В РАЗРАБОТКУ ${ICO_OK}${NC}"
     EXIT_CODE=0
 elif [[ $FAIL -eq 0 ]]; then
-    echo -e "  ${YELLOW}${BOLD}ГОТОВО С ОГОВОРКАМИ ${ICO_WARN}${NC}"
-    EXIT_CODE=2
+    echo -e "  ${YELLOW}${BOLD}ГОТОВО С ОГОВОРКАМИ (${WARN} предупреждений) ${ICO_WARN}${NC}"
+    # FC-08C: Если передана причина пропуска, логируем и пропускаем
+    if [[ -n "$SKIP_REASON" ]]; then
+        echo -e "  ${CYAN}Пропуск предупреждений по причине: ${SKIP_REASON}${NC}"
+        # Записываем в PROJECT_CONTEXT.md
+        CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
+        if [[ -f "$CONTEXT_FILE" ]]; then
+            echo "" >> "$CONTEXT_FILE"
+            echo "### $(date '+%Y-%m-%d %H:%M') — QUALITY GATE: пропуск предупреждений" >> "$CONTEXT_FILE"
+            echo "**Причина:** ${SKIP_REASON}" >> "$CONTEXT_FILE"
+            echo "**Предупреждений:** ${WARN}" >> "$CONTEXT_FILE"
+        fi
+        EXIT_CODE=0
+    else
+        EXIT_CODE=2
+    fi
 else
-    echo -e "  ${RED}${BOLD}НЕ ГОТОВО — ЕСТЬ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ${ICO_FAIL}${NC}"
+    echo -e "  ${RED}${BOLD}НЕ ГОТОВО — ЕСТЬ КРИТИЧЕСКИЕ ПРОБЛЕМЫ (${FAIL}) ${ICO_FAIL}${NC}"
+    echo -e "  ${RED}Критические ошибки нельзя пропустить. Исправьте и повторите.${NC}"
     EXIT_CODE=1
 fi
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"
 
-# Exit codes: 0=ready, 1=critical fail, 2=warnings
+# Exit codes: 0=ready, 1=critical fail (cannot skip), 2=warnings (can skip with --reason)
 exit $EXIT_CODE

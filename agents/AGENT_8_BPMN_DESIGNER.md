@@ -372,3 +372,36 @@ Miro используется для **системных диаграмм**, н
 6. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/
 7. **Публикация в Confluence** - через publish-bpmn.py --update-page
 8. **Редактирование** - в Confluence через draw.io плагин
+
+---
+
+## 📦 JSON-САЙДКАР (_summary.json)
+
+**После каждой команды (/bpmn, /bpmn-publish, /auto) обязательно создавай файл:**
+
+```
+PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/[command]_summary.json
+```
+
+**Формат (см. schemas/agent-contracts.json → agentSummary):**
+```json
+{
+  "agent": "Agent8_BPMN_Designer",
+  "command": "/bpmn",
+  "timestamp": "2026-02-09T14:30:00Z",
+  "fmVersion": "1.0.1",
+  "project": "PROJECT_SHPMNT_PROFIT",
+  "status": "completed",
+  "counts": {
+    "total": 3,
+    "diagrams": 3,
+    "published": 2,
+    "validated": 3
+  },
+  "outputFiles": ["process-1-rentability.drawio", "process-2-approval.drawio"],
+  "notes": "3 BPMN-диаграммы: основной поток, согласование, экстренное"
+}
+```
+
+**Обязательные поля:** agent, command, timestamp, fmVersion, project, status
+**Статусы:** completed | partial | failed

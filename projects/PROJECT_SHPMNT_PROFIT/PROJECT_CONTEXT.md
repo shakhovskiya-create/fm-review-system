@@ -13,9 +13,10 @@
 - Тесты: выполнены (Agent 4)
 - Архитектура: выполнена (Agent 5)
 
-## Notion
+## Confluence
+- PAGE_ID: (из CONFLUENCE_PAGE_ID файла проекта)
 - URL страницы: (заполняется при публикации Agent 7)
 - Статус согласования: не начато
 
-## Miro
-- Board URL: (заполняется при создании ePC Agent 8)
+## BPMN-диаграммы
+- Хранятся как drawio-вложения в Confluence (Agent 8)

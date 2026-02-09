@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Confluence Utilities Library v1.0
+Confluence Utilities Library v1.1 (FC-12B: audit log)
 - File-based locking (R-01)
 - Rollback mechanism (R-02)
 - Retry policy with exponential backoff (R-06)
 - Version management (R-05)
+- Audit log for write operations (FC-12B)
 
 Usage:
     from lib.confluence_utils import ConfluenceClient
@@ -41,6 +42,9 @@ RETRYABLE_CODES = {500, 502, 503, 504, 408, 429}
 # Backup settings
 BACKUP_DIR = Path(__file__).parent.parent / ".backups"
 MAX_BACKUPS = 10
+
+# Audit log settings (FC-12B)
+AUDIT_LOG_DIR = Path(__file__).parent.parent / ".audit_log"
 
 
 class ConfluenceLockError(Exception):
@@ -255,7 +259,8 @@ class ConfluenceClient:
         new_body: str,
         version_message: str,
         fm_version: Optional[str] = None,
-        create_backup: bool = True
+        create_backup: bool = True,
+        agent_name: str = "unknown"
     ) -> Tuple[Dict, Optional[Path]]:
         """
         Update page with new content.
@@ -265,6 +270,7 @@ class ConfluenceClient:
             version_message: Description of changes (for Confluence history)
             fm_version: Optional FM semantic version (e.g., "1.2.3")
             create_backup: Whether to backup current state before update
+            agent_name: Name of the agent performing the update (FC-12B)
 
         Returns:
             Tuple of (response_dict, backup_path or None)
@@ -305,6 +311,11 @@ class ConfluenceClient:
 
         try:
             result = self._request("PUT", f"/rest/api/content/{self.page_id}", update_data)
+
+            # Audit log (FC-12B)
+            new_version = result.get("version", {}).get("number", current_version + 1)
+            self._audit_log("update", agent_name, version_message, new_version)
+
             return result, backup_path
 
         except ConfluenceAPIError as e:
@@ -359,7 +370,28 @@ class ConfluenceClient:
 
         result = self._request("PUT", f"/rest/api/content/{self.page_id}", restore_data)
         print(f"  Rollback complete. New version: {result.get('version', {}).get('number')}")
+
+        # Audit log (FC-12B)
+        new_version = result.get("version", {}).get("number", 0)
+        self._audit_log("rollback", "system", f"ROLLBACK to version {backup_data.get('version', {}).get('number', '?')}", new_version)
+
         return result
+
+    def _audit_log(self, action: str, agent_name: str, version_message: str, version_number: int):
+        """Write audit entry for every Confluence write operation (FC-12B)."""
+        AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        log_file = AUDIT_LOG_DIR / f"confluence_{self.page_id}.jsonl"
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "page_id": self.page_id,
+            "action": action,
+            "agent": agent_name,
+            "version_message": version_message,
+            "version_number": version_number,
+            "pid": os.getpid()
+        }
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # Convenience functions for scripts
@@ -381,7 +413,7 @@ def create_client_from_env(page_id: Optional[str] = None) -> ConfluenceClient:
 
 
 def safe_publish(page_id: str, new_body: str, version_message: str,
-                 fm_version: Optional[str] = None) -> Dict:
+                 fm_version: Optional[str] = None, agent_name: str = "unknown") -> Dict:
     """
     Publish to Confluence with full safety:
     - Acquires lock
@@ -398,16 +430,18 @@ def safe_publish(page_id: str, new_body: str, version_message: str,
         result, backup = client.update_page(
             new_body=new_body,
             version_message=version_message,
-            fm_version=fm_version
+            fm_version=fm_version,
+            agent_name=agent_name
         )
         return result
 
 
 if __name__ == "__main__":
     # Test the library
-    print("Confluence Utils Library v1.0")
+    print("Confluence Utils Library v1.1 (FC-12B: audit log)")
     print("=" * 40)
     print(f"Lock dir: {LOCK_DIR}")
     print(f"Backup dir: {BACKUP_DIR}")
+    print(f"Audit log dir: {AUDIT_LOG_DIR}")
     print(f"Max retries: {MAX_RETRIES}")
     print(f"Lock timeout: {LOCK_TIMEOUT}s")
