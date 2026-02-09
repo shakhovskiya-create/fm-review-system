@@ -1,20 +1,20 @@
 {
   "agent": "Agent1_Architect",
   "command": "/audit",
-  "timestamp": "2026-02-09T14:30:00Z",
+  "timestamp": "2026-02-09T16:30:00Z",
   "fmVersion": "1.0.1",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
   "counts": {
-    "critical": 1,
-    "high": 3,
-    "medium": 5,
+    "critical": 0,
+    "high": 0,
+    "medium": 3,
     "low": 4,
-    "total": 13
+    "total": 7
   },
-  "appliedChanges": 12,
+  "appliedChanges": 8,
   "outputFiles": [
-    "AUDIT-REPORT-v1.0.0-2026-02-09.md"
+    "AUDIT-REPORT-v1.0.1-2026-02-09.md"
   ],
-  "notes": "Full audit of v1.0.0. 18/19 previous findings closed. 12 new fixes applied → v1.0.1. Verification: 20/20 checks passed."
+  "notes": "Re-audit of v1.0.1. 2 residual fixes from v1.0.0 + 6 new fixes. Anglicisms replaced, section numbering added, requirements renumbered. BPMN analysis: 3 existing diagrams reviewed, 9 new diagrams recommended. Confluence v31→v33. Verification: 22/22."
 }

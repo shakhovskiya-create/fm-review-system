@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="fm-review-system"
+                  exporterVersion="1.0">
+  <bpmn:error id="Error_e2" name="Отклонено" errorCode="E2" />
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Согласование отрицательной рентабельности" processRef="Process_soglasovanie_otricatel_noj_rentabel_nosti" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_soglasovanie_otricatel_noj_rentabel_nosti" name="Согласование отрицательной рентабельности" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_manager" name="Менеджер">
+        <bpmn:flowNodeRef>t7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t8</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t9</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_head" name="Руководитель отдела продаж">
+        <bpmn:flowNodeRef>t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t5</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_system" name="1С:УТ">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e2</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="">
+      <bpmn:outgoing>Flow_start_t1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="t1" name="Формирование запроса на согласование">
+      <bpmn:incoming>Flow_start_t1</bpmn:incoming>
+      <bpmn:outgoing>Flow_t1_t2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t2" name="Уведомление руководителя">
+      <bpmn:incoming>Flow_t1_t2</bpmn:incoming>
+      <bpmn:outgoing>Flow_t2_t3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t3" name="Рассмотрение заказа">
+      <bpmn:incoming>Flow_t2_t3</bpmn:incoming>
+      <bpmn:outgoing>Flow_t3_x1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x1" name="X" default="Flow_x1_t5">
+      <bpmn:incoming>Flow_t3_x1</bpmn:incoming>
+      <bpmn:outgoing>Flow_x1_t4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x1_t5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t4" name="Согласовать с комментарием">
+      <bpmn:incoming>Flow_x1_t4</bpmn:incoming>
+      <bpmn:outgoing>Flow_t4_t6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t5" name="Отклонить с причиной">
+      <bpmn:incoming>Flow_x1_t5</bpmn:incoming>
+      <bpmn:outgoing>Flow_t5_t6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t6" name="Фиксация решения">
+      <bpmn:incoming>Flow_t4_t6</bpmn:incoming>
+      <bpmn:incoming>Flow_t5_t6</bpmn:incoming>
+      <bpmn:outgoing>Flow_t6_t7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t7" name="Получить уведомление">
+      <bpmn:incoming>Flow_t6_t7</bpmn:incoming>
+      <bpmn:outgoing>Flow_t7_x3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x3" name="X" default="Flow_x3_t9">
+      <bpmn:incoming>Flow_t7_x3</bpmn:incoming>
+      <bpmn:outgoing>Flow_x3_t8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x3_t9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t8" name="Продолжить работу с заказом">
+      <bpmn:incoming>Flow_x3_t8</bpmn:incoming>
+      <bpmn:outgoing>Flow_t8_e1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t9" name="Скорректировать заказ">
+      <bpmn:incoming>Flow_x3_t9</bpmn:incoming>
+      <bpmn:outgoing>Flow_t9_e2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e1" name="Согласовано">
+      <bpmn:incoming>Flow_t8_e1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="e2" name="Отклонено">
+      <bpmn:incoming>Flow_t9_e2</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_e2" errorRef="Error_e2" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
+    <bpmn:sequenceFlow id="Flow_t1_t2" sourceRef="t1" targetRef="t2" />
+    <bpmn:sequenceFlow id="Flow_t2_t3" sourceRef="t2" targetRef="t3" />
+    <bpmn:sequenceFlow id="Flow_t3_x1" sourceRef="t3" targetRef="x1" />
+    <bpmn:sequenceFlow id="Flow_x1_t4" name="одобрить" sourceRef="x1" targetRef="t4">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрить</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x1_t5" name="отклонить" sourceRef="x1" targetRef="t5" />
+    <bpmn:sequenceFlow id="Flow_t4_t6" sourceRef="t4" targetRef="t6" />
+    <bpmn:sequenceFlow id="Flow_t5_t6" sourceRef="t5" targetRef="t6" />
+    <bpmn:sequenceFlow id="Flow_t6_t7" sourceRef="t6" targetRef="t7" />
+    <bpmn:sequenceFlow id="Flow_t7_x3" sourceRef="t7" targetRef="x3" />
+    <bpmn:sequenceFlow id="Flow_x3_t8" name="согласован" sourceRef="x3" targetRef="t8">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=согласован</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x3_t9" name="отклонен" sourceRef="x3" targetRef="t9" />
+    <bpmn:sequenceFlow id="Flow_t8_e1" sourceRef="t8" targetRef="e1" />
+    <bpmn:sequenceFlow id="Flow_t9_e2" sourceRef="t9" targetRef="e2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="2360" height="840" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_manager_di" bpmnElement="Lane_manager" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="2330" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_head_di" bpmnElement="Lane_head" isHorizontal="true">
+        <dc:Bounds x="130" y="340" width="2330" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_system_di" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="130" y="620" width="2330" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="200" y="720" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t1_di" bpmnElement="t1">
+        <dc:Bounds x="380" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t2_di" bpmnElement="t2">
+        <dc:Bounds x="560" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t3_di" bpmnElement="t3">
+        <dc:Bounds x="740" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x1_di" bpmnElement="x1">
+        <dc:Bounds x="920" y="440" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t4_di" bpmnElement="t4">
+        <dc:Bounds x="1100" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t5_di" bpmnElement="t5">
+        <dc:Bounds x="1100" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t6_di" bpmnElement="t6">
+        <dc:Bounds x="1280" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t7_di" bpmnElement="t7">
+        <dc:Bounds x="1460" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x3_di" bpmnElement="x3">
+        <dc:Bounds x="1640" y="160" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t8_di" bpmnElement="t8">
+        <dc:Bounds x="1820" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t9_di" bpmnElement="t9">
+        <dc:Bounds x="1820" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e1_di" bpmnElement="e1">
+        <dc:Bounds x="2000" y="660" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e2_di" bpmnElement="e2">
+        <dc:Bounds x="2000" y="780" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_t1_di" bpmnElement="Flow_start_t1">
+        <di:waypoint x="236" y="738" />
+        <di:waypoint x="308" y="738" />
+        <di:waypoint x="308" y="760" />
+        <di:waypoint x="380" y="760" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t1_t2_di" bpmnElement="Flow_t1_t2">
+        <di:waypoint x="480" y="760" />
+        <di:waypoint x="560" y="760" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t2_t3_di" bpmnElement="Flow_t2_t3">
+        <di:waypoint x="660" y="760" />
+        <di:waypoint x="700" y="760" />
+        <di:waypoint x="700" y="480" />
+        <di:waypoint x="740" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t3_x1_di" bpmnElement="Flow_t3_x1">
+        <di:waypoint x="840" y="480" />
+        <di:waypoint x="880" y="480" />
+        <di:waypoint x="880" y="465" />
+        <di:waypoint x="920" y="465" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x1_t4_di" bpmnElement="Flow_x1_t4">
+        <di:waypoint x="970" y="465" />
+        <di:waypoint x="1035" y="465" />
+        <di:waypoint x="1035" y="420" />
+        <di:waypoint x="1100" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x1_t5_di" bpmnElement="Flow_x1_t5">
+        <di:waypoint x="970" y="465" />
+        <di:waypoint x="1035" y="465" />
+        <di:waypoint x="1035" y="540" />
+        <di:waypoint x="1100" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t4_t6_di" bpmnElement="Flow_t4_t6">
+        <di:waypoint x="1200" y="420" />
+        <di:waypoint x="1240" y="420" />
+        <di:waypoint x="1240" y="760" />
+        <di:waypoint x="1280" y="760" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t5_t6_di" bpmnElement="Flow_t5_t6">
+        <di:waypoint x="1200" y="540" />
+        <di:waypoint x="1240" y="540" />
+        <di:waypoint x="1240" y="760" />
+        <di:waypoint x="1280" y="760" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t6_t7_di" bpmnElement="Flow_t6_t7">
+        <di:waypoint x="1380" y="760" />
+        <di:waypoint x="1420" y="760" />
+        <di:waypoint x="1420" y="200" />
+        <di:waypoint x="1460" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t7_x3_di" bpmnElement="Flow_t7_x3">
+        <di:waypoint x="1560" y="200" />
+        <di:waypoint x="1600" y="200" />
+        <di:waypoint x="1600" y="185" />
+        <di:waypoint x="1640" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x3_t8_di" bpmnElement="Flow_x3_t8">
+        <di:waypoint x="1690" y="185" />
+        <di:waypoint x="1755" y="185" />
+        <di:waypoint x="1755" y="140" />
+        <di:waypoint x="1820" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x3_t9_di" bpmnElement="Flow_x3_t9">
+        <di:waypoint x="1690" y="185" />
+        <di:waypoint x="1755" y="185" />
+        <di:waypoint x="1755" y="260" />
+        <di:waypoint x="1820" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t8_e1_di" bpmnElement="Flow_t8_e1">
+        <di:waypoint x="1920" y="140" />
+        <di:waypoint x="1960" y="140" />
+        <di:waypoint x="1960" y="678" />
+        <di:waypoint x="2000" y="678" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t9_e2_di" bpmnElement="Flow_t9_e2">
+        <di:waypoint x="1920" y="260" />
+        <di:waypoint x="1960" y="260" />
+        <di:waypoint x="1960" y="798" />
+        <di:waypoint x="2000" y="798" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

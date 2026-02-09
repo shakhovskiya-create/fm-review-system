@@ -16,12 +16,14 @@
 ## Confluence
 - PAGE_ID: 83951683
 - URL страницы: https://confluence.ekf.su/pages/viewpage.action?pageId=83951683
-- Версия страницы: 27
+- Версия страницы: 35
 - Статус согласования: не начато
 
 ## BPMN-диаграммы
-- 3 диаграммы встроены в ФМ (drawio): process-1-rentability, process-2-approval, process-3-emergency
-- Хранятся как drawio-вложения в Confluence (Agent 8)
+- 13 диаграмм встроены в ФМ (drawio), опубликованы в Confluence (Agent 8)
+- 3 существующих исправлены (структурные проблемы D2/D3)
+- 10 новых: overview, order-lifecycle, ls-lifecycle, wms-integration, return, ls-closing, npss-control, profitability-change, demand-fixation, sanctions
+- Размещение: все в секции TO-BE (инлайн-размещение - следующая итерация)
 
 ---
 
@@ -57,3 +59,131 @@
 - [ ] LOW-003: Минимальная сумма ЛС (требует бизнес-решения)
 - [ ] GAP-02: Мониторинг регламентных заданий (низкий приоритет)
 - [ ] GAP-03: Служебные пользователи и контроль (низкий приоритет)
+
+---
+
+### 09.02.2026 — AGENT_1_ARCHITECT: /audit (повторный)
+
+**Проверено:** Повторный полный аудит FM-LS-PROFIT v1.0.1 (Confluence версия 31)
+
+**Предыдущий аудит (v1.0.0):** 10 из 12 правок закрыты, 2 остатка (LOW-002, LOW-004).
+
+**Найдено (новые):**
+- [MED-001] Пропуск нумерации требований 067-069 → ИСПРАВЛЕНО (перенумерация)
+- [MED-002] P1/P2 сводка неполная (35 из 57 P1 отсутствовали) → ИСПРАВЛЕНО
+- [MED-003] LS-RPT-XXX в таблице кодов → СНЯТО (корректная заглушка)
+- [LOW-001] Англицизмы: Phase, cherry-picking, retry → ИСПРАВЛЕНО
+- [LOW-002r] Остаток: ПереданНаСклад → ИСПРАВЛЕНО
+- [LOW-003r] Остаток: 90-94% без .99 → ИСПРАВЛЕНО
+- [LOW-004] Нет нумерации разделов → ИСПРАВЛЕНО (9 h1, 26 h2)
+
+**BPMN-анализ:**
+- 3 текущих диаграммы проверены (2 мелких структурных замечания)
+- Покрытие: только ядро процесса, 9 процессов не визуализированы
+- Стратегия принята: инлайн-размещение + общая обзорная + создание всех недостающих
+
+**Результат:** 8 правок применены в Confluence v31→v33. Верификация: 22/22 проверок пройдено.
+
+**Открытые вопросы:**
+- [x] BPMN: Создание 10 новых диаграмм (Agent 8) - ВЫПОЛНЕНО (Confluence v34)
+- [ ] BPMN: Инлайн-размещение диаграмм в соответствующих разделах
+- [ ] LOW-003 (v1.0.0): Минимальная сумма ЛС
+
+---
+
+### 09.02.2026 — AGENT_8_BPMN_DESIGNER: /bpmn
+
+**Сделано:** Создание и публикация 13 BPMN-диаграмм (10 новых + 3 исправленных)
+
+**Исправлены структурные проблемы:**
+- D2 (process-2-approval): удален избыточный gateway x2 (1 исходящее ребро)
+- D3 (process-3-emergency): удален end event e1 с исходящим ребром
+
+**Новые диаграммы:**
+- process-0-overview: Общая обзорная схема
+- process-4-order-lifecycle: Жизненный цикл Заказа (11 статусов)
+- process-5-ls-lifecycle: Жизненный цикл ЛС (4 статуса)
+- process-6-wms-integration: Интеграция с WMS (точка невозврата, частичная отборка)
+- process-7-return: Возврат товара (активная/закрытая ЛС, 60 дней)
+- process-8-ls-closing: Закрытие ЛС (матрица согласования, санкции)
+- process-9-npss-control: Контроль возраста НПСС (4 зоны: 0-30/31-60/61-90/>90)
+- process-10-profitability-change: Изменение плановой рентабельности
+- process-11-demand-fixation: Фиксация потребности (Этап 2)
+- process-12-sanctions: Санкции за невыкуп (Этап 2)
+
+**Результат:** 13/13 диаграмм загружены и встроены в Confluence v33→v34.
+
+---
+
+### 09.02.2026 — AGENT_8_BPMN_DESIGNER: /bpmn (исправление layout)
+
+**Сделано:** Исправление наложений стрелок и текста во всех 13 BPMN-диаграммах
+
+**Исправления в generate-bpmn.js:**
+- Увеличены размеры узлов (taskMinWidth 100→120, taskMaxWidth 180→240, gatewaySize 45→50)
+- Увеличены отступы (lanePadding 30→60, eventLabelSpace 35→55)
+- Адаптивные nodesep/ranksep по количеству узлов и ребер
+- Orthogonal edges с rounded corners (убрано curved=1)
+- Динамический pageWidth/pageHeight
+- Увеличены подписи (fontSize=10 на стрелках, 110px ширина для событий)
+
+**Per-diagram layout overrides:**
+- process-0-overview: nodesep=220, ranksep=270
+- process-4-order-lifecycle: nodesep=220, ranksep=260
+- process-5-ls-lifecycle: nodesep=220, ranksep=260
+- process-6-wms-integration: nodesep=200, ranksep=240
+- process-8-ls-closing: nodesep=220, ranksep=260
+- process-11-demand-fixation: nodesep=170, ranksep=200
+
+**Результат:** 13/13 перезагружены в Confluence v34→v35. Верификация: 13/13 drawio-макросов.
+
+**Открытые вопросы:**
+- [ ] Инлайн-размещение диаграмм в соответствующих разделах ФМ
+- [ ] LOW-003 (v1.0.0): Минимальная сумма ЛС
+
+---
+
+### 09.02.2026 — AGENT_8_BPMN_DESIGNER: /bpmn (компактный layout v2)
+
+**Сделано:** Полная переработка layout после обратной связи (растянутые диаграммы, стрелки сквозь узлы)
+
+**Исправления в generate-bpmn.js:**
+- Возврат к компактным параметрам (taskMinWidth=100, taskMaxWidth=180, gatewaySize=45)
+- Компактные отступы (lanePadding=30, eventLabelSpace=35)
+- nodesep=70, ranksep=80 (дефолт dagre)
+- Прямые линии для cross-lane ребер (без edgeStyle) - устраняет проход стрелок сквозь узлы
+- Orthogonal routing только для same-lane ребер (безопасен внутри одной дорожки)
+- Удалены все per-diagram layout overrides из 6 JSON-файлов
+
+**Ключевое решение:** Разделение стилей ребер:
+- Cross-lane: прямые линии (rounded=1, без edgeStyle) - физически не могут пройти сквозь узлы
+- Same-lane: orthogonalEdgeStyle (безопасен внутри одной swimlane)
+
+**Результат:** 13/13 вложений перезагружены в Confluence (версия страницы 35, обновлены только вложения).
+Верификация: 13/13 drawio-макросов, 13/13 process-*.drawio вложений.
+
+---
+
+### 09.02.2026 — AGENT_8_BPMN_DESIGNER: /bpmn (Z-path edge routing v3)
+
+**Сделано:** Фундаментальное исправление маршрутизации ребер в generate-bpmn.js
+
+**Проблема:** Предыдущая версия (компактный layout v2) создавала диагональные "лестничные" линии при cross-lane ребрах.
+
+**Исправления в generate-bpmn.js:**
+- Cross-lane ребра: явные Z-path waypoints (горизонталь - вертикаль - горизонталь)
+  - midX = середина между правым краем источника и левым краем цели
+  - Два waypoint: (midX, srcPoolY) и (midX, tgtPoolY)
+  - Для backward-ребер: обход справа через bypassX
+- Same-lane ребра: parent = lane (не pool), orthogonalEdgeStyle
+  - Routing видит узлы как siblings и обходит их корректно
+
+**Ключевое решение:** Разделение edge-parent:
+- Cross-lane: parent = pool, явные waypoints (Z-path)
+- Same-lane: parent = lane, автоматический orthogonal routing
+
+**Результат:** 13/13 вложений перезагружены в Confluence (обновлены только вложения).
+
+**Открытые вопросы:**
+- [ ] Инлайн-размещение диаграмм в соответствующих разделах ФМ
+- [ ] LOW-003 (v1.0.0): Минимальная сумма ЛС

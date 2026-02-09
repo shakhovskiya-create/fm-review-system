@@ -1,0 +1,58 @@
+{
+  "name": "Интеграция с WMS",
+  "diagramName": "BPMN 6: Интеграция с WMS",
+  "description": "Процесс передачи заказа на склад, отборка, частичная отгрузка, несанкционированная отгрузка",
+  "lanes": [
+    { "id": "system", "name": "1С:УТ", "color": "#d5e8d4" },
+    { "id": "wms", "name": "WMS", "color": "#d5e8d4" },
+    { "id": "warehouse", "name": "Специалист\nсклада", "color": "#dae8fc" },
+    { "id": "manager", "name": "Менеджер", "color": "#dae8fc" }
+  ],
+  "nodes": [
+    { "id": "start", "type": "eventStart", "label": "", "lane": "system" },
+    { "id": "t1", "type": "task", "label": "Отправка JSON\nс заказом\nв WMS", "lane": "system" },
+    { "id": "t_pnr", "type": "task", "label": "Установка флага\nПереданНаСклад\n(точка невозврата)", "lane": "system" },
+    { "id": "t2", "type": "task", "label": "Получение\nзадания\nна отборку", "lane": "wms" },
+    { "id": "t3", "type": "task", "label": "Отборка\nтовара", "lane": "warehouse" },
+    { "id": "x1", "type": "gateway", "label": "X", "lane": "wms" },
+    { "id": "t4", "type": "task", "label": "Полная отборка\n(факт = план)", "lane": "wms" },
+    { "id": "t5", "type": "task", "label": "Частичная отборка\n(факт < план)", "lane": "wms" },
+    { "id": "t6", "type": "task", "label": "Пересчет\nрентабельности\nпо факту", "lane": "system" },
+    { "id": "x2", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t7", "type": "task", "label": "Отгрузка\nпо факту", "lane": "system" },
+    { "id": "t8", "type": "task", "label": "Запрос решения\nменеджера\n(SLA 2 часа)", "lane": "manager" },
+    { "id": "x3", "type": "gateway", "label": "X", "lane": "manager" },
+    { "id": "t9", "type": "task", "label": "Подтвердить\nотгрузку", "lane": "manager" },
+    { "id": "t10", "type": "taskError", "label": "Отмена\n(авто через 2 ч)", "lane": "manager" },
+    { "id": "t11", "type": "task", "label": "Создание и\nпроведение РТУ", "lane": "system" },
+    { "id": "end_ok", "type": "eventEnd", "label": "РТУ проведен", "lane": "system" },
+    { "id": "end_cancel", "type": "eventEndError", "label": "Отменено", "lane": "system" }
+  ],
+  "edges": [
+    { "from": "start", "to": "t1" },
+    { "from": "t1", "to": "t_pnr" },
+    { "from": "t_pnr", "to": "t2" },
+    { "from": "t2", "to": "t3" },
+    { "from": "t3", "to": "x1" },
+    { "from": "x1", "to": "t4", "label": "полная" },
+    { "from": "x1", "to": "t5", "label": "частичная" },
+    { "from": "t4", "to": "t11" },
+    { "from": "t5", "to": "t6" },
+    { "from": "t6", "to": "x2" },
+    { "from": "x2", "to": "t7", "label": "не ухудшилась" },
+    { "from": "x2", "to": "t8", "label": "ухудшилась" },
+    { "from": "t7", "to": "t11" },
+    { "from": "t8", "to": "x3" },
+    { "from": "x3", "to": "t9", "label": "отгрузить" },
+    { "from": "x3", "to": "t10", "label": "отменить" },
+    { "from": "t9", "to": "t11" },
+    { "from": "t10", "to": "end_cancel" },
+    { "from": "t11", "to": "end_ok" }
+  ],
+  "notes": [
+    {
+      "text": "SLA интеграции:\n30 сек + 3 повторные\nпопытки",
+      "position": "top-right"
+    }
+  ]
+}

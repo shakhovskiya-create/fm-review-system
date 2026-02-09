@@ -1,0 +1,59 @@
+{
+  "name": "Общая схема контроля рентабельности",
+  "diagramName": "BPMN 0: Общая схема контроля рентабельности ЛС",
+  "description": "Обзорная диаграмма всех процессов контроля рентабельности при отгрузках по ЛС",
+  "lanes": [
+    { "id": "manager", "name": "Менеджер", "color": "#dae8fc" },
+    { "id": "system", "name": "1С:УТ", "color": "#d5e8d4" },
+    { "id": "approver", "name": "Согласующие\n(РБЮ / ДП / ГД)", "color": "#ffe6cc" },
+    { "id": "wms", "name": "WMS / Склад", "color": "#d5e8d4" }
+  ],
+  "nodes": [
+    { "id": "start", "type": "eventStart", "label": "", "lane": "manager" },
+    { "id": "t1", "type": "task", "label": "Создание ЛС\n(фиксация НПСС)", "lane": "manager" },
+    { "id": "t2", "type": "task", "label": "Создание Заказа\nпо ЛС", "lane": "manager" },
+    { "id": "sub_npss", "type": "subprocess", "label": "Контроль\nвозраста НПСС\n(см. BPMN 7)", "lane": "system" },
+    { "id": "x1", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "block_npss", "type": "taskError", "label": "Блокировка\n(НПСС устарела)", "lane": "system" },
+    { "id": "t3", "type": "task", "label": "Расчет\nрентабельности", "lane": "system" },
+    { "id": "x2", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "t4", "type": "task", "label": "Авто-\nсогласование", "lane": "system" },
+    { "id": "sub_approval", "type": "subprocess", "label": "Согласование\n(см. BPMN 2)", "lane": "approver" },
+    { "id": "sub_emergency", "type": "subprocess", "label": "Экстренное\nсогласование\n(см. BPMN 3)", "lane": "approver" },
+    { "id": "t5", "type": "task", "label": "Передача\nна склад\n(точка невозврата)", "lane": "system" },
+    { "id": "sub_wms", "type": "subprocess", "label": "Интеграция\nс WMS\n(см. BPMN 4)", "lane": "wms" },
+    { "id": "t6", "type": "task", "label": "Создание и\nпроведение РТУ", "lane": "system" },
+    { "id": "x3", "type": "gateway", "label": "X", "lane": "system" },
+    { "id": "sub_return", "type": "subprocess", "label": "Возврат товара\n(см. BPMN 5)", "lane": "manager" },
+    { "id": "sub_close", "type": "subprocess", "label": "Закрытие ЛС\n(см. BPMN 6)", "lane": "system" },
+    { "id": "end_ok", "type": "eventEnd", "label": "ЛС закрыта", "lane": "system" },
+    { "id": "end_block", "type": "eventEndError", "label": "Заблокировано", "lane": "system" }
+  ],
+  "edges": [
+    { "from": "start", "to": "t1" },
+    { "from": "t1", "to": "t2" },
+    { "from": "t2", "to": "sub_npss" },
+    { "from": "sub_npss", "to": "x1" },
+    { "from": "x1", "to": "block_npss", "label": "> 90 дн" },
+    { "from": "block_npss", "to": "end_block" },
+    { "from": "x1", "to": "t3", "label": "< 90 дн" },
+    { "from": "t3", "to": "x2" },
+    { "from": "x2", "to": "t4", "label": "< 1 п.п." },
+    { "from": "x2", "to": "sub_approval", "label": ">= 1 п.п." },
+    { "from": "t4", "to": "t5" },
+    { "from": "sub_approval", "to": "t5" },
+    { "from": "sub_emergency", "to": "t5" },
+    { "from": "t5", "to": "sub_wms" },
+    { "from": "sub_wms", "to": "t6" },
+    { "from": "t6", "to": "x3" },
+    { "from": "x3", "to": "sub_close", "label": "все отгружено" },
+    { "from": "x3", "to": "t2", "label": "следующий заказ" },
+    { "from": "sub_close", "to": "end_ok" }
+  ],
+  "notes": [
+    {
+      "text": "Диаграммы 9-10\n(Этап 2):\nФиксация потребности,\nСанкции за невыкуп",
+      "position": "top-right"
+    }
+  ]
+}

@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="fm-review-system"
+                  exporterVersion="1.0">
+  <bpmn:error id="Error_end_cancel" name="ЛС отменена" errorCode="END_CANCEL" />
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Жизненный цикл ЛС" processRef="Process_zhiznennyj_cikl_ls" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_zhiznennyj_cikl_ls" name="Жизненный цикл ЛС" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_manager" name="Менеджер">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_create</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_order</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_extend</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_close_manual</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_system" name="1С:УТ">
+        <bpmn:flowNodeRef>s_active</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_event</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_shipped</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>s_closed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>s_expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_close_approval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_close_auto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>s_cancelled</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_approver" name="Согласующий (РБЮ / ДП / ГД)">
+        <bpmn:flowNodeRef>t_close_approve</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="">
+      <bpmn:outgoing>Flow_start_t_create</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="t_create" name="Создание ЛС (НПСС фиксируется)">
+      <bpmn:incoming>Flow_start_t_create</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_create_s_active</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="s_active" name="Активна (создание заказов разрешено)">
+      <bpmn:incoming>Flow_t_create_s_active</bpmn:incoming>
+      <bpmn:incoming>Flow_x_shipped_s_active</bpmn:incoming>
+      <bpmn:incoming>Flow_t_extend_s_active</bpmn:incoming>
+      <bpmn:outgoing>Flow_s_active_x_event</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_event" name="X" default="Flow_x_event_s_cancelled">
+      <bpmn:incoming>Flow_s_active_x_event</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_event_t_order</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_event_s_expired</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_event_s_cancelled</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:callActivity id="t_order" name="Заказы клиента (см. BPMN 4)">
+      <bpmn:incoming>Flow_x_event_t_order</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_order_x_shipped</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="x_shipped" name="X" default="Flow_x_shipped_s_active">
+      <bpmn:incoming>Flow_t_order_x_shipped</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_shipped_s_closed</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_shipped_s_active</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="s_closed" name="Закрыта (все отгружено)">
+      <bpmn:incoming>Flow_x_shipped_s_closed</bpmn:incoming>
+      <bpmn:incoming>Flow_t_close_auto_s_closed</bpmn:incoming>
+      <bpmn:incoming>Flow_t_close_approve_s_closed</bpmn:incoming>
+      <bpmn:outgoing>Flow_s_closed_end_ok</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="s_expired" name="Истекла (срок вышел)">
+      <bpmn:incoming>Flow_x_event_s_expired</bpmn:incoming>
+      <bpmn:outgoing>Flow_s_expired_x_expired</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_expired" name="X" default="Flow_x_expired_t_close_manual">
+      <bpmn:incoming>Flow_s_expired_x_expired</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_expired_t_extend</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_expired_t_close_manual</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_extend" name="Продление (макс. 2 раза)">
+      <bpmn:incoming>Flow_x_expired_t_extend</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_extend_s_active</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_close_manual" name="Закрытие с частичной отгрузкой">
+      <bpmn:incoming>Flow_x_expired_t_close_manual</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_close_manual_x_close_approval</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_close_approval" name="X" default="Flow_x_close_approval_t_close_approve">
+      <bpmn:incoming>Flow_t_close_manual_x_close_approval</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_close_approval_t_close_auto</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_close_approval_t_close_approve</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_close_auto" name="Закрытие без согласования (&lt; 1 п.п.)">
+      <bpmn:incoming>Flow_x_close_approval_t_close_auto</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_close_auto_s_closed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_close_approve" name="Согласование закрытия">
+      <bpmn:incoming>Flow_x_close_approval_t_close_approve</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_close_approve_s_closed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="s_cancelled" name="Отменена (0 отгрузок)">
+      <bpmn:incoming>Flow_x_event_s_cancelled</bpmn:incoming>
+      <bpmn:outgoing>Flow_s_cancelled_end_cancel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="end_ok" name="ЛС завершена">
+      <bpmn:incoming>Flow_s_closed_end_ok</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_cancel" name="ЛС отменена">
+      <bpmn:incoming>Flow_s_cancelled_end_cancel</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_end_cancel" errorRef="Error_end_cancel" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_t_create" sourceRef="start" targetRef="t_create" />
+    <bpmn:sequenceFlow id="Flow_t_create_s_active" sourceRef="t_create" targetRef="s_active" />
+    <bpmn:sequenceFlow id="Flow_s_active_x_event" sourceRef="s_active" targetRef="x_event" />
+    <bpmn:sequenceFlow id="Flow_x_event_t_order" name="новый заказ" sourceRef="x_event" targetRef="t_order">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=новый заказ</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_event_s_expired" name="срок истек" sourceRef="x_event" targetRef="s_expired">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=срок истек</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_event_s_cancelled" name="отмена
+(0 отгрузок)" sourceRef="x_event" targetRef="s_cancelled" />
+    <bpmn:sequenceFlow id="Flow_t_order_x_shipped" sourceRef="t_order" targetRef="x_shipped" />
+    <bpmn:sequenceFlow id="Flow_x_shipped_s_closed" name="все отгружено" sourceRef="x_shipped" targetRef="s_closed">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=все отгружено</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_shipped_s_active" name="есть остаток" sourceRef="x_shipped" targetRef="s_active" />
+    <bpmn:sequenceFlow id="Flow_s_expired_x_expired" sourceRef="s_expired" targetRef="x_expired" />
+    <bpmn:sequenceFlow id="Flow_x_expired_t_extend" name="продлить" sourceRef="x_expired" targetRef="t_extend">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=продлить</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_expired_t_close_manual" name="закрыть" sourceRef="x_expired" targetRef="t_close_manual" />
+    <bpmn:sequenceFlow id="Flow_t_extend_s_active" sourceRef="t_extend" targetRef="s_active" />
+    <bpmn:sequenceFlow id="Flow_t_close_manual_x_close_approval" sourceRef="t_close_manual" targetRef="x_close_approval" />
+    <bpmn:sequenceFlow id="Flow_x_close_approval_t_close_auto" name="&lt; 1 п.п." sourceRef="x_close_approval" targetRef="t_close_auto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt; 1 п.п.</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_close_approval_t_close_approve" name="&gt;= 1 п.п." sourceRef="x_close_approval" targetRef="t_close_approve" />
+    <bpmn:sequenceFlow id="Flow_t_close_auto_s_closed" sourceRef="t_close_auto" targetRef="s_closed" />
+    <bpmn:sequenceFlow id="Flow_t_close_approve_s_closed" sourceRef="t_close_approve" targetRef="s_closed" />
+    <bpmn:sequenceFlow id="Flow_s_closed_end_ok" sourceRef="s_closed" targetRef="end_ok" />
+    <bpmn:sequenceFlow id="Flow_s_cancelled_end_cancel" sourceRef="s_cancelled" targetRef="end_cancel" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="920" height="1920" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_manager_di" bpmnElement="Lane_manager" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="890" height="520" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_system_di" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="130" y="580" width="890" height="1240" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_approver_di" bpmnElement="Lane_approver" isHorizontal="true">
+        <dc:Bounds x="130" y="1820" width="890" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="200" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_create_di" bpmnElement="t_create">
+        <dc:Bounds x="380" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_active_di" bpmnElement="s_active">
+        <dc:Bounds x="560" y="1160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_event_di" bpmnElement="x_event">
+        <dc:Bounds x="200" y="620" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_order_di" bpmnElement="t_order">
+        <dc:Bounds x="200" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_shipped_di" bpmnElement="x_shipped">
+        <dc:Bounds x="200" y="740" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_closed_di" bpmnElement="s_closed">
+        <dc:Bounds x="200" y="860" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_expired_di" bpmnElement="s_expired">
+        <dc:Bounds x="200" y="980" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_expired_di" bpmnElement="x_expired">
+        <dc:Bounds x="200" y="1100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_extend_di" bpmnElement="t_extend">
+        <dc:Bounds x="200" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_close_manual_di" bpmnElement="t_close_manual">
+        <dc:Bounds x="200" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_close_approval_di" bpmnElement="x_close_approval">
+        <dc:Bounds x="200" y="1220" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_close_auto_di" bpmnElement="t_close_auto">
+        <dc:Bounds x="200" y="1340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_close_approve_di" bpmnElement="t_close_approve">
+        <dc:Bounds x="200" y="1860" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_cancelled_di" bpmnElement="s_cancelled">
+        <dc:Bounds x="200" y="1460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ok_di" bpmnElement="end_ok">
+        <dc:Bounds x="200" y="1580" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cancel_di" bpmnElement="end_cancel">
+        <dc:Bounds x="200" y="1700" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_t_create_di" bpmnElement="Flow_start_t_create">
+        <di:waypoint x="236" y="118" />
+        <di:waypoint x="308" y="118" />
+        <di:waypoint x="308" y="320" />
+        <di:waypoint x="380" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_create_s_active_di" bpmnElement="Flow_t_create_s_active">
+        <di:waypoint x="480" y="320" />
+        <di:waypoint x="520" y="320" />
+        <di:waypoint x="520" y="1200" />
+        <di:waypoint x="560" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_s_active_x_event_di" bpmnElement="Flow_s_active_x_event">
+        <di:waypoint x="660" y="1200" />
+        <di:waypoint x="700" y="1200" />
+        <di:waypoint x="700" y="585" />
+        <di:waypoint x="170" y="585" />
+        <di:waypoint x="170" y="645" />
+        <di:waypoint x="200" y="645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_event_t_order_di" bpmnElement="Flow_x_event_t_order">
+        <di:waypoint x="250" y="645" />
+        <di:waypoint x="340" y="645" />
+        <di:waypoint x="340" y="200" />
+        <di:waypoint x="170" y="200" />
+        <di:waypoint x="170" y="260" />
+        <di:waypoint x="200" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_event_s_expired_di" bpmnElement="Flow_x_event_s_expired">
+        <di:waypoint x="250" y="645" />
+        <di:waypoint x="340" y="645" />
+        <di:waypoint x="340" y="1080" />
+        <di:waypoint x="170" y="1080" />
+        <di:waypoint x="170" y="1020" />
+        <di:waypoint x="200" y="1020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_event_s_cancelled_di" bpmnElement="Flow_x_event_s_cancelled">
+        <di:waypoint x="250" y="645" />
+        <di:waypoint x="340" y="645" />
+        <di:waypoint x="340" y="1560" />
+        <di:waypoint x="170" y="1560" />
+        <di:waypoint x="170" y="1500" />
+        <di:waypoint x="200" y="1500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_order_x_shipped_di" bpmnElement="Flow_t_order_x_shipped">
+        <di:waypoint x="300" y="260" />
+        <di:waypoint x="340" y="260" />
+        <di:waypoint x="340" y="825" />
+        <di:waypoint x="170" y="825" />
+        <di:waypoint x="170" y="765" />
+        <di:waypoint x="200" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_shipped_s_closed_di" bpmnElement="Flow_x_shipped_s_closed">
+        <di:waypoint x="250" y="765" />
+        <di:waypoint x="340" y="765" />
+        <di:waypoint x="340" y="960" />
+        <di:waypoint x="170" y="960" />
+        <di:waypoint x="170" y="900" />
+        <di:waypoint x="200" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_shipped_s_active_di" bpmnElement="Flow_x_shipped_s_active">
+        <di:waypoint x="250" y="765" />
+        <di:waypoint x="405" y="765" />
+        <di:waypoint x="405" y="1200" />
+        <di:waypoint x="560" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_s_expired_x_expired_di" bpmnElement="Flow_s_expired_x_expired">
+        <di:waypoint x="300" y="1020" />
+        <di:waypoint x="340" y="1020" />
+        <di:waypoint x="340" y="1185" />
+        <di:waypoint x="170" y="1185" />
+        <di:waypoint x="170" y="1125" />
+        <di:waypoint x="200" y="1125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_expired_t_extend_di" bpmnElement="Flow_x_expired_t_extend">
+        <di:waypoint x="250" y="1125" />
+        <di:waypoint x="340" y="1125" />
+        <di:waypoint x="340" y="320" />
+        <di:waypoint x="170" y="320" />
+        <di:waypoint x="170" y="380" />
+        <di:waypoint x="200" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_expired_t_close_manual_di" bpmnElement="Flow_x_expired_t_close_manual">
+        <di:waypoint x="250" y="1125" />
+        <di:waypoint x="340" y="1125" />
+        <di:waypoint x="340" y="440" />
+        <di:waypoint x="170" y="440" />
+        <di:waypoint x="170" y="500" />
+        <di:waypoint x="200" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_extend_s_active_di" bpmnElement="Flow_t_extend_s_active">
+        <di:waypoint x="300" y="380" />
+        <di:waypoint x="430" y="380" />
+        <di:waypoint x="430" y="1200" />
+        <di:waypoint x="560" y="1200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_close_manual_x_close_approval_di" bpmnElement="Flow_t_close_manual_x_close_approval">
+        <di:waypoint x="300" y="500" />
+        <di:waypoint x="340" y="500" />
+        <di:waypoint x="340" y="1305" />
+        <di:waypoint x="170" y="1305" />
+        <di:waypoint x="170" y="1245" />
+        <di:waypoint x="200" y="1245" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_close_approval_t_close_auto_di" bpmnElement="Flow_x_close_approval_t_close_auto">
+        <di:waypoint x="250" y="1245" />
+        <di:waypoint x="340" y="1245" />
+        <di:waypoint x="340" y="1440" />
+        <di:waypoint x="170" y="1440" />
+        <di:waypoint x="170" y="1380" />
+        <di:waypoint x="200" y="1380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_close_approval_t_close_approve_di" bpmnElement="Flow_x_close_approval_t_close_approve">
+        <di:waypoint x="250" y="1245" />
+        <di:waypoint x="340" y="1245" />
+        <di:waypoint x="340" y="1960" />
+        <di:waypoint x="170" y="1960" />
+        <di:waypoint x="170" y="1900" />
+        <di:waypoint x="200" y="1900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_close_auto_s_closed_di" bpmnElement="Flow_t_close_auto_s_closed">
+        <di:waypoint x="300" y="1380" />
+        <di:waypoint x="340" y="1380" />
+        <di:waypoint x="340" y="840" />
+        <di:waypoint x="170" y="840" />
+        <di:waypoint x="170" y="900" />
+        <di:waypoint x="200" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_close_approve_s_closed_di" bpmnElement="Flow_t_close_approve_s_closed">
+        <di:waypoint x="300" y="1900" />
+        <di:waypoint x="340" y="1900" />
+        <di:waypoint x="340" y="840" />
+        <di:waypoint x="170" y="840" />
+        <di:waypoint x="170" y="900" />
+        <di:waypoint x="200" y="900" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_s_closed_end_ok_di" bpmnElement="Flow_s_closed_end_ok">
+        <di:waypoint x="300" y="900" />
+        <di:waypoint x="340" y="900" />
+        <di:waypoint x="340" y="1658" />
+        <di:waypoint x="170" y="1658" />
+        <di:waypoint x="170" y="1598" />
+        <di:waypoint x="200" y="1598" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_s_cancelled_end_cancel_di" bpmnElement="Flow_s_cancelled_end_cancel">
+        <di:waypoint x="300" y="1500" />
+        <di:waypoint x="340" y="1500" />
+        <di:waypoint x="340" y="1778" />
+        <di:waypoint x="170" y="1778" />
+        <di:waypoint x="170" y="1718" />
+        <di:waypoint x="200" y="1718" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

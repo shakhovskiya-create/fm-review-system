@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="fm-review-system"
+                  exporterVersion="1.0">
+  <bpmn:error id="Error_end_cancel" name="Аннулировано" errorCode="END_CANCEL" />
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Фиксация потребности" processRef="Process_fiksaciya_potrebnosti" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_fiksaciya_potrebnosti" name="Фиксация потребности" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_manager" name="Менеджер">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_confirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_confirm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_system" name="1С:УТ">
+        <bpmn:flowNodeRef>t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_stock</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_full</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_partial</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_none</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_fix</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_wait</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_notify</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>x_expiry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_extend</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_annul</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end_cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_wms" name="WMS / Склад">
+        <bpmn:flowNodeRef>x_arrive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_arrived</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="">
+      <bpmn:outgoing>Flow_start_t1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="t1" name="Создание заказа по ЛС">
+      <bpmn:incoming>Flow_start_t1</bpmn:incoming>
+      <bpmn:outgoing>Flow_t1_t2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t2" name="Проверка наличия товара">
+      <bpmn:incoming>Flow_t1_t2</bpmn:incoming>
+      <bpmn:outgoing>Flow_t2_x_stock</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_stock" name="X" default="Flow_x_stock_t_none">
+      <bpmn:incoming>Flow_t2_x_stock</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_stock_t_full</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_stock_t_partial</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_stock_t_none</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_full" name="100% в наличии (стандартный поток)">
+      <bpmn:incoming>Flow_x_stock_t_full</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_full_end_ok</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_partial" name="Частичное наличие (разделение заказа)">
+      <bpmn:incoming>Flow_x_stock_t_partial</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_partial_t_fix</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_none" name="Нет на складе (весь заказ в ожидание)">
+      <bpmn:incoming>Flow_x_stock_t_none</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_none_t_fix</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_fix" name="Фиксация потребности (дата, позиции, кол-во)">
+      <bpmn:incoming>Flow_t_partial_t_fix</bpmn:incoming>
+      <bpmn:incoming>Flow_t_none_t_fix</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_fix_t_wait</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_wait" name="Ожидание поступления (макс. 90 дней)">
+      <bpmn:incoming>Flow_t_fix_t_wait</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_wait_x_arrive</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_arrive" name="X" default="Flow_x_arrive_t_annul">
+      <bpmn:incoming>Flow_t_wait_x_arrive</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_arrive_t_arrived</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_arrive_t_annul</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_arrived" name="Товар поступил (физ. резерв 48 ч)">
+      <bpmn:incoming>Flow_x_arrive_t_arrived</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_arrived_t_notify</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_notify" name="Уведомление клиента / менеджера">
+      <bpmn:incoming>Flow_t_arrived_t_notify</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_notify_x_confirm</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_confirm" name="X" default="Flow_x_confirm_t_cancel">
+      <bpmn:incoming>Flow_t_notify_x_confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_confirm_t_confirm</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_confirm_t_cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_confirm" name="Подтверждение (в течение 5 дней)">
+      <bpmn:incoming>Flow_x_confirm_t_confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_confirm_x_expiry</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_cancel" name="Отказ / таймаут">
+      <bpmn:incoming>Flow_x_confirm_t_cancel</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_cancel_t_annul</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="x_expiry" name="X" default="Flow_x_expiry_t_extend">
+      <bpmn:incoming>Flow_t_confirm_x_expiry</bpmn:incoming>
+      <bpmn:outgoing>Flow_x_expiry_end_ok</bpmn:outgoing>
+      <bpmn:outgoing>Flow_x_expiry_t_extend</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_extend" name="Автопродление ЛС (5 дней, одноразово на позицию)">
+      <bpmn:incoming>Flow_x_expiry_t_extend</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_extend_end_ok</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_annul" name="Аннулирование фиксации (товар в своб. остаток)">
+      <bpmn:incoming>Flow_x_arrive_t_annul</bpmn:incoming>
+      <bpmn:incoming>Flow_t_cancel_t_annul</bpmn:incoming>
+      <bpmn:outgoing>Flow_t_annul_end_cancel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="end_ok" name="К согласованию">
+      <bpmn:incoming>Flow_t_full_end_ok</bpmn:incoming>
+      <bpmn:incoming>Flow_x_expiry_end_ok</bpmn:incoming>
+      <bpmn:incoming>Flow_t_extend_end_ok</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_cancel" name="Аннулировано">
+      <bpmn:incoming>Flow_t_annul_end_cancel</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_end_cancel" errorRef="Error_end_cancel" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
+    <bpmn:sequenceFlow id="Flow_t1_t2" sourceRef="t1" targetRef="t2" />
+    <bpmn:sequenceFlow id="Flow_t2_x_stock" sourceRef="t2" targetRef="x_stock" />
+    <bpmn:sequenceFlow id="Flow_x_stock_t_full" name="100%" sourceRef="x_stock" targetRef="t_full">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=100%</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_stock_t_partial" name="частично" sourceRef="x_stock" targetRef="t_partial">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=частично</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_stock_t_none" name="0%" sourceRef="x_stock" targetRef="t_none" />
+    <bpmn:sequenceFlow id="Flow_t_full_end_ok" sourceRef="t_full" targetRef="end_ok" />
+    <bpmn:sequenceFlow id="Flow_t_partial_t_fix" sourceRef="t_partial" targetRef="t_fix" />
+    <bpmn:sequenceFlow id="Flow_t_none_t_fix" sourceRef="t_none" targetRef="t_fix" />
+    <bpmn:sequenceFlow id="Flow_t_fix_t_wait" sourceRef="t_fix" targetRef="t_wait" />
+    <bpmn:sequenceFlow id="Flow_t_wait_x_arrive" sourceRef="t_wait" targetRef="x_arrive" />
+    <bpmn:sequenceFlow id="Flow_x_arrive_t_arrived" name="поступил" sourceRef="x_arrive" targetRef="t_arrived">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=поступил</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_arrive_t_annul" name="90 дней / ЛС
+истекла" sourceRef="x_arrive" targetRef="t_annul" />
+    <bpmn:sequenceFlow id="Flow_t_arrived_t_notify" sourceRef="t_arrived" targetRef="t_notify" />
+    <bpmn:sequenceFlow id="Flow_t_notify_x_confirm" sourceRef="t_notify" targetRef="x_confirm" />
+    <bpmn:sequenceFlow id="Flow_x_confirm_t_confirm" name="да" sourceRef="x_confirm" targetRef="t_confirm">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=да</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_confirm_t_cancel" name="нет / таймаут" sourceRef="x_confirm" targetRef="t_cancel" />
+    <bpmn:sequenceFlow id="Flow_t_confirm_x_expiry" sourceRef="t_confirm" targetRef="x_expiry" />
+    <bpmn:sequenceFlow id="Flow_x_expiry_end_ok" name="ЛС активна" sourceRef="x_expiry" targetRef="end_ok">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=ЛС активна</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_x_expiry_t_extend" name="&lt; 5 дн до
+истечения" sourceRef="x_expiry" targetRef="t_extend" />
+    <bpmn:sequenceFlow id="Flow_t_extend_end_ok" sourceRef="t_extend" targetRef="end_ok" />
+    <bpmn:sequenceFlow id="Flow_t_cancel_t_annul" sourceRef="t_cancel" targetRef="t_annul" />
+    <bpmn:sequenceFlow id="Flow_t_annul_end_cancel" sourceRef="t_annul" targetRef="end_cancel" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="3080" height="840" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_manager_di" bpmnElement="Lane_manager" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="3050" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_system_di" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="130" y="340" width="3050" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_wms_di" bpmnElement="Lane_wms" isHorizontal="true">
+        <dc:Bounds x="130" y="740" width="3050" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="200" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t1_di" bpmnElement="t1">
+        <dc:Bounds x="380" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t2_di" bpmnElement="t2">
+        <dc:Bounds x="560" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_stock_di" bpmnElement="x_stock">
+        <dc:Bounds x="740" y="500" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_full_di" bpmnElement="t_full">
+        <dc:Bounds x="920" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_partial_di" bpmnElement="t_partial">
+        <dc:Bounds x="920" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_none_di" bpmnElement="t_none">
+        <dc:Bounds x="920" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_fix_di" bpmnElement="t_fix">
+        <dc:Bounds x="1100" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_wait_di" bpmnElement="t_wait">
+        <dc:Bounds x="1280" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_arrive_di" bpmnElement="x_arrive">
+        <dc:Bounds x="1460" y="780" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_arrived_di" bpmnElement="t_arrived">
+        <dc:Bounds x="1640" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_notify_di" bpmnElement="t_notify">
+        <dc:Bounds x="1820" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_confirm_di" bpmnElement="x_confirm">
+        <dc:Bounds x="2000" y="160" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_confirm_di" bpmnElement="t_confirm">
+        <dc:Bounds x="2180" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_cancel_di" bpmnElement="t_cancel">
+        <dc:Bounds x="2180" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="x_expiry_di" bpmnElement="x_expiry">
+        <dc:Bounds x="2360" y="440" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_extend_di" bpmnElement="t_extend">
+        <dc:Bounds x="2540" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_annul_di" bpmnElement="t_annul">
+        <dc:Bounds x="2360" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ok_di" bpmnElement="end_ok">
+        <dc:Bounds x="2720" y="500" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cancel_di" bpmnElement="end_cancel">
+        <dc:Bounds x="2540" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_t1_di" bpmnElement="Flow_start_t1">
+        <di:waypoint x="236" y="178" />
+        <di:waypoint x="308" y="178" />
+        <di:waypoint x="308" y="200" />
+        <di:waypoint x="380" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t1_t2_di" bpmnElement="Flow_t1_t2">
+        <di:waypoint x="480" y="200" />
+        <di:waypoint x="520" y="200" />
+        <di:waypoint x="520" y="540" />
+        <di:waypoint x="560" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t2_x_stock_di" bpmnElement="Flow_t2_x_stock">
+        <di:waypoint x="660" y="540" />
+        <di:waypoint x="700" y="540" />
+        <di:waypoint x="700" y="525" />
+        <di:waypoint x="740" y="525" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_stock_t_full_di" bpmnElement="Flow_x_stock_t_full">
+        <di:waypoint x="790" y="525" />
+        <di:waypoint x="855" y="525" />
+        <di:waypoint x="855" y="420" />
+        <di:waypoint x="920" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_stock_t_partial_di" bpmnElement="Flow_x_stock_t_partial">
+        <di:waypoint x="790" y="525" />
+        <di:waypoint x="855" y="525" />
+        <di:waypoint x="855" y="540" />
+        <di:waypoint x="920" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_stock_t_none_di" bpmnElement="Flow_x_stock_t_none">
+        <di:waypoint x="790" y="525" />
+        <di:waypoint x="855" y="525" />
+        <di:waypoint x="855" y="660" />
+        <di:waypoint x="920" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_full_end_ok_di" bpmnElement="Flow_t_full_end_ok">
+        <di:waypoint x="1020" y="420" />
+        <di:waypoint x="1870" y="420" />
+        <di:waypoint x="1870" y="518" />
+        <di:waypoint x="2720" y="518" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_partial_t_fix_di" bpmnElement="Flow_t_partial_t_fix">
+        <di:waypoint x="1020" y="540" />
+        <di:waypoint x="1100" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_none_t_fix_di" bpmnElement="Flow_t_none_t_fix">
+        <di:waypoint x="1020" y="660" />
+        <di:waypoint x="1060" y="660" />
+        <di:waypoint x="1060" y="540" />
+        <di:waypoint x="1100" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_fix_t_wait_di" bpmnElement="Flow_t_fix_t_wait">
+        <di:waypoint x="1200" y="540" />
+        <di:waypoint x="1280" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_wait_x_arrive_di" bpmnElement="Flow_t_wait_x_arrive">
+        <di:waypoint x="1380" y="540" />
+        <di:waypoint x="1420" y="540" />
+        <di:waypoint x="1420" y="805" />
+        <di:waypoint x="1460" y="805" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_arrive_t_arrived_di" bpmnElement="Flow_x_arrive_t_arrived">
+        <di:waypoint x="1510" y="805" />
+        <di:waypoint x="1575" y="805" />
+        <di:waypoint x="1575" y="820" />
+        <di:waypoint x="1640" y="820" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_arrive_t_annul_di" bpmnElement="Flow_x_arrive_t_annul">
+        <di:waypoint x="1510" y="805" />
+        <di:waypoint x="1935" y="805" />
+        <di:waypoint x="1935" y="600" />
+        <di:waypoint x="2360" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_arrived_t_notify_di" bpmnElement="Flow_t_arrived_t_notify">
+        <di:waypoint x="1740" y="820" />
+        <di:waypoint x="1780" y="820" />
+        <di:waypoint x="1780" y="540" />
+        <di:waypoint x="1820" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_notify_x_confirm_di" bpmnElement="Flow_t_notify_x_confirm">
+        <di:waypoint x="1920" y="540" />
+        <di:waypoint x="1960" y="540" />
+        <di:waypoint x="1960" y="185" />
+        <di:waypoint x="2000" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_confirm_t_confirm_di" bpmnElement="Flow_x_confirm_t_confirm">
+        <di:waypoint x="2050" y="185" />
+        <di:waypoint x="2115" y="185" />
+        <di:waypoint x="2115" y="140" />
+        <di:waypoint x="2180" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_confirm_t_cancel_di" bpmnElement="Flow_x_confirm_t_cancel">
+        <di:waypoint x="2050" y="185" />
+        <di:waypoint x="2115" y="185" />
+        <di:waypoint x="2115" y="260" />
+        <di:waypoint x="2180" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_confirm_x_expiry_di" bpmnElement="Flow_t_confirm_x_expiry">
+        <di:waypoint x="2280" y="140" />
+        <di:waypoint x="2320" y="140" />
+        <di:waypoint x="2320" y="465" />
+        <di:waypoint x="2360" y="465" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_expiry_end_ok_di" bpmnElement="Flow_x_expiry_end_ok">
+        <di:waypoint x="2410" y="465" />
+        <di:waypoint x="2565" y="465" />
+        <di:waypoint x="2565" y="518" />
+        <di:waypoint x="2720" y="518" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_expiry_t_extend_di" bpmnElement="Flow_x_expiry_t_extend">
+        <di:waypoint x="2410" y="465" />
+        <di:waypoint x="2475" y="465" />
+        <di:waypoint x="2475" y="480" />
+        <di:waypoint x="2540" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_extend_end_ok_di" bpmnElement="Flow_t_extend_end_ok">
+        <di:waypoint x="2640" y="480" />
+        <di:waypoint x="2680" y="480" />
+        <di:waypoint x="2680" y="518" />
+        <di:waypoint x="2720" y="518" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_cancel_t_annul_di" bpmnElement="Flow_t_cancel_t_annul">
+        <di:waypoint x="2280" y="260" />
+        <di:waypoint x="2320" y="260" />
+        <di:waypoint x="2320" y="600" />
+        <di:waypoint x="2360" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_annul_end_cancel_di" bpmnElement="Flow_t_annul_end_cancel">
+        <di:waypoint x="2460" y="600" />
+        <di:waypoint x="2500" y="600" />
+        <di:waypoint x="2500" y="578" />
+        <di:waypoint x="2540" y="578" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
