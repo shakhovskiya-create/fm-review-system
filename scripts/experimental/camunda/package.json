@@ -10,6 +10,7 @@
     "all": "node json_to_bpmn.js --all && node render_png.js --all"
   },
   "dependencies": {
+    "bpmn-auto-layout": "^1.2.0",
     "bpmn-to-image": "^0.9.0"
   }
 }

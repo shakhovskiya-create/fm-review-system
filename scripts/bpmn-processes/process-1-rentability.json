@@ -10,7 +10,7 @@
     { "id": "start", "type": "eventStart", "label": "", "lane": "manager" },
     { "id": "t1", "type": "task", "label": "Создать\nЗаказ клиента", "lane": "manager" },
 
-    { "id": "t2", "type": "task", "label": "Проверка актуальности\nсебестоимости\n(возраст НПСС < 90 дн)", "lane": "system" },
+    { "id": "t2", "type": "task", "label": "Проверка НПСС\n(возраст < 90 дн)", "lane": "system" },
     { "id": "x1", "type": "gateway", "label": "X", "lane": "system" },
     { "id": "t3", "type": "taskError", "label": "Блокировка\n(обновить НПСС)", "lane": "system" },
     { "id": "e1", "type": "eventEndError", "label": "Заблокирован", "lane": "system" },
