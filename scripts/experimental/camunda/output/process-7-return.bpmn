@@ -98,7 +98,7 @@
     <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
     <bpmn:sequenceFlow id="Flow_t1_x_ls" sourceRef="t1" targetRef="x_ls" />
     <bpmn:sequenceFlow id="Flow_x_ls_t2" name="ЛС активна" sourceRef="x_ls" targetRef="t2">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=ЛС активна</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;ЛС активна&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_ls_t6" name="ЛС закрыта" sourceRef="x_ls" targetRef="t6" />
     <bpmn:sequenceFlow id="Flow_t2_t3" sourceRef="t2" targetRef="t3" />
@@ -106,14 +106,14 @@
     <bpmn:sequenceFlow id="Flow_t4_x_level" sourceRef="t4" targetRef="x_level" />
     <bpmn:sequenceFlow id="Flow_x_level_t5" name="уровень
 изменился" sourceRef="x_level" targetRef="t5">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=уровень
-изменился</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;уровень
+изменился&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_level_end_ok" name="без изменений" sourceRef="x_level" targetRef="end_ok" />
     <bpmn:sequenceFlow id="Flow_t5_end_ok" sourceRef="t5" targetRef="end_ok" />
     <bpmn:sequenceFlow id="Flow_t6_x_60d" sourceRef="t6" targetRef="x_60d" />
     <bpmn:sequenceFlow id="Flow_x_60d_t7" name="&lt;= 60 дней" sourceRef="x_60d" targetRef="t7">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt;= 60 дней</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&lt;= 60 дней&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_60d_t8" name="&gt; 60 дней" sourceRef="x_60d" targetRef="t8" />
     <bpmn:sequenceFlow id="Flow_t7_end_ok" sourceRef="t7" targetRef="end_ok" />

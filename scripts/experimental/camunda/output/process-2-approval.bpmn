@@ -98,7 +98,7 @@
     <bpmn:sequenceFlow id="Flow_t2_t3" sourceRef="t2" targetRef="t3" />
     <bpmn:sequenceFlow id="Flow_t3_x1" sourceRef="t3" targetRef="x1" />
     <bpmn:sequenceFlow id="Flow_x1_t4" name="одобрить" sourceRef="x1" targetRef="t4">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрить</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;одобрить&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x1_t5" name="отклонить" sourceRef="x1" targetRef="t5" />
     <bpmn:sequenceFlow id="Flow_t4_t6" sourceRef="t4" targetRef="t6" />
@@ -106,7 +106,7 @@
     <bpmn:sequenceFlow id="Flow_t6_t7" sourceRef="t6" targetRef="t7" />
     <bpmn:sequenceFlow id="Flow_t7_x3" sourceRef="t7" targetRef="x3" />
     <bpmn:sequenceFlow id="Flow_x3_t8" name="согласован" sourceRef="x3" targetRef="t8">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=согласован</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;согласован&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x3_t9" name="отклонен" sourceRef="x3" targetRef="t9" />
     <bpmn:sequenceFlow id="Flow_t8_e1" sourceRef="t8" targetRef="e1" />

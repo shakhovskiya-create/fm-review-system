@@ -112,13 +112,13 @@
     <bpmn:sequenceFlow id="Flow_t3_t2" sourceRef="t3" targetRef="t2" />
     <bpmn:sequenceFlow id="Flow_t2_x_percent" sourceRef="t2" targetRef="x_percent" />
     <bpmn:sequenceFlow id="Flow_x_percent_t_ok" name="90-100%" sourceRef="x_percent" targetRef="t_ok">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=90-100%</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;90-100%&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_percent_t_mild" name="70-89%" sourceRef="x_percent" targetRef="t_mild">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=70-89%</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;70-89%&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_percent_t_medium" name="50-69%" sourceRef="x_percent" targetRef="t_medium">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=50-69%</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;50-69%&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_percent_t_severe" name="&lt; 50%" sourceRef="x_percent" targetRef="t_severe" />
     <bpmn:sequenceFlow id="Flow_t_ok_end_clean" sourceRef="t_ok" targetRef="end_clean" />
@@ -127,8 +127,8 @@
     <bpmn:sequenceFlow id="Flow_t_severe_x_strategic" sourceRef="t_severe" targetRef="x_strategic" />
     <bpmn:sequenceFlow id="Flow_x_strategic_t_exception" name="стратег.
 клиент" sourceRef="x_strategic" targetRef="t_exception">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=стратег.
-клиент</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;стратег.
+клиент&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_strategic_t_register" name="обычный
 клиент" sourceRef="x_strategic" targetRef="t_register" />

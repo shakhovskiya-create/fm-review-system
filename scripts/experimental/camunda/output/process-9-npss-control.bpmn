@@ -102,13 +102,13 @@
     <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
     <bpmn:sequenceFlow id="Flow_t1_x1" sourceRef="t1" targetRef="x1" />
     <bpmn:sequenceFlow id="Flow_x1_t_green" name="0-30 дн" sourceRef="x1" targetRef="t_green">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=0-30 дн</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;0-30 дн&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x1_t_yellow" name="31-60 дн" sourceRef="x1" targetRef="t_yellow">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=31-60 дн</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;31-60 дн&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x1_t_orange" name="61-90 дн" sourceRef="x1" targetRef="t_orange">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=61-90 дн</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;61-90 дн&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x1_t_red" name="&gt; 90 дн" sourceRef="x1" targetRef="t_red" />
     <bpmn:sequenceFlow id="Flow_t_green_end_ok" sourceRef="t_green" targetRef="end_ok" />
@@ -116,7 +116,7 @@
     <bpmn:sequenceFlow id="Flow_t_orange_t_rbu_confirm" sourceRef="t_orange" targetRef="t_rbu_confirm" />
     <bpmn:sequenceFlow id="Flow_t_rbu_confirm_x_rbu" sourceRef="t_rbu_confirm" targetRef="x_rbu" />
     <bpmn:sequenceFlow id="Flow_x_rbu_end_ok" name="актуальна" sourceRef="x_rbu" targetRef="end_ok">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=актуальна</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;актуальна&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_rbu_t_recalc" name="пересчет" sourceRef="x_rbu" targetRef="t_recalc" />
     <bpmn:sequenceFlow id="Flow_t_red_end_block" sourceRef="t_red" targetRef="end_block" />

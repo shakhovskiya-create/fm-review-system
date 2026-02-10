@@ -133,10 +133,10 @@
     <bpmn:sequenceFlow id="Flow_t1_t2" sourceRef="t1" targetRef="t2" />
     <bpmn:sequenceFlow id="Flow_t2_x_stock" sourceRef="t2" targetRef="x_stock" />
     <bpmn:sequenceFlow id="Flow_x_stock_t_full" name="100%" sourceRef="x_stock" targetRef="t_full">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=100%</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;100%&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_stock_t_partial" name="частично" sourceRef="x_stock" targetRef="t_partial">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=частично</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;частично&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_stock_t_none" name="0%" sourceRef="x_stock" targetRef="t_none" />
     <bpmn:sequenceFlow id="Flow_t_full_end_ok" sourceRef="t_full" targetRef="end_ok" />
@@ -145,19 +145,19 @@
     <bpmn:sequenceFlow id="Flow_t_fix_t_wait" sourceRef="t_fix" targetRef="t_wait" />
     <bpmn:sequenceFlow id="Flow_t_wait_x_arrive" sourceRef="t_wait" targetRef="x_arrive" />
     <bpmn:sequenceFlow id="Flow_x_arrive_t_arrived" name="поступил" sourceRef="x_arrive" targetRef="t_arrived">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=поступил</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;поступил&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_arrive_t_annul" name="90 дней / ЛС
 истекла" sourceRef="x_arrive" targetRef="t_annul" />
     <bpmn:sequenceFlow id="Flow_t_arrived_t_notify" sourceRef="t_arrived" targetRef="t_notify" />
     <bpmn:sequenceFlow id="Flow_t_notify_x_confirm" sourceRef="t_notify" targetRef="x_confirm" />
     <bpmn:sequenceFlow id="Flow_x_confirm_t_confirm" name="да" sourceRef="x_confirm" targetRef="t_confirm">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=да</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;да&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_confirm_t_cancel" name="нет / таймаут" sourceRef="x_confirm" targetRef="t_cancel" />
     <bpmn:sequenceFlow id="Flow_t_confirm_x_expiry" sourceRef="t_confirm" targetRef="x_expiry" />
     <bpmn:sequenceFlow id="Flow_x_expiry_end_ok" name="ЛС активна" sourceRef="x_expiry" targetRef="end_ok">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=ЛС активна</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;ЛС активна&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_expiry_t_extend" name="&lt; 5 дн до
 истечения" sourceRef="x_expiry" targetRef="t_extend" />

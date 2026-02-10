@@ -12,7 +12,7 @@
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="Жизненный цикл Заказа клиента" processRef="Process_zhiznennyj_cikl_zakaza_klienta" />
   </bpmn:collaboration>
-  <bpmn:process id="Process_zhiznennyj_cikl_zakaza_klienta" name="Жизненный цикл Заказа клиента" isExecutable="true">
+  <bpmn:process id="Process_zhiznennyj_cikl_zakaza_klienta" name="Жизненный цикл Заказа клиента" isExecutable="false">
     <bpmn:laneSet id="LaneSet_1">
       <bpmn:lane id="Lane_manager" name="Менеджер">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
@@ -59,7 +59,7 @@
       <bpmn:outgoing>Flow_x_auto_s_approval</bpmn:outgoing>
       <bpmn:outgoing>Flow_x_auto_s_waiting</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:task id="t_auto" name="Авто-согласование (отклонение &lt; 1 п.п.)">
+    <bpmn:task id="t_auto" name="Авто-согласование (&lt; 1 п.п.)">
       <bpmn:incoming>Flow_x_auto_t_auto</bpmn:incoming>
       <bpmn:outgoing>Flow_t_auto_s_approved</bpmn:outgoing>
     </bpmn:task>
@@ -68,7 +68,7 @@
       <bpmn:incoming>Flow_s_waiting_s_approval</bpmn:incoming>
       <bpmn:outgoing>Flow_s_approval_x_decision</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="s_waiting" name="Ожидает поступления (дефицит)">
+    <bpmn:task id="s_waiting" name="Ожидает поступления">
       <bpmn:incoming>Flow_x_auto_s_waiting</bpmn:incoming>
       <bpmn:outgoing>Flow_s_waiting_s_approval</bpmn:outgoing>
     </bpmn:task>
@@ -88,7 +88,7 @@
       <bpmn:incoming>Flow_x_decision_s_rejected</bpmn:incoming>
       <bpmn:outgoing>Flow_s_rejected_s_draft</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="s_partial" name="Частично согласован (мульти-БЮ)">
+    <bpmn:task id="s_partial" name="Частично согласован">
       <bpmn:incoming>Flow_x_decision_s_partial</bpmn:incoming>
       <bpmn:outgoing>Flow_s_partial_s_approved</bpmn:outgoing>
     </bpmn:task>
@@ -101,7 +101,7 @@
       <bpmn:outgoing>Flow_x_rtu_s_work</bpmn:outgoing>
       <bpmn:outgoing>Flow_x_rtu_s_expired</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:task id="s_work" name="В работе (есть проведенные РТУ)">
+    <bpmn:task id="s_work" name="В работе (есть РТУ)">
       <bpmn:incoming>Flow_x_rtu_s_work</bpmn:incoming>
       <bpmn:outgoing>Flow_s_work_x_done</bpmn:outgoing>
     </bpmn:task>
@@ -130,19 +130,19 @@
     <bpmn:sequenceFlow id="Flow_t_create_s_draft" sourceRef="t_create" targetRef="s_draft" />
     <bpmn:sequenceFlow id="Flow_s_draft_x_auto" sourceRef="s_draft" targetRef="x_auto" />
     <bpmn:sequenceFlow id="Flow_x_auto_t_auto" name="&lt; 1 п.п." sourceRef="x_auto" targetRef="t_auto">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt; 1 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&lt; 1 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_auto_s_approval" name="&gt;= 1 п.п." sourceRef="x_auto" targetRef="s_approval">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&gt;= 1 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&gt;= 1 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_auto_s_waiting" name="нет товара" sourceRef="x_auto" targetRef="s_waiting" />
     <bpmn:sequenceFlow id="Flow_t_auto_s_approved" sourceRef="t_auto" targetRef="s_approved" />
     <bpmn:sequenceFlow id="Flow_s_approval_x_decision" sourceRef="s_approval" targetRef="x_decision" />
     <bpmn:sequenceFlow id="Flow_x_decision_s_approved" name="одобрен" sourceRef="x_decision" targetRef="s_approved">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрен</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;одобрен&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_decision_s_rejected" name="отклонен" sourceRef="x_decision" targetRef="s_rejected">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=отклонен</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;отклонен&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_decision_s_partial" name="частично" sourceRef="x_decision" targetRef="s_partial" />
     <bpmn:sequenceFlow id="Flow_s_rejected_s_draft" sourceRef="s_rejected" targetRef="s_draft" />
@@ -151,15 +151,14 @@
     <bpmn:sequenceFlow id="Flow_s_waiting_s_approval" sourceRef="s_waiting" targetRef="s_approval" />
     <bpmn:sequenceFlow id="Flow_s_approved_x_rtu" sourceRef="s_approved" targetRef="x_rtu" />
     <bpmn:sequenceFlow id="Flow_x_rtu_s_work" name="РТУ проведен" sourceRef="x_rtu" targetRef="s_work">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=РТУ проведен</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;РТУ проведен&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_rtu_s_expired" name="5 дней / &gt; 3 п.п." sourceRef="x_rtu" targetRef="s_expired" />
     <bpmn:sequenceFlow id="Flow_s_work_x_done" sourceRef="s_work" targetRef="x_done" />
     <bpmn:sequenceFlow id="Flow_x_done_s_done" name="все отгружено" sourceRef="x_done" targetRef="s_done">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=все отгружено</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;все отгружено&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_x_done_s_partial_close" name="клиент отменил
-остаток" sourceRef="x_done" targetRef="s_partial_close" />
+    <bpmn:sequenceFlow id="Flow_x_done_s_partial_close" name="клиент отменил" sourceRef="x_done" targetRef="s_partial_close" />
     <bpmn:sequenceFlow id="Flow_s_done_end_ok" sourceRef="s_done" targetRef="end_ok" />
     <bpmn:sequenceFlow id="Flow_s_partial_close_end_ok" sourceRef="s_partial_close" targetRef="end_ok" />
     <bpmn:sequenceFlow id="Flow_s_cancel_end_ok" sourceRef="s_cancel" targetRef="end_ok" />
