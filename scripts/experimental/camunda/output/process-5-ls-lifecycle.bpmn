@@ -13,7 +13,7 @@
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="Жизненный цикл ЛС" processRef="Process_zhiznennyj_cikl_ls" />
   </bpmn:collaboration>
-  <bpmn:process id="Process_zhiznennyj_cikl_ls" name="Жизненный цикл ЛС" isExecutable="true">
+  <bpmn:process id="Process_zhiznennyj_cikl_ls" name="Жизненный цикл ЛС" isExecutable="false">
     <bpmn:laneSet id="LaneSet_1">
       <bpmn:lane id="Lane_manager" name="Менеджер">
         <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
@@ -59,6 +59,9 @@
       <bpmn:outgoing>Flow_x_event_s_cancelled</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:callActivity id="t_order" name="Заказы клиента (см. BPMN 4)">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_zakazy_klienta_sm_bpmn_4" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_x_event_t_order</bpmn:incoming>
       <bpmn:outgoing>Flow_t_order_x_shipped</bpmn:outgoing>
     </bpmn:callActivity>
@@ -118,27 +121,27 @@
     <bpmn:sequenceFlow id="Flow_t_create_s_active" sourceRef="t_create" targetRef="s_active" />
     <bpmn:sequenceFlow id="Flow_s_active_x_event" sourceRef="s_active" targetRef="x_event" />
     <bpmn:sequenceFlow id="Flow_x_event_t_order" name="новый заказ" sourceRef="x_event" targetRef="t_order">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=новый заказ</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;новый заказ&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_event_s_expired" name="срок истек" sourceRef="x_event" targetRef="s_expired">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=срок истек</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;срок истек&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_event_s_cancelled" name="отмена
 (0 отгрузок)" sourceRef="x_event" targetRef="s_cancelled" />
     <bpmn:sequenceFlow id="Flow_t_order_x_shipped" sourceRef="t_order" targetRef="x_shipped" />
     <bpmn:sequenceFlow id="Flow_x_shipped_s_closed" name="все отгружено" sourceRef="x_shipped" targetRef="s_closed">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=все отгружено</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;все отгружено&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_shipped_s_active" name="есть остаток" sourceRef="x_shipped" targetRef="s_active" />
     <bpmn:sequenceFlow id="Flow_s_expired_x_expired" sourceRef="s_expired" targetRef="x_expired" />
     <bpmn:sequenceFlow id="Flow_x_expired_t_extend" name="продлить" sourceRef="x_expired" targetRef="t_extend">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=продлить</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;продлить&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_expired_t_close_manual" name="закрыть" sourceRef="x_expired" targetRef="t_close_manual" />
     <bpmn:sequenceFlow id="Flow_t_extend_s_active" sourceRef="t_extend" targetRef="s_active" />
     <bpmn:sequenceFlow id="Flow_t_close_manual_x_close_approval" sourceRef="t_close_manual" targetRef="x_close_approval" />
     <bpmn:sequenceFlow id="Flow_x_close_approval_t_close_auto" name="&lt; 1 п.п." sourceRef="x_close_approval" targetRef="t_close_auto">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt; 1 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&lt; 1 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_close_approval_t_close_approve" name="&gt;= 1 п.п." sourceRef="x_close_approval" targetRef="t_close_approve" />
     <bpmn:sequenceFlow id="Flow_t_close_auto_s_closed" sourceRef="t_close_auto" targetRef="s_closed" />

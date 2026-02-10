@@ -42,7 +42,7 @@
       <bpmn:incoming>Flow_start_t1</bpmn:incoming>
       <bpmn:outgoing>Flow_t1_t2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="t2" name="Проверка актуальности себестоимости (возраст НПСС &lt; 90 дн)">
+    <bpmn:task id="t2" name="Проверка НПСС (возраст &lt; 90 дн)">
       <bpmn:incoming>Flow_t1_t2</bpmn:incoming>
       <bpmn:outgoing>Flow_t2_x1</bpmn:outgoing>
     </bpmn:task>
@@ -76,6 +76,9 @@
       <bpmn:incoming>Flow_t5_e2</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:callActivity id="t6" name="Согласование (см. BPMN 2)">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_soglasovanie_sm_bpmn_2" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_x2_t6</bpmn:incoming>
       <bpmn:outgoing>Flow_t6_x3</bpmn:outgoing>
     </bpmn:callActivity>
@@ -95,19 +98,19 @@
     <bpmn:sequenceFlow id="Flow_t1_t2" sourceRef="t1" targetRef="t2" />
     <bpmn:sequenceFlow id="Flow_t2_x1" sourceRef="t2" targetRef="x1" />
     <bpmn:sequenceFlow id="Flow_x1_t3" name="устарела" sourceRef="x1" targetRef="t3">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=устарела</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;устарела&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_t3_e1" sourceRef="t3" targetRef="e1" />
     <bpmn:sequenceFlow id="Flow_x1_t4" name="актуальна" sourceRef="x1" targetRef="t4" />
     <bpmn:sequenceFlow id="Flow_t4_x2" sourceRef="t4" targetRef="x2" />
     <bpmn:sequenceFlow id="Flow_x2_t5" name="&gt;= 0%" sourceRef="x2" targetRef="t5">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&gt;= 0%</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&gt;= 0%&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_t5_e2" sourceRef="t5" targetRef="e2" />
     <bpmn:sequenceFlow id="Flow_x2_t6" name="&lt; 0%" sourceRef="x2" targetRef="t6" />
     <bpmn:sequenceFlow id="Flow_t6_x3" sourceRef="t6" targetRef="x3" />
     <bpmn:sequenceFlow id="Flow_x3_e3" name="да" sourceRef="x3" targetRef="e3">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=да</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;да&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x3_e4" name="нет" sourceRef="x3" targetRef="e4" />
   </bpmn:process>

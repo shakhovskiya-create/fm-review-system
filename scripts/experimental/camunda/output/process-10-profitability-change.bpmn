@@ -112,25 +112,25 @@
     <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
     <bpmn:sequenceFlow id="Flow_t1_x_direction" sourceRef="t1" targetRef="x_direction" />
     <bpmn:sequenceFlow id="Flow_x_direction_t_increase" name="повышение" sourceRef="x_direction" targetRef="t_increase">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=повышение</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;повышение&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_direction_x_cause" name="снижение" sourceRef="x_direction" targetRef="x_cause" />
     <bpmn:sequenceFlow id="Flow_x_cause_t_npss" name="пересчет НПСС" sourceRef="x_cause" targetRef="t_npss">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=пересчет НПСС</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;пересчет НПСС&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_cause_x_level" name="ручной запрос" sourceRef="x_cause" targetRef="x_level" />
     <bpmn:sequenceFlow id="Flow_x_level_t_rbu" name="0-3 п.п." sourceRef="x_level" targetRef="t_rbu">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=0-3 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;0-3 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_level_t_dp" name="3.01-10" sourceRef="x_level" targetRef="t_dp">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=3.01-10</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;3.01-10&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_level_t_gd" name="&gt; 10 п.п." sourceRef="x_level" targetRef="t_gd" />
     <bpmn:sequenceFlow id="Flow_t_rbu_x_result" sourceRef="t_rbu" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_t_dp_x_result" sourceRef="t_dp" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_t_gd_x_result" sourceRef="t_gd" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_x_result_t_apply" name="одобрено" sourceRef="x_result" targetRef="t_apply">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрено</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;одобрено&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_result_t_reject" name="отклонено" sourceRef="x_result" targetRef="t_reject" />
     <bpmn:sequenceFlow id="Flow_t_increase_t_apply" sourceRef="t_increase" targetRef="t_apply" />

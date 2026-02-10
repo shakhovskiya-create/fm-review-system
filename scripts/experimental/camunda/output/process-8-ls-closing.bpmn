@@ -116,6 +116,9 @@
       <bpmn:incoming>Flow_x_result_t_rejected</bpmn:incoming>
     </bpmn:task>
     <bpmn:callActivity id="sub_sanctions" name="Расчет санкций (см. BPMN 10)">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_raschet_sankcij_sm_bpmn_10" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_t_closed_sub_sanctions</bpmn:incoming>
       <bpmn:outgoing>Flow_sub_sanctions_end_ok</bpmn:outgoing>
     </bpmn:callActivity>
@@ -128,28 +131,28 @@
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_start_x_trigger" sourceRef="start" targetRef="x_trigger" />
     <bpmn:sequenceFlow id="Flow_x_trigger_t_auto_close" name="остаток = 0" sourceRef="x_trigger" targetRef="t_auto_close">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=остаток = 0</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;остаток = 0&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_trigger_t_manual_close" name="вручную" sourceRef="x_trigger" targetRef="t_manual_close">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=вручную</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;вручную&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_trigger_t_expired" name="срок истек" sourceRef="x_trigger" targetRef="t_expired" />
     <bpmn:sequenceFlow id="Flow_t_auto_close_t_closed" sourceRef="t_auto_close" targetRef="t_closed" />
     <bpmn:sequenceFlow id="Flow_t_manual_close_x_shipments" sourceRef="t_manual_close" targetRef="x_shipments" />
     <bpmn:sequenceFlow id="Flow_t_expired_x_shipments" sourceRef="t_expired" targetRef="x_shipments" />
     <bpmn:sequenceFlow id="Flow_x_shipments_t_cancel" name="0 отгрузок" sourceRef="x_shipments" targetRef="t_cancel">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=0 отгрузок</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;0 отгрузок&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_shipments_t_calc" name="есть отгрузки" sourceRef="x_shipments" targetRef="t_calc" />
     <bpmn:sequenceFlow id="Flow_t_calc_x_deviation" sourceRef="t_calc" targetRef="x_deviation" />
     <bpmn:sequenceFlow id="Flow_x_deviation_t_close_auto" name="&lt; 1 п.п." sourceRef="x_deviation" targetRef="t_close_auto">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=&lt; 1 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;&lt; 1 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_rbu" name="1-15 п.п." sourceRef="x_deviation" targetRef="t_approve_rbu">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=1-15 п.п.</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;1-15 п.п.&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_dp" name="15.01-25" sourceRef="x_deviation" targetRef="t_approve_dp">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=15.01-25</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;15.01-25&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_deviation_t_approve_gd" name="&gt; 25 п.п." sourceRef="x_deviation" targetRef="t_approve_gd" />
     <bpmn:sequenceFlow id="Flow_t_close_auto_t_closed" sourceRef="t_close_auto" targetRef="t_closed" />
@@ -157,7 +160,7 @@
     <bpmn:sequenceFlow id="Flow_t_approve_dp_x_result" sourceRef="t_approve_dp" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_t_approve_gd_x_result" sourceRef="t_approve_gd" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_x_result_t_closed" name="одобрено" sourceRef="x_result" targetRef="t_closed">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=одобрено</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;одобрено&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_result_t_rejected" name="отклонено" sourceRef="x_result" targetRef="t_rejected" />
     <bpmn:sequenceFlow id="Flow_t_closed_sub_sanctions" sourceRef="t_closed" targetRef="sub_sanctions" />

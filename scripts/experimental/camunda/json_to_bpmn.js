@@ -31,6 +31,9 @@ function jsonToBpmn(processJson) {
   // Координаты для DI (автоматическая раскладка LR)
   const positions = calculatePositions(nodes, edges, lanes);
 
+  // Detect loops (Zeebe forbids straight-through loops in executable processes)
+  const hasLoop = detectLoop(nodes, edges);
+
   // Collect error end events for bpmn:error declarations
   const errorNodes = nodes.filter(n => n.type === 'eventEndError');
 
@@ -69,7 +72,7 @@ function jsonToBpmn(processJson) {
   xml += `  <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="${escXml(name)}" processRef="${processId}" />
   </bpmn:collaboration>
-  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="true">
+  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="${hasLoop ? 'false' : 'true'}">
 `;
 
   // Lanes
@@ -115,7 +118,12 @@ function jsonToBpmn(processJson) {
       for (const e of outgoing) xml += `      <bpmn:outgoing>Flow_${e.from}_${e.to}</bpmn:outgoing>\n`;
       xml += `    </bpmn:exclusiveGateway>\n`;
     } else if (bpmnType === 'bpmn:subProcess') {
+      // Zeebe requires zeebe:calledElement for callActivity
+      const calledProcessId = `Process_${sanitizeId(label || node.id)}`;
       xml += `    <bpmn:callActivity id="${node.id}" name="${escXml(label)}">\n`;
+      xml += `      <bpmn:extensionElements>\n`;
+      xml += `        <zeebe:calledElement processId="${calledProcessId}" propagateAllChildVariables="false" />\n`;
+      xml += `      </bpmn:extensionElements>\n`;
       const incoming = edges.filter(e => e.to === node.id);
       const outgoing = edges.filter(e => e.from === node.id);
       for (const e of incoming) xml += `      <bpmn:incoming>Flow_${e.from}_${e.to}</bpmn:incoming>\n`;
@@ -144,9 +152,11 @@ function jsonToBpmn(processJson) {
     const isDefault = defaultFlowIds.has(flowId);
 
     if (isFromGateway && !isDefault && edge.label) {
-      // Non-default flow from gateway - add condition expression
+      // Non-default flow from gateway - add valid FEEL condition expression
+      // Convert label to FEEL: condition = "label_text"
+      const feelExpr = `=condition = "${edge.label.replace(/"/g, '\\"')}"`;
       xml += `    <bpmn:sequenceFlow id="${flowId}"${label} sourceRef="${edge.from}" targetRef="${edge.to}">\n`;
-      xml += `      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=${escXml(edge.label)}</bpmn:conditionExpression>\n`;
+      xml += `      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${escXml(feelExpr)}</bpmn:conditionExpression>\n`;
       xml += `    </bpmn:sequenceFlow>\n`;
     } else {
       xml += `    <bpmn:sequenceFlow id="${flowId}"${label} sourceRef="${edge.from}" targetRef="${edge.to}" />\n`;
@@ -247,6 +257,35 @@ function jsonToBpmn(processJson) {
 </bpmn:definitions>`;
 
   return xml;
+}
+
+/**
+ * Обнаружение циклов в графе (DFS).
+ * Zeebe запрещает straight-through loops в executable-процессах.
+ */
+function detectLoop(nodes, edges) {
+  const adj = {};
+  for (const n of nodes) adj[n.id] = [];
+  for (const e of edges) adj[e.from].push(e.to);
+
+  const visited = new Set();
+  const stack = new Set();
+
+  function dfs(nodeId) {
+    visited.add(nodeId);
+    stack.add(nodeId);
+    for (const next of (adj[nodeId] || [])) {
+      if (stack.has(next)) return true;
+      if (!visited.has(next) && dfs(next)) return true;
+    }
+    stack.delete(nodeId);
+    return false;
+  }
+
+  for (const n of nodes) {
+    if (!visited.has(n.id) && dfs(n.id)) return true;
+  }
+  return false;
 }
 
 /**

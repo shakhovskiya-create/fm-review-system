@@ -52,6 +52,9 @@
       <bpmn:outgoing>Flow_t2_t4</bpmn:outgoing>
     </bpmn:task>
     <bpmn:callActivity id="t3" name="Стандартный процесс (см. BPMN 2)">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Process_standartnyj_process_sm_bpmn_2" propagateAllChildVariables="false" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_x1_t3</bpmn:incoming>
     </bpmn:callActivity>
     <bpmn:task id="t4" name="Отгрузка товара">
@@ -81,14 +84,14 @@
     <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
     <bpmn:sequenceFlow id="Flow_t1_x1" sourceRef="t1" targetRef="x1" />
     <bpmn:sequenceFlow id="Flow_x1_t2" name="да" sourceRef="x1" targetRef="t2">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=да</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;да&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x1_t3" name="нет" sourceRef="x1" targetRef="t3" />
     <bpmn:sequenceFlow id="Flow_t2_t4" sourceRef="t2" targetRef="t4" />
     <bpmn:sequenceFlow id="Flow_t4_t5" sourceRef="t4" targetRef="t5" />
     <bpmn:sequenceFlow id="Flow_t5_x2" sourceRef="t5" targetRef="x2" />
     <bpmn:sequenceFlow id="Flow_x2_e2" name="да" sourceRef="x2" targetRef="e2">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=да</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;да&quot;</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x2_t6" name="нет" sourceRef="x2" targetRef="t6" />
     <bpmn:sequenceFlow id="Flow_t6_e3" sourceRef="t6" targetRef="e3" />
