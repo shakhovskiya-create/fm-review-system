@@ -203,7 +203,34 @@ function jsonToBpmn(processJson) {
       </bpmndi:BPMNShape>\n`;
   }
 
-  // Edge shapes - orthogonal routing (horizontal + vertical segments)
+  // Edge shapes - orthogonal routing with gateway port separation
+  // Pre-calculate gateway outgoing edge indices for port assignment
+  const gwOutEdgeIdx = {};
+  const gwOutEdgeCount = {};
+  for (const node of nodes) {
+    if (node.type === 'gateway') {
+      const outgoing = edges.filter(e => e.from === node.id);
+      gwOutEdgeCount[node.id] = outgoing.length;
+      outgoing.forEach((e, i) => { gwOutEdgeIdx[`${e.from}_${e.to}`] = i; });
+    }
+  }
+
+  // Track used vertical channels to offset parallel edges
+  const usedChannels = [];
+
+  function getChannelX(idealX) {
+    // Find nearest free channel (avoid overlapping vertical segments)
+    let x = idealX;
+    const MIN_CHANNEL_GAP = 20;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const conflict = usedChannels.some(ch => Math.abs(ch - x) < MIN_CHANNEL_GAP);
+      if (!conflict) break;
+      x += MIN_CHANNEL_GAP;
+    }
+    usedChannels.push(x);
+    return x;
+  }
+
   for (const edge of edges) {
     const flowId = `Flow_${edge.from}_${edge.to}`;
     const srcPos = positions.nodes[edge.from];
@@ -220,34 +247,58 @@ function jsonToBpmn(processJson) {
     const tgtW = tgtIsEvent ? 36 : (tgtIsGw ? 50 : 100);
     const tgtH = tgtIsEvent ? 36 : (tgtIsGw ? 50 : 80);
 
-    // Source: exit from right center
-    const x1 = srcPos.x + srcW;
-    const y1 = srcPos.y + srcH / 2;
+    // Determine exit port for gateways with multiple outgoing edges
+    let x1, y1;
+    if (srcIsGw && gwOutEdgeCount[edge.from] > 1) {
+      const idx = gwOutEdgeIdx[`${edge.from}_${edge.to}`] || 0;
+      const count = gwOutEdgeCount[edge.from];
+      const srcCX = srcPos.x + srcW / 2;
+      const srcCY = srcPos.y + srcH / 2;
+      if (count === 2) {
+        // Two exits: top and bottom of diamond
+        if (idx === 0) { x1 = srcCX; y1 = srcPos.y; } // top
+        else { x1 = srcCX; y1 = srcPos.y + srcH; } // bottom
+      } else if (count === 3) {
+        // Three exits: top, right, bottom
+        if (idx === 0) { x1 = srcCX; y1 = srcPos.y; } // top
+        else if (idx === 1) { x1 = srcPos.x + srcW; y1 = srcCY; } // right
+        else { x1 = srcCX; y1 = srcPos.y + srcH; } // bottom
+      } else {
+        // Fallback: right center
+        x1 = srcPos.x + srcW;
+        y1 = srcCY;
+      }
+    } else {
+      // Non-gateway: exit from right center
+      x1 = srcPos.x + srcW;
+      y1 = srcPos.y + srcH / 2;
+    }
+
     // Target: enter from left center
     const x2 = tgtPos.x;
     const y2 = tgtPos.y + tgtH / 2;
 
-    // Orthogonal routing: horizontal → vertical → horizontal
+    // Orthogonal routing
     const waypoints = [];
     waypoints.push({ x: x1, y: y1 });
 
-    if (Math.abs(y1 - y2) < 5) {
-      // Same height - straight horizontal line
+    if (Math.abs(y1 - y2) < 5 && x2 > x1) {
+      // Same height, target to the right - straight horizontal line
       waypoints.push({ x: x2, y: y2 });
     } else if (x2 > x1 + 20) {
-      // Target is to the right - go horizontal to midpoint, then vertical, then horizontal
-      const midX = Math.round((x1 + x2) / 2);
-      waypoints.push({ x: midX, y: y1 });
-      waypoints.push({ x: midX, y: y2 });
+      // Target is to the right - use channel-separated vertical segment
+      const channelX = getChannelX(Math.round((x1 + x2) / 2));
+      waypoints.push({ x: channelX, y: y1 });
+      waypoints.push({ x: channelX, y: y2 });
       waypoints.push({ x: x2, y: y2 });
     } else {
-      // Target is behind or close - route around: right, down/up, left
-      const detourX = Math.max(x1, x2 + tgtW) + 40;
-      const detourY = y1 < y2 ? Math.max(y1, y2) + 60 : Math.min(y1, y2) - 60;
+      // Target is behind or close - route around
+      const detourX = Math.max(x1, x2 + tgtW) + 50;
+      const detourY = y1 < y2 ? Math.max(y1, y2) + 80 : Math.min(y1, y2) - 80;
       waypoints.push({ x: detourX, y: y1 });
       waypoints.push({ x: detourX, y: detourY });
-      waypoints.push({ x: x2 - 30, y: detourY });
-      waypoints.push({ x: x2 - 30, y: y2 });
+      waypoints.push({ x: x2 - 40, y: detourY });
+      waypoints.push({ x: x2 - 40, y: y2 });
       waypoints.push({ x: x2, y: y2 });
     }
 
@@ -391,12 +442,12 @@ function calculatePositions(nodes, edges, lanes) {
     levelGroups[l].sort((a, b) => (laneIndex[a.lane] || 0) - (laneIndex[b.lane] || 0));
   }
 
-  // Размеры
-  const xGap = 180;
-  const yGap = 120;
+  // Размеры (увеличены для предотвращения наложений)
+  const xGap = 240;
+  const yGap = 150;
   const xOffset = 200;
   const yOffset = 80;
-  const laneHeight = 150;
+  const laneHeight = 180;
 
   // Lane Y-offsets
   const laneY = {};
