@@ -1,18 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
-                  id="Definitions_1"
-                  targetNamespace="http://bpmn.io/schema/bpmn"
-                  exporter="fm-review-system"
-                  exporterVersion="1.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="fm-review-system" exporterVersion="2.0">
   <bpmn:error id="Error_end_reject" name="Отклонено" errorCode="END_REJECT" />
-  <bpmn:collaboration id="Collaboration_1">
-    <bpmn:participant id="Participant_1" name="Изменение плановой рентабельности ЛС" processRef="Process_izmenenie_planovoj_rentabel_nosti_ls" />
-  </bpmn:collaboration>
   <bpmn:process id="Process_izmenenie_planovoj_rentabel_nosti_ls" name="Изменение плановой рентабельности ЛС" isExecutable="true">
     <bpmn:laneSet id="LaneSet_1">
       <bpmn:lane id="Lane_manager" name="Менеджер">
@@ -77,7 +65,7 @@
       <bpmn:incoming>Flow_x_level_t_dp</bpmn:incoming>
       <bpmn:outgoing>Flow_t_dp_x_result</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="t_gd" name="Согласование ГД (&gt; 10 п.п.)">
+    <bpmn:task id="t_gd" name="Согласование ГД (&#62; 10 п.п.)">
       <bpmn:incoming>Flow_x_level_t_gd</bpmn:incoming>
       <bpmn:outgoing>Flow_t_gd_x_result</bpmn:outgoing>
     </bpmn:task>
@@ -112,25 +100,25 @@
     <bpmn:sequenceFlow id="Flow_start_t1" sourceRef="start" targetRef="t1" />
     <bpmn:sequenceFlow id="Flow_t1_x_direction" sourceRef="t1" targetRef="x_direction" />
     <bpmn:sequenceFlow id="Flow_x_direction_t_increase" name="повышение" sourceRef="x_direction" targetRef="t_increase">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;повышение&quot;</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = "повышение"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_direction_x_cause" name="снижение" sourceRef="x_direction" targetRef="x_cause" />
     <bpmn:sequenceFlow id="Flow_x_cause_t_npss" name="пересчет НПСС" sourceRef="x_cause" targetRef="t_npss">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;пересчет НПСС&quot;</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = "пересчет НПСС"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_cause_x_level" name="ручной запрос" sourceRef="x_cause" targetRef="x_level" />
     <bpmn:sequenceFlow id="Flow_x_level_t_rbu" name="0-3 п.п." sourceRef="x_level" targetRef="t_rbu">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;0-3 п.п.&quot;</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = "0-3 п.п."</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_level_t_dp" name="3.01-10" sourceRef="x_level" targetRef="t_dp">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;3.01-10&quot;</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = "3.01-10"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_x_level_t_gd" name="&gt; 10 п.п." sourceRef="x_level" targetRef="t_gd" />
+    <bpmn:sequenceFlow id="Flow_x_level_t_gd" name="&#62; 10 п.п." sourceRef="x_level" targetRef="t_gd" />
     <bpmn:sequenceFlow id="Flow_t_rbu_x_result" sourceRef="t_rbu" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_t_dp_x_result" sourceRef="t_dp" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_t_gd_x_result" sourceRef="t_gd" targetRef="x_result" />
     <bpmn:sequenceFlow id="Flow_x_result_t_apply" name="одобрено" sourceRef="x_result" targetRef="t_apply">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = &quot;одобрено&quot;</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=condition = "одобрено"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_x_result_t_reject" name="отклонено" sourceRef="x_result" targetRef="t_reject" />
     <bpmn:sequenceFlow id="Flow_t_increase_t_apply" sourceRef="t_increase" targetRef="t_apply" />
@@ -139,175 +127,144 @@
     <bpmn:sequenceFlow id="Flow_t_annul_end_ok" sourceRef="t_annul" targetRef="end_ok" />
     <bpmn:sequenceFlow id="Flow_t_reject_end_reject" sourceRef="t_reject" targetRef="end_reject" />
   </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
-      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
-        <dc:Bounds x="100" y="60" width="2840" height="1020" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_manager_di" bpmnElement="Lane_manager" isHorizontal="true">
-        <dc:Bounds x="130" y="60" width="2810" height="190" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_system_di" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="130" y="250" width="2810" height="340" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_approver_di" bpmnElement="Lane_approver" isHorizontal="true">
-        <dc:Bounds x="130" y="590" width="2810" height="490" />
-      </bpmndi:BPMNShape>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_izmenenie_planovoj_rentabel_nosti_ls">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_izmenenie_planovoj_rentabel_nosti_ls" bpmnElement="Process_izmenenie_planovoj_rentabel_nosti_ls">
       <bpmndi:BPMNShape id="start_di" bpmnElement="start">
-        <dc:Bounds x="200" y="100" width="36" height="36" />
+        <dc:Bounds x="57" y="52" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t1_di" bpmnElement="t1">
-        <dc:Bounds x="440" y="100" width="100" height="80" />
+        <dc:Bounds x="175" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="x_direction_di" bpmnElement="x_direction">
-        <dc:Bounds x="680" y="365" width="50" height="50" />
+      <bpmndi:BPMNShape id="x_direction_di" bpmnElement="x_direction" isMarkerVisible="true">
+        <dc:Bounds x="350" y="45" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t_increase_di" bpmnElement="t_increase">
-        <dc:Bounds x="920" y="290" width="100" height="80" />
+        <dc:Bounds x="475" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="x_cause_di" bpmnElement="x_cause">
-        <dc:Bounds x="920" y="440" width="50" height="50" />
+      <bpmndi:BPMNShape id="x_cause_di" bpmnElement="x_cause" isMarkerVisible="true">
+        <dc:Bounds x="650" y="45" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t_npss_di" bpmnElement="t_npss">
-        <dc:Bounds x="1160" y="290" width="100" height="80" />
+        <dc:Bounds x="775" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="x_level_di" bpmnElement="x_level">
-        <dc:Bounds x="1160" y="440" width="50" height="50" />
+      <bpmndi:BPMNShape id="x_level_di" bpmnElement="x_level" isMarkerVisible="true">
+        <dc:Bounds x="950" y="45" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t_rbu_di" bpmnElement="t_rbu">
-        <dc:Bounds x="1400" y="630" width="100" height="80" />
+        <dc:Bounds x="1075" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="t_dp_di" bpmnElement="t_dp">
-        <dc:Bounds x="1400" y="780" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="t_gd_di" bpmnElement="t_gd">
-        <dc:Bounds x="1400" y="930" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="x_result_di" bpmnElement="x_result">
-        <dc:Bounds x="1640" y="780" width="50" height="50" />
+      <bpmndi:BPMNShape id="x_result_di" bpmnElement="x_result" isMarkerVisible="true">
+        <dc:Bounds x="1250" y="45" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t_apply_di" bpmnElement="t_apply">
-        <dc:Bounds x="1880" y="290" width="100" height="80" />
+        <dc:Bounds x="1375" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="t_annul_di" bpmnElement="t_annul">
-        <dc:Bounds x="2120" y="290" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="t_reject_di" bpmnElement="t_reject">
-        <dc:Bounds x="1880" y="440" width="100" height="80" />
+        <dc:Bounds x="1525" y="30" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="end_ok_di" bpmnElement="end_ok">
-        <dc:Bounds x="2360" y="365" width="36" height="36" />
+        <dc:Bounds x="1707" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_dp_di" bpmnElement="t_dp">
+        <dc:Bounds x="1075" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_reject_di" bpmnElement="t_reject">
+        <dc:Bounds x="1375" y="170" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="end_reject_di" bpmnElement="end_reject">
-        <dc:Bounds x="2120" y="440" width="36" height="36" />
+        <dc:Bounds x="1557" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_gd_di" bpmnElement="t_gd">
+        <dc:Bounds x="1075" y="310" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_start_t1_di" bpmnElement="Flow_start_t1">
-        <di:waypoint x="236" y="118" />
-        <di:waypoint x="338" y="118" />
-        <di:waypoint x="338" y="140" />
-        <di:waypoint x="440" y="140" />
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t1_x_direction_di" bpmnElement="Flow_t1_x_direction">
-        <di:waypoint x="540" y="140" />
-        <di:waypoint x="610" y="140" />
-        <di:waypoint x="610" y="390" />
-        <di:waypoint x="680" y="390" />
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="350" y="70" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_x_direction_t_increase_di" bpmnElement="Flow_x_direction_t_increase">
-        <di:waypoint x="705" y="365" />
-        <di:waypoint x="813" y="365" />
-        <di:waypoint x="813" y="330" />
-        <di:waypoint x="920" y="330" />
+        <di:waypoint x="400" y="70" />
+        <di:waypoint x="475" y="70" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_x_direction_x_cause_di" bpmnElement="Flow_x_direction_x_cause">
-        <di:waypoint x="705" y="415" />
-        <di:waypoint x="833" y="415" />
-        <di:waypoint x="833" y="465" />
-        <di:waypoint x="920" y="465" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_cause_t_npss_di" bpmnElement="Flow_x_cause_t_npss">
-        <di:waypoint x="945" y="440" />
-        <di:waypoint x="1053" y="440" />
-        <di:waypoint x="1053" y="330" />
-        <di:waypoint x="1160" y="330" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_cause_x_level_di" bpmnElement="Flow_x_cause_x_level">
-        <di:waypoint x="945" y="490" />
-        <di:waypoint x="1073" y="490" />
-        <di:waypoint x="1073" y="465" />
-        <di:waypoint x="1160" y="465" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_level_t_rbu_di" bpmnElement="Flow_x_level_t_rbu">
-        <di:waypoint x="1185" y="440" />
-        <di:waypoint x="1293" y="440" />
-        <di:waypoint x="1293" y="670" />
-        <di:waypoint x="1400" y="670" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_level_t_dp_di" bpmnElement="Flow_x_level_t_dp">
-        <di:waypoint x="1210" y="465" />
-        <di:waypoint x="1325" y="465" />
-        <di:waypoint x="1325" y="820" />
-        <di:waypoint x="1400" y="820" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_level_t_gd_di" bpmnElement="Flow_x_level_t_gd">
-        <di:waypoint x="1185" y="490" />
-        <di:waypoint x="1353" y="490" />
-        <di:waypoint x="1353" y="970" />
-        <di:waypoint x="1400" y="970" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_t_rbu_x_result_di" bpmnElement="Flow_t_rbu_x_result">
-        <di:waypoint x="1500" y="670" />
-        <di:waypoint x="1570" y="670" />
-        <di:waypoint x="1570" y="805" />
-        <di:waypoint x="1640" y="805" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_t_dp_x_result_di" bpmnElement="Flow_t_dp_x_result">
-        <di:waypoint x="1500" y="820" />
-        <di:waypoint x="1590" y="820" />
-        <di:waypoint x="1590" y="805" />
-        <di:waypoint x="1640" y="805" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_t_gd_x_result_di" bpmnElement="Flow_t_gd_x_result">
-        <di:waypoint x="1500" y="970" />
-        <di:waypoint x="1610" y="970" />
-        <di:waypoint x="1610" y="805" />
-        <di:waypoint x="1640" y="805" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_result_t_apply_di" bpmnElement="Flow_x_result_t_apply">
-        <di:waypoint x="1665" y="780" />
-        <di:waypoint x="1773" y="780" />
-        <di:waypoint x="1773" y="330" />
-        <di:waypoint x="1880" y="330" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_x_result_t_reject_di" bpmnElement="Flow_x_result_t_reject">
-        <di:waypoint x="1665" y="830" />
-        <di:waypoint x="1793" y="830" />
-        <di:waypoint x="1793" y="480" />
-        <di:waypoint x="1880" y="480" />
+        <di:waypoint x="375" y="95" />
+        <di:waypoint x="375" y="140" />
+        <di:waypoint x="675" y="140" />
+        <di:waypoint x="675" y="95" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t_increase_t_apply_di" bpmnElement="Flow_t_increase_t_apply">
-        <di:waypoint x="1020" y="330" />
-        <di:waypoint x="1880" y="330" />
+        <di:waypoint x="525" y="110" />
+        <di:waypoint x="525" y="140" />
+        <di:waypoint x="1425" y="140" />
+        <di:waypoint x="1425" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_cause_t_npss_di" bpmnElement="Flow_x_cause_t_npss">
+        <di:waypoint x="700" y="70" />
+        <di:waypoint x="775" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_cause_x_level_di" bpmnElement="Flow_x_cause_x_level">
+        <di:waypoint x="675" y="95" />
+        <di:waypoint x="675" y="140" />
+        <di:waypoint x="975" y="140" />
+        <di:waypoint x="975" y="95" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t_npss_t_apply_di" bpmnElement="Flow_t_npss_t_apply">
-        <di:waypoint x="1260" y="330" />
-        <di:waypoint x="1880" y="330" />
+        <di:waypoint x="825" y="110" />
+        <di:waypoint x="825" y="140" />
+        <di:waypoint x="1425" y="140" />
+        <di:waypoint x="1425" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_level_t_rbu_di" bpmnElement="Flow_x_level_t_rbu">
+        <di:waypoint x="1000" y="70" />
+        <di:waypoint x="1075" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_level_t_dp_di" bpmnElement="Flow_x_level_t_dp">
+        <di:waypoint x="975" y="95" />
+        <di:waypoint x="975" y="210" />
+        <di:waypoint x="1075" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_level_t_gd_di" bpmnElement="Flow_x_level_t_gd">
+        <di:waypoint x="975" y="95" />
+        <di:waypoint x="975" y="350" />
+        <di:waypoint x="1075" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_rbu_x_result_di" bpmnElement="Flow_t_rbu_x_result">
+        <di:waypoint x="1175" y="70" />
+        <di:waypoint x="1250" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_result_t_apply_di" bpmnElement="Flow_x_result_t_apply">
+        <di:waypoint x="1300" y="70" />
+        <di:waypoint x="1375" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_x_result_t_reject_di" bpmnElement="Flow_x_result_t_reject">
+        <di:waypoint x="1275" y="95" />
+        <di:waypoint x="1275" y="210" />
+        <di:waypoint x="1375" y="210" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t_apply_t_annul_di" bpmnElement="Flow_t_apply_t_annul">
-        <di:waypoint x="1980" y="330" />
-        <di:waypoint x="2120" y="330" />
+        <di:waypoint x="1475" y="70" />
+        <di:waypoint x="1525" y="70" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t_annul_end_ok_di" bpmnElement="Flow_t_annul_end_ok">
-        <di:waypoint x="2220" y="330" />
-        <di:waypoint x="2290" y="330" />
-        <di:waypoint x="2290" y="383" />
-        <di:waypoint x="2360" y="383" />
+        <di:waypoint x="1625" y="70" />
+        <di:waypoint x="1707" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_dp_x_result_di" bpmnElement="Flow_t_dp_x_result">
+        <di:waypoint x="1175" y="210" />
+        <di:waypoint x="1275" y="210" />
+        <di:waypoint x="1275" y="95" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_t_reject_end_reject_di" bpmnElement="Flow_t_reject_end_reject">
-        <di:waypoint x="1980" y="480" />
-        <di:waypoint x="2050" y="480" />
-        <di:waypoint x="2050" y="458" />
-        <di:waypoint x="2120" y="458" />
+        <di:waypoint x="1475" y="210" />
+        <di:waypoint x="1557" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_t_gd_x_result_di" bpmnElement="Flow_t_gd_x_result">
+        <di:waypoint x="1175" y="350" />
+        <di:waypoint x="1275" y="350" />
+        <di:waypoint x="1275" y="95" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

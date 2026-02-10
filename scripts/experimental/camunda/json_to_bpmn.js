@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
  * Конвертер JSON (наш формат) → BPMN 2.0 XML (стандартный).
+ * Layout генерируется автоматически через bpmn-auto-layout.
+ * Fallback: собственный BFS-layout для сложных графов, где auto-layout падает.
  *
  * Использование:
  *   node json_to_bpmn.js <input.json> [output.bpmn]
@@ -22,10 +24,14 @@ const TYPE_MAP = {
 };
 
 /**
- * Генерирует BPMN 2.0 XML из нашего JSON-формата.
+ * Генерирует BPMN 2.0 XML (без DI) из нашего JSON-формата.
+ * DI-секция добавляется позже через bpmn-auto-layout.
+ * Возвращает { xml, processId, nodes, edges, lanes } — nodes/edges после обработки (loops broken, orphans removed).
  */
-function jsonToBpmn(processJson) {
+function jsonToBpmnSemantic(processJson) {
   let { name, lanes, nodes, edges } = processJson;
+  nodes = nodes.map(n => ({...n}));
+  edges = edges.map(e => ({...e}));
   const processId = `Process_${sanitizeId(name)}`;
 
   // Break loops: replace back-edges with end events + link annotations
@@ -37,19 +43,51 @@ function jsonToBpmn(processJson) {
     edges = result.edges;
   }
 
-  // Координаты для DI (автоматическая раскладка LR)
-  const positions = calculatePositions(nodes, edges, lanes);
+  // Fix orphan nodes: non-start nodes with no incoming edges
+  // bpmn-auto-layout crashes on these. Connect them via a gateway from start.
+  const startNodes = nodes.filter(n => n.type === 'eventStart');
+  const orphans = nodes.filter(n => {
+    if (n.type === 'eventStart') return false;
+    return !edges.some(e => e.to === n.id);
+  });
+  if (orphans.length > 0 && startNodes.length > 0) {
+    // Find the first task connected to start
+    const startEdge = edges.find(e => e.from === startNodes[0].id);
+    const firstTask = startEdge ? startEdge.to : null;
+    if (firstTask) {
+      // Connect orphans: start → firstTask is already there
+      // Add orphans as alternative paths from a gateway after start
+      // Simplest: just remove orphan nodes and their edges (they're unreachable anyway)
+      const orphanIds = new Set(orphans.map(n => n.id));
+      // Also remove any nodes only reachable from orphans
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const e of edges) {
+          if (orphanIds.has(e.from) && !orphanIds.has(e.to)) {
+            // Check if target has other incoming edges
+            const otherIncoming = edges.filter(e2 => e2.to === e.to && !orphanIds.has(e2.from));
+            if (otherIncoming.length === 0) {
+              orphanIds.add(e.to);
+              changed = true;
+            }
+          }
+        }
+      }
+      nodes = nodes.filter(n => !orphanIds.has(n.id));
+      edges = edges.filter(e => !orphanIds.has(e.from) && !orphanIds.has(e.to));
+    }
+  }
 
   // Collect error end events for bpmn:error declarations
   const errorNodes = nodes.filter(n => n.type === 'eventEndError');
 
-  // Build gateway default flow map (first outgoing = default)
+  // Build gateway default flow map (last outgoing = default)
   const gwDefaultFlow = {};
   for (const node of nodes) {
     if (node.type === 'gateway') {
       const outgoing = edges.filter(e => e.from === node.id);
       if (outgoing.length > 1) {
-        // Last outgoing edge = default (no condition needed)
         gwDefaultFlow[node.id] = `Flow_${outgoing[outgoing.length - 1].from}_${outgoing[outgoing.length - 1].to}`;
       }
     }
@@ -65,7 +103,7 @@ function jsonToBpmn(processJson) {
                   id="Definitions_1"
                   targetNamespace="http://bpmn.io/schema/bpmn"
                   exporter="fm-review-system"
-                  exporterVersion="1.0">
+                  exporterVersion="2.0">
 `;
 
   // Declare errors
@@ -75,10 +113,7 @@ function jsonToBpmn(processJson) {
     xml += `  <bpmn:error id="${errorId}" name="${escXml((en.label || en.id).replace(/\n/g, ' '))}" errorCode="${errorCode}" />\n`;
   }
 
-  xml += `  <bpmn:collaboration id="Collaboration_1">
-    <bpmn:participant id="Participant_1" name="${escXml(name)}" processRef="${processId}" />
-  </bpmn:collaboration>
-  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="true">
+  xml += `  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="true">
 `;
 
   // Lanes
@@ -102,7 +137,6 @@ function jsonToBpmn(processJson) {
 
     if (bpmnType === 'bpmn:startEvent') {
       xml += `    <bpmn:startEvent id="${node.id}" name="${escXml(label)}">\n`;
-      // Outgoing flows
       const outgoing = edges.filter(e => e.from === node.id);
       for (const e of outgoing) xml += `      <bpmn:outgoing>Flow_${e.from}_${e.to}</bpmn:outgoing>\n`;
       xml += `    </bpmn:startEvent>\n`;
@@ -124,7 +158,6 @@ function jsonToBpmn(processJson) {
       for (const e of outgoing) xml += `      <bpmn:outgoing>Flow_${e.from}_${e.to}</bpmn:outgoing>\n`;
       xml += `    </bpmn:exclusiveGateway>\n`;
     } else if (bpmnType === 'bpmn:subProcess') {
-      // Zeebe requires zeebe:calledElement for callActivity
       const calledProcessId = `Process_${sanitizeId(label || node.id)}`;
       xml += `    <bpmn:callActivity id="${node.id}" name="${escXml(label)}">\n`;
       xml += `      <bpmn:extensionElements>\n`;
@@ -136,7 +169,6 @@ function jsonToBpmn(processJson) {
       for (const e of outgoing) xml += `      <bpmn:outgoing>Flow_${e.from}_${e.to}</bpmn:outgoing>\n`;
       xml += `    </bpmn:callActivity>\n`;
     } else {
-      // task / taskError
       xml += `    <bpmn:task id="${node.id}" name="${escXml(label)}">\n`;
       const incoming = edges.filter(e => e.to === node.id);
       const outgoing = edges.filter(e => e.from === node.id);
@@ -146,8 +178,7 @@ function jsonToBpmn(processJson) {
     }
   }
 
-  // Sequence Flows (with conditions for gateway outputs)
-  // Collect all default flow IDs for quick lookup
+  // Sequence Flows
   const defaultFlowIds = new Set(Object.values(gwDefaultFlow));
 
   for (const edge of edges) {
@@ -158,8 +189,6 @@ function jsonToBpmn(processJson) {
     const isDefault = defaultFlowIds.has(flowId);
 
     if (isFromGateway && !isDefault && edge.label) {
-      // Non-default flow from gateway - add valid FEEL condition expression
-      // Convert label to FEEL: condition = "label_text"
       const feelExpr = `=condition = "${edge.label.replace(/"/g, '\\"')}"`;
       xml += `    <bpmn:sequenceFlow id="${flowId}"${label} sourceRef="${edge.from}" targetRef="${edge.to}">\n`;
       xml += `      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${escXml(feelExpr)}</bpmn:conditionExpression>\n`;
@@ -169,156 +198,14 @@ function jsonToBpmn(processJson) {
     }
   }
 
-  xml += `  </bpmn:process>\n`;
-
-  // BPMN DI (визуальная информация)
-  xml += `  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
-      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
-        <dc:Bounds x="100" y="60" width="${positions.totalWidth}" height="${positions.totalHeight}" />
-      </bpmndi:BPMNShape>\n`;
-
-  // Lane shapes
-  if (lanes) {
-    let laneY = 60;
-    for (const lane of lanes) {
-      const laneHeight = positions.laneHeights[lane.id] || 150;
-      xml += `      <bpmndi:BPMNShape id="Lane_${lane.id}_di" bpmnElement="Lane_${lane.id}" isHorizontal="true">
-        <dc:Bounds x="130" y="${laneY}" width="${positions.totalWidth - 30}" height="${laneHeight}" />
-      </bpmndi:BPMNShape>\n`;
-      laneY += laneHeight;
-    }
-  }
-
-  // Node shapes
-  for (const node of nodes) {
-    const pos = positions.nodes[node.id];
-    const isEvent = node.type.startsWith('event');
-    const isGateway = node.type === 'gateway';
-    const w = isEvent ? 36 : (isGateway ? 50 : 100);
-    const h = isEvent ? 36 : (isGateway ? 50 : 80);
-
-    xml += `      <bpmndi:BPMNShape id="${node.id}_di" bpmnElement="${node.id}">
-        <dc:Bounds x="${pos.x}" y="${pos.y}" width="${w}" height="${h}" />
-      </bpmndi:BPMNShape>\n`;
-  }
-
-  // Edge shapes - orthogonal routing with gateway port separation
-  // Pre-calculate gateway outgoing edge indices for port assignment
-  const gwOutEdgeIdx = {};
-  const gwOutEdgeCount = {};
-  for (const node of nodes) {
-    if (node.type === 'gateway') {
-      const outgoing = edges.filter(e => e.from === node.id);
-      gwOutEdgeCount[node.id] = outgoing.length;
-      outgoing.forEach((e, i) => { gwOutEdgeIdx[`${e.from}_${e.to}`] = i; });
-    }
-  }
-
-  // Track used vertical channels to offset parallel edges
-  const usedChannels = [];
-
-  function getChannelX(idealX) {
-    // Find nearest free channel (avoid overlapping vertical segments)
-    let x = idealX;
-    const MIN_CHANNEL_GAP = 20;
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const conflict = usedChannels.some(ch => Math.abs(ch - x) < MIN_CHANNEL_GAP);
-      if (!conflict) break;
-      x += MIN_CHANNEL_GAP;
-    }
-    usedChannels.push(x);
-    return x;
-  }
-
-  for (const edge of edges) {
-    const flowId = `Flow_${edge.from}_${edge.to}`;
-    const srcPos = positions.nodes[edge.from];
-    const tgtPos = positions.nodes[edge.to];
-    const srcNode = nodes.find(n => n.id === edge.from);
-    const tgtNode = nodes.find(n => n.id === edge.to);
-    const srcIsEvent = srcNode && srcNode.type.startsWith('event');
-    const srcIsGw = srcNode && srcNode.type === 'gateway';
-    const tgtIsEvent = tgtNode && tgtNode.type.startsWith('event');
-    const tgtIsGw = tgtNode && tgtNode.type === 'gateway';
-
-    const srcW = srcIsEvent ? 36 : (srcIsGw ? 50 : 100);
-    const srcH = srcIsEvent ? 36 : (srcIsGw ? 50 : 80);
-    const tgtW = tgtIsEvent ? 36 : (tgtIsGw ? 50 : 100);
-    const tgtH = tgtIsEvent ? 36 : (tgtIsGw ? 50 : 80);
-
-    // Determine exit port for gateways with multiple outgoing edges
-    let x1, y1;
-    if (srcIsGw && gwOutEdgeCount[edge.from] > 1) {
-      const idx = gwOutEdgeIdx[`${edge.from}_${edge.to}`] || 0;
-      const count = gwOutEdgeCount[edge.from];
-      const srcCX = srcPos.x + srcW / 2;
-      const srcCY = srcPos.y + srcH / 2;
-      if (count === 2) {
-        // Two exits: top and bottom of diamond
-        if (idx === 0) { x1 = srcCX; y1 = srcPos.y; } // top
-        else { x1 = srcCX; y1 = srcPos.y + srcH; } // bottom
-      } else if (count === 3) {
-        // Three exits: top, right, bottom
-        if (idx === 0) { x1 = srcCX; y1 = srcPos.y; } // top
-        else if (idx === 1) { x1 = srcPos.x + srcW; y1 = srcCY; } // right
-        else { x1 = srcCX; y1 = srcPos.y + srcH; } // bottom
-      } else {
-        // Fallback: right center
-        x1 = srcPos.x + srcW;
-        y1 = srcCY;
-      }
-    } else {
-      // Non-gateway: exit from right center
-      x1 = srcPos.x + srcW;
-      y1 = srcPos.y + srcH / 2;
-    }
-
-    // Target: enter from left center
-    const x2 = tgtPos.x;
-    const y2 = tgtPos.y + tgtH / 2;
-
-    // Orthogonal routing
-    const waypoints = [];
-    waypoints.push({ x: x1, y: y1 });
-
-    if (Math.abs(y1 - y2) < 5 && x2 > x1) {
-      // Same height, target to the right - straight horizontal line
-      waypoints.push({ x: x2, y: y2 });
-    } else if (x2 > x1 + 20) {
-      // Target is to the right - use channel-separated vertical segment
-      const channelX = getChannelX(Math.round((x1 + x2) / 2));
-      waypoints.push({ x: channelX, y: y1 });
-      waypoints.push({ x: channelX, y: y2 });
-      waypoints.push({ x: x2, y: y2 });
-    } else {
-      // Target is behind or close - route around
-      const detourX = Math.max(x1, x2 + tgtW) + 50;
-      const detourY = y1 < y2 ? Math.max(y1, y2) + 80 : Math.min(y1, y2) - 80;
-      waypoints.push({ x: detourX, y: y1 });
-      waypoints.push({ x: detourX, y: detourY });
-      waypoints.push({ x: x2 - 40, y: detourY });
-      waypoints.push({ x: x2 - 40, y: y2 });
-      waypoints.push({ x: x2, y: y2 });
-    }
-
-    xml += `      <bpmndi:BPMNEdge id="${flowId}_di" bpmnElement="${flowId}">\n`;
-    for (const wp of waypoints) {
-      xml += `        <di:waypoint x="${wp.x}" y="${wp.y}" />\n`;
-    }
-    xml += `      </bpmndi:BPMNEdge>\n`;
-  }
-
-  xml += `    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
+  xml += `  </bpmn:process>
 </bpmn:definitions>`;
 
-  return xml;
+  return { xml, processId, nodes, edges, lanes: lanes || [] };
 }
 
 /**
- * Обнаружение обратных рёбер (back-edges) в графе через DFS.
- * Возвращает массив back-edge индексов в массиве edges.
+ * Обнаружение обратных ребер (back-edges) в графе через DFS.
  */
 function detectBackEdges(nodes, edges) {
   const adj = {};
@@ -352,8 +239,6 @@ function detectBackEdges(nodes, edges) {
 
 /**
  * Разрыв циклов: замена back-edges на end event-ы с аннотацией.
- * Каждое обратное ребро (from → target) заменяется на (from → end_loop_N),
- * где end_loop_N - новый end event с меткой "→ [target label]".
  */
 function breakLoops(nodes, edges, lanes, backEdgeIndices) {
   const newNodes = [...nodes];
@@ -366,7 +251,6 @@ function breakLoops(nodes, edges, lanes, backEdgeIndices) {
     const sourceNode = nodes.find(n => n.id === edge.from);
     const targetLabel = targetNode ? (targetNode.label || targetNode.id).replace(/\n/g, ' ') : edge.to;
 
-    // Create end event to replace the back-edge target
     const endId = `end_loop_${i}`;
     const endLabel = `>> ${targetLabel}`;
     const endNode = {
@@ -376,135 +260,13 @@ function breakLoops(nodes, edges, lanes, backEdgeIndices) {
       lane: sourceNode ? sourceNode.lane : (targetNode ? targetNode.lane : (lanes[0] && lanes[0].id))
     };
     newNodes.push(endNode);
-
-    // Redirect the edge to the new end event
     newEdges[idx] = { ...edge, to: endId };
   }
 
   return { nodes: newNodes, edges: newEdges };
 }
 
-/**
- * Простая автоматическая раскладка LR (слева направо).
- * Группировка по уровням через BFS.
- */
-function calculatePositions(nodes, edges, lanes) {
-  // BFS для определения уровней
-  const adjacency = {};
-  const inDegree = {};
-  for (const n of nodes) {
-    adjacency[n.id] = [];
-    inDegree[n.id] = 0;
-  }
-  for (const e of edges) {
-    adjacency[e.from].push(e.to);
-    inDegree[e.to] = (inDegree[e.to] || 0) + 1;
-  }
-
-  // Topological sort (Kahn's algorithm) для определения уровней
-  const level = {};
-  const queue = [];
-  for (const n of nodes) {
-    if (inDegree[n.id] === 0) {
-      queue.push(n.id);
-      level[n.id] = 0;
-    }
-  }
-
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    for (const next of adjacency[curr]) {
-      level[next] = Math.max(level[next] || 0, (level[curr] || 0) + 1);
-      inDegree[next]--;
-      if (inDegree[next] === 0) queue.push(next);
-    }
-  }
-
-  // Назначить уровни нодам без входящих (orphans)
-  for (const n of nodes) {
-    if (level[n.id] === undefined) level[n.id] = 0;
-  }
-
-  // Группируем по уровням
-  const levelGroups = {};
-  for (const n of nodes) {
-    const l = level[n.id];
-    if (!levelGroups[l]) levelGroups[l] = [];
-    levelGroups[l].push(n);
-  }
-
-  // Lane index
-  const laneIndex = {};
-  (lanes || []).forEach((l, i) => { laneIndex[l.id] = i; });
-
-  // Сортировка внутри уровня по lane
-  for (const l in levelGroups) {
-    levelGroups[l].sort((a, b) => (laneIndex[a.lane] || 0) - (laneIndex[b.lane] || 0));
-  }
-
-  // Размеры (увеличены для предотвращения наложений)
-  const xGap = 240;
-  const yGap = 150;
-  const xOffset = 200;
-  const yOffset = 80;
-  const laneHeight = 180;
-
-  // Lane Y-offsets
-  const laneY = {};
-  const laneHeights = {};
-  let currentY = 60;
-  for (const lane of (lanes || [])) {
-    laneY[lane.id] = currentY;
-    // Считаем сколько нод в этой lane (max nodes per level)
-    let maxPerLevel = 1;
-    for (const l in levelGroups) {
-      const count = levelGroups[l].filter(n => n.lane === lane.id).length;
-      if (count > maxPerLevel) maxPerLevel = count;
-    }
-    const h = Math.max(laneHeight, maxPerLevel * yGap + 40);
-    laneHeights[lane.id] = h;
-    currentY += h;
-  }
-
-  // Позиции
-  const positions = {};
-  const maxLevel = Math.max(...Object.keys(levelGroups).map(Number));
-
-  // Для каждого уровня: трекер позиции Y внутри lane
-  const laneYCounter = {};
-
-  for (let l = 0; l <= maxLevel; l++) {
-    const group = levelGroups[l] || [];
-    // Сбрасываем per-lane counter
-    for (const lane of (lanes || [])) {
-      laneYCounter[lane.id] = 0;
-    }
-
-    for (const node of group) {
-      const x = xOffset + l * xGap;
-      const baseLaneY = laneY[node.lane] || yOffset;
-      const laneH = laneHeights[node.lane] || laneHeight;
-      const nodeIdx = laneYCounter[node.lane] || 0;
-
-      // Центрируем ноды внутри lane
-      const nodesInLane = group.filter(n => n.lane === node.lane).length;
-      const totalNodeHeight = nodesInLane * yGap;
-      const startY = baseLaneY + (laneH - totalNodeHeight) / 2 + 20;
-
-      const y = startY + nodeIdx * yGap;
-      positions[node.id] = { x, y };
-      laneYCounter[node.lane] = nodeIdx + 1;
-    }
-  }
-
-  const totalWidth = (maxLevel + 2) * xGap + xOffset;
-  const totalHeight = currentY - 60;
-
-  return { nodes: positions, laneHeights, totalWidth, totalHeight };
-}
-
 function sanitizeId(name) {
-  // BPMN ID must be NCName (ASCII only)
   const map = {
     'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ж':'zh','з':'z',
     'и':'i','й':'j','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p',
@@ -529,9 +291,161 @@ function escXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+/**
+ * Fallback DI generator: BFS-based layout for processes where bpmn-auto-layout crashes.
+ * Generates BPMN DI section with proper coordinates using topological ordering.
+ */
+function addFallbackDI(semanticXml, processId, nodes, edges) {
+  const TASK_W = 100, TASK_H = 80;
+  const EVENT_SIZE = 36;
+  const GW_SIZE = 50;
+  const X_GAP = 180;  // horizontal gap between columns
+  const Y_GAP = 120;  // vertical gap between rows
+
+  // BFS to assign columns (longest path from start for better visual)
+  const adj = {};
+  for (const n of nodes) adj[n.id] = [];
+  for (const e of edges) {
+    if (adj[e.from]) adj[e.from].push(e.to);
+  }
+
+  // Compute longest path from start to each node (for column assignment)
+  const depth = {};
+  for (const n of nodes) depth[n.id] = 0;
+
+  // Topological sort via Kahn's algorithm
+  const inDegree = {};
+  for (const n of nodes) inDegree[n.id] = 0;
+  for (const e of edges) inDegree[e.to] = (inDegree[e.to] || 0) + 1;
+
+  const queue = nodes.filter(n => inDegree[n.id] === 0).map(n => n.id);
+  const topoOrder = [];
+
+  while (queue.length > 0) {
+    const id = queue.shift();
+    topoOrder.push(id);
+    for (const next of (adj[id] || [])) {
+      depth[next] = Math.max(depth[next], depth[id] + 1);
+      inDegree[next]--;
+      if (inDegree[next] === 0) queue.push(next);
+    }
+  }
+
+  // Handle nodes not reached by topo sort (disconnected)
+  for (const n of nodes) {
+    if (!topoOrder.includes(n.id)) {
+      topoOrder.push(n.id);
+    }
+  }
+
+  // Group nodes by column
+  const columns = {};
+  for (const n of nodes) {
+    const col = depth[n.id];
+    if (!columns[col]) columns[col] = [];
+    columns[col].push(n);
+  }
+
+  // Calculate positions
+  const pos = {};
+  const maxCol = Math.max(...Object.keys(columns).map(Number));
+
+  for (let col = 0; col <= maxCol; col++) {
+    const colNodes = columns[col] || [];
+    for (let row = 0; row < colNodes.length; row++) {
+      const n = colNodes[row];
+      const isEvent = n.type === 'eventStart' || n.type === 'eventEnd' || n.type === 'eventEndError';
+      const isGw = n.type === 'gateway';
+      const w = isEvent ? EVENT_SIZE : (isGw ? GW_SIZE : TASK_W);
+      const h = isEvent ? EVENT_SIZE : (isGw ? GW_SIZE : TASK_H);
+
+      const x = 80 + col * X_GAP;
+      const y = 60 + row * Y_GAP;
+
+      pos[n.id] = { x, y, w, h };
+    }
+  }
+
+  // Generate DI XML
+  let di = `  <bpmndi:BPMNDiagram id="BPMNDiagram_${processId}">
+    <bpmndi:BPMNPlane id="BPMNPlane_${processId}" bpmnElement="${processId}">
+`;
+
+  // Shape DI
+  for (const n of nodes) {
+    const p = pos[n.id];
+    if (!p) continue;
+    const isGw = n.type === 'gateway';
+    di += `      <bpmndi:BPMNShape id="${n.id}_di" bpmnElement="${n.id}"${isGw ? ' isMarkerVisible="true"' : ''}>
+        <dc:Bounds x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" />
+      </bpmndi:BPMNShape>
+`;
+  }
+
+  // Edge DI
+  for (const e of edges) {
+    const flowId = `Flow_${e.from}_${e.to}`;
+    const src = pos[e.from];
+    const tgt = pos[e.to];
+    if (!src || !tgt) continue;
+
+    // Calculate connection points (right side of source, left side of target)
+    const sx = src.x + src.w;
+    const sy = src.y + src.h / 2;
+    const tx = tgt.x;
+    const ty = tgt.y + tgt.h / 2;
+
+    if (Math.abs(sx - tx) < 10 && Math.abs(sy - ty) < 10) {
+      // Same position, add offset
+      di += `      <bpmndi:BPMNEdge id="${flowId}_di" bpmnElement="${flowId}">
+        <di:waypoint x="${sx}" y="${sy}" />
+        <di:waypoint x="${tx + 10}" y="${ty}" />
+      </bpmndi:BPMNEdge>
+`;
+    } else if (tx <= sx) {
+      // Backward/same-column edge: route around via bottom
+      const midY = Math.max(sy, ty) + Y_GAP / 2;
+      di += `      <bpmndi:BPMNEdge id="${flowId}_di" bpmnElement="${flowId}">
+        <di:waypoint x="${sx}" y="${sy}" />
+        <di:waypoint x="${sx + 30}" y="${sy}" />
+        <di:waypoint x="${sx + 30}" y="${midY}" />
+        <di:waypoint x="${tx - 30}" y="${midY}" />
+        <di:waypoint x="${tx - 30}" y="${ty}" />
+        <di:waypoint x="${tx}" y="${ty}" />
+      </bpmndi:BPMNEdge>
+`;
+    } else if (Math.abs(sy - ty) < 5) {
+      // Straight horizontal
+      di += `      <bpmndi:BPMNEdge id="${flowId}_di" bpmnElement="${flowId}">
+        <di:waypoint x="${sx}" y="${sy}" />
+        <di:waypoint x="${tx}" y="${ty}" />
+      </bpmndi:BPMNEdge>
+`;
+    } else {
+      // L-shaped: go right, then up/down
+      const midX = (sx + tx) / 2;
+      di += `      <bpmndi:BPMNEdge id="${flowId}_di" bpmnElement="${flowId}">
+        <di:waypoint x="${sx}" y="${sy}" />
+        <di:waypoint x="${midX}" y="${sy}" />
+        <di:waypoint x="${midX}" y="${ty}" />
+        <di:waypoint x="${tx}" y="${ty}" />
+      </bpmndi:BPMNEdge>
+`;
+    }
+  }
+
+  di += `    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>`;
+
+  // Insert DI before closing </bpmn:definitions>
+  return semanticXml.replace('</bpmn:definitions>', di + '\n</bpmn:definitions>');
+}
+
 // === CLI ===
 
-function main() {
+async function main() {
+  const { layoutProcess } = await import('bpmn-auto-layout');
+
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
@@ -547,10 +461,10 @@ function main() {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   if (args[0] === '--all') {
-    // Конвертировать все 13 процессов
     const files = fs.readdirSync(processesDir).filter(f => f.endsWith('.json')).sort();
-    console.log(`Конвертация ${files.length} процессов JSON -> BPMN 2.0 XML...\n`);
+    console.log(`Конвертация ${files.length} процессов JSON -> BPMN 2.0 XML (auto-layout)...\n`);
 
+    let ok = 0, fail = 0;
     for (const file of files) {
       const inputPath = path.join(processesDir, file);
       const baseName = path.basename(file, '.json');
@@ -558,27 +472,43 @@ function main() {
 
       try {
         const json = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
-        const bpmnXml = jsonToBpmn(json);
-        fs.writeFileSync(outputPath, bpmnXml, 'utf-8');
+        const { xml: semanticXml, processId, nodes, edges } = jsonToBpmnSemantic(json);
+        let finalXml;
+        try {
+          finalXml = await layoutProcess(semanticXml);
+        } catch (layoutErr) {
+          // Fallback: own BFS-based DI layout
+          console.warn(`  [WARN] auto-layout failed for ${file}, using BFS fallback`);
+          finalXml = addFallbackDI(semanticXml, processId, nodes, edges);
+        }
+        fs.writeFileSync(outputPath, finalXml, 'utf-8');
         console.log(`  [OK] ${file} -> ${baseName}.bpmn (${json.name})`);
+        ok++;
       } catch (e) {
         console.error(`  [ОШИБКА] ${file}: ${e.message}`);
+        fail++;
       }
     }
-    console.log(`\nГотово. BPMN файлы: ${outputDir}/`);
+    console.log(`\nГотово: ${ok} OK, ${fail} ошибок. BPMN файлы: ${outputDir}/`);
   } else {
-    // Один файл
     const inputPath = path.resolve(args[0]);
     const baseName = path.basename(inputPath, '.json');
     const outputPath = args[1] || path.join(outputDir, `${baseName}.bpmn`);
 
     const json = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
-    const bpmnXml = jsonToBpmn(json);
-    fs.writeFileSync(outputPath, bpmnXml, 'utf-8');
+    const { xml: semanticXml, processId, nodes, edges } = jsonToBpmnSemantic(json);
+    let layoutedXml;
+    try {
+      layoutedXml = await layoutProcess(semanticXml);
+    } catch (layoutErr) {
+      console.warn(`  [WARN] auto-layout failed, using BFS fallback`);
+      layoutedXml = addFallbackDI(semanticXml, processId, nodes, edges);
+    }
+    fs.writeFileSync(outputPath, layoutedXml, 'utf-8');
     console.log(`[OK] ${inputPath} -> ${outputPath}`);
     console.log(`  Процесс: ${json.name}`);
     console.log(`  Ноды: ${json.nodes.length}, Ребра: ${json.edges.length}, Дорожки: ${json.lanes.length}`);
   }
 }
 
-main();
+main().catch(e => { console.error(e); process.exit(1); });
