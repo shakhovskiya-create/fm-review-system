@@ -25,14 +25,20 @@ const TYPE_MAP = {
  * Генерирует BPMN 2.0 XML из нашего JSON-формата.
  */
 function jsonToBpmn(processJson) {
-  const { name, lanes, nodes, edges } = processJson;
+  let { name, lanes, nodes, edges } = processJson;
   const processId = `Process_${sanitizeId(name)}`;
+
+  // Break loops: replace back-edges with end events + link annotations
+  // Zeebe forbids straight-through loops in executable processes
+  const backEdges = detectBackEdges(nodes, edges);
+  if (backEdges.length > 0) {
+    const result = breakLoops(nodes, edges, lanes, backEdges);
+    nodes = result.nodes;
+    edges = result.edges;
+  }
 
   // Координаты для DI (автоматическая раскладка LR)
   const positions = calculatePositions(nodes, edges, lanes);
-
-  // Detect loops (Zeebe forbids straight-through loops in executable processes)
-  const hasLoop = detectLoop(nodes, edges);
 
   // Collect error end events for bpmn:error declarations
   const errorNodes = nodes.filter(n => n.type === 'eventEndError');
@@ -72,7 +78,7 @@ function jsonToBpmn(processJson) {
   xml += `  <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Participant_1" name="${escXml(name)}" processRef="${processId}" />
   </bpmn:collaboration>
-  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="${hasLoop ? 'false' : 'true'}">
+  <bpmn:process id="${processId}" name="${escXml(name)}" isExecutable="true">
 `;
 
   // Lanes
@@ -260,32 +266,71 @@ function jsonToBpmn(processJson) {
 }
 
 /**
- * Обнаружение циклов в графе (DFS).
- * Zeebe запрещает straight-through loops в executable-процессах.
+ * Обнаружение обратных рёбер (back-edges) в графе через DFS.
+ * Возвращает массив back-edge индексов в массиве edges.
  */
-function detectLoop(nodes, edges) {
+function detectBackEdges(nodes, edges) {
   const adj = {};
   for (const n of nodes) adj[n.id] = [];
-  for (const e of edges) adj[e.from].push(e.to);
+  for (let i = 0; i < edges.length; i++) {
+    adj[edges[i].from].push({ to: edges[i].to, idx: i });
+  }
 
   const visited = new Set();
   const stack = new Set();
+  const backEdgeIndices = [];
 
   function dfs(nodeId) {
     visited.add(nodeId);
     stack.add(nodeId);
-    for (const next of (adj[nodeId] || [])) {
-      if (stack.has(next)) return true;
-      if (!visited.has(next) && dfs(next)) return true;
+    for (const { to, idx } of (adj[nodeId] || [])) {
+      if (stack.has(to)) {
+        backEdgeIndices.push(idx);
+      } else if (!visited.has(to)) {
+        dfs(to);
+      }
     }
     stack.delete(nodeId);
-    return false;
   }
 
   for (const n of nodes) {
-    if (!visited.has(n.id) && dfs(n.id)) return true;
+    if (!visited.has(n.id)) dfs(n.id);
   }
-  return false;
+  return backEdgeIndices;
+}
+
+/**
+ * Разрыв циклов: замена back-edges на end event-ы с аннотацией.
+ * Каждое обратное ребро (from → target) заменяется на (from → end_loop_N),
+ * где end_loop_N - новый end event с меткой "→ [target label]".
+ */
+function breakLoops(nodes, edges, lanes, backEdgeIndices) {
+  const newNodes = [...nodes];
+  const newEdges = [...edges];
+
+  for (let i = 0; i < backEdgeIndices.length; i++) {
+    const idx = backEdgeIndices[i];
+    const edge = newEdges[idx];
+    const targetNode = nodes.find(n => n.id === edge.to);
+    const sourceNode = nodes.find(n => n.id === edge.from);
+    const targetLabel = targetNode ? (targetNode.label || targetNode.id).replace(/\n/g, ' ') : edge.to;
+
+    // Create end event to replace the back-edge target
+    const endId = `end_loop_${i}`;
+    const endLabel = `>> ${targetLabel}`;
+    const endNode = {
+      id: endId,
+      type: 'eventEnd',
+      label: endLabel,
+      lane: sourceNode ? sourceNode.lane : (targetNode ? targetNode.lane : (lanes[0] && lanes[0].id))
+    };
+    newNodes.push(endNode);
+
+    // Redirect the edge to the new end event
+    newEdges[idx] = { ...edge, to: endId };
+  }
+
+  return { nodes: newNodes, edges: newEdges };
 }
 
 /**
