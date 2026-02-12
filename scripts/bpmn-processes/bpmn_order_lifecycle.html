@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPMN - Жизненный цикл Заказа клиента</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f1f5f9;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px;
+    color: #1e293b;
+  }
+  .diagram-wrap {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+  }
+  svg text { font-family: 'Inter', sans-serif; }
+  .note-box {
+    margin-top: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 3px solid #f59e0b;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: #78350f;
+    max-width: 520px;
+  }
+  .note-box span { color: #d97706; font-weight: 600; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="diagram-wrap">
+<svg xmlns="http://www.w3.org/2000/svg" width="2180" height="740" viewBox="0 0 2180 740">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#64748b"/>
+  </marker>
+  <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#dc2626"/>
+  </marker>
+  <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#16a34a"/>
+  </marker>
+  <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#d97706"/>
+  </marker>
+</defs>
+
+<!-- POOL -->
+<rect x="0" y="0" width="2180" height="740" rx="6" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<rect x="0" y="0" width="36" height="740" rx="6" fill="#334155"/>
+<rect x="6" y="0" width="30" height="740" fill="#334155"/>
+<text x="18" y="370" fill="#fff" font-size="12" font-weight="700" letter-spacing="2" text-anchor="middle" transform="rotate(-90 18 370)">ЖИЗНЕННЫЙ ЦИКЛ ЗАКАЗА КЛИЕНТА</text>
+
+<!-- LANE 1: Менеджер (0-150) -->
+<rect x="36" y="0" width="2144" height="150" fill="#f0fdf4"/>
+<rect x="36" y="0" width="34" height="150" fill="#dcfce7"/>
+<text x="53" y="80" fill="#166534" font-size="11" font-weight="700" letter-spacing="0.8" text-anchor="middle" transform="rotate(-90 53 80)">МЕНЕДЖЕР</text>
+<line x1="36" y1="150" x2="2180" y2="150" stroke="#94a3b8" stroke-width="0.8"/>
+
+<!-- LANE 2: 1С:УТ (150-500) -->
+<rect x="36" y="150" width="2144" height="350" fill="#eff6ff"/>
+<rect x="36" y="150" width="34" height="350" fill="#dbeafe"/>
+<text x="53" y="330" fill="#1e3a8a" font-size="11" font-weight="700" letter-spacing="0.8" text-anchor="middle" transform="rotate(-90 53 330)">1С:УТ</text>
+<line x1="36" y1="500" x2="2180" y2="500" stroke="#94a3b8" stroke-width="0.8"/>
+
+<!-- LANE 3: Согласующий (500-740) -->
+<rect x="36" y="500" width="2144" height="240" fill="#faf5ff"/>
+<rect x="36" y="500" width="34" height="240" fill="#f3e8ff"/>
+<text x="53" y="618" fill="#581c87" font-size="10" font-weight="700" letter-spacing="0.5" text-anchor="middle" transform="rotate(-90 53 618)">СОГЛАСУЮЩИЙ (РБЮ / ДП / ГД)</text>
+
+
+<!-- ========== 1. START (Lane 1) ========== -->
+<circle cx="120" cy="75" r="16" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="120" cy="75" r="5" fill="#16a34a"/>
+<line x1="136" y1="75" x2="180" y2="75" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+<!-- СОЗДАНИЕ ЗАКАЗА (Lane 1) -->
+<rect x="182" y="51" width="150" height="48" rx="8" fill="#fff" stroke="#16a34a" stroke-width="1.8"/>
+<circle cx="199" cy="66" r="5" fill="none" stroke="#16a34a" stroke-width="1.3"/>
+<path d="M192 79 Q199 74 206 79" fill="none" stroke="#16a34a" stroke-width="1.3"/>
+<text x="260" y="72" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">Создание</text>
+<text x="260" y="86" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">заказа</text>
+
+<!-- Cross-lane: Создание заказа → Черновик -->
+<path d="M 332 75 L 365 75 L 365 270 L 398 270" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 2. ЧЕРНОВИК (Lane 2, y=270) ========== -->
+<rect x="400" y="246" width="140" height="48" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.8"/>
+<rect x="410" y="255" width="13" height="9" rx="2" fill="none" stroke="#3b82f6" stroke-width="1.1"/>
+<rect x="412" y="258" width="9" height="3" rx="1" fill="#3b82f6"/>
+<text x="476" y="275" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">Черновик</text>
+
+<!-- Annotation -->
+<line x1="470" y1="294" x2="470" y2="312" stroke="#d97706" stroke-width="0.8" stroke-dasharray="3 2"/>
+<rect x="400" y="314" width="140" height="30" rx="4" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+<text x="470" y="327" fill="#92400e" font-size="8.5" font-weight="500" text-anchor="middle">автоудаление 7 дн.</text>
+<text x="470" y="339" fill="#92400e" font-size="8.5" font-weight="500" text-anchor="middle">(предупр. за 3 дн.)</text>
+
+<line x1="540" y1="270" x2="588" y2="270" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 3. XOR "Маршрут?" (Lane 2) ========== -->
+<g transform="translate(610 270)">
+  <rect x="-22" y="-22" width="44" height="44" rx="3" transform="rotate(45)" fill="#fff" stroke="#64748b" stroke-width="1.8"/>
+  <text x="0" y="2" fill="#475569" font-size="16" font-weight="700" text-anchor="middle" dominant-baseline="central">✕</text>
+</g>
+<text x="610" y="310" fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle">Маршрут?</text>
+
+<!-- Branch A: < 1 п.п. → Авто-согласование (UP) -->
+<path d="M 610 239 L 610 195 L 738 195" fill="none" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+<text x="660" y="188" fill="#16a34a" font-size="9" font-weight="600">&lt; 1 п.п.</text>
+
+<rect x="740" y="173" width="170" height="44" rx="8" fill="#fff" stroke="#16a34a" stroke-width="1.8"/>
+<rect x="750" y="182" width="13" height="9" rx="2" fill="none" stroke="#16a34a" stroke-width="1.1"/>
+<rect x="752" y="185" width="9" height="3" rx="1" fill="#16a34a"/>
+<text x="832" y="200" fill="#1e293b" font-size="11.5" font-weight="600" text-anchor="middle">Авто-согласование</text>
+
+<!-- Branch B: >= 1 п.п. → На согласовании (STRAIGHT) -->
+<line x1="641" y1="270" x2="738" y2="270" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="688" y="262" fill="#475569" font-size="9" font-weight="600">≥ 1 п.п.</text>
+
+<rect x="740" y="248" width="170" height="44" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.8"/>
+<rect x="750" y="257" width="13" height="9" rx="2" fill="none" stroke="#3b82f6" stroke-width="1.1"/>
+<rect x="752" y="260" width="9" height="3" rx="1" fill="#3b82f6"/>
+<text x="832" y="275" fill="#1e293b" font-size="11.5" font-weight="600" text-anchor="middle">На согласовании</text>
+
+<!-- Branch C: нет товара → Ожидает поступления (DOWN) -->
+<path d="M 610 301 L 610 370 L 738 370" fill="none" stroke="#d97706" stroke-width="1.4" marker-end="url(#arrA)"/>
+<text x="652" y="363" fill="#d97706" font-size="9" font-weight="600">нет товара</text>
+
+<rect x="740" y="348" width="170" height="44" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.8"/>
+<rect x="750" y="357" width="13" height="9" rx="2" fill="none" stroke="#d97706" stroke-width="1.1"/>
+<rect x="752" y="360" width="9" height="3" rx="1" fill="#d97706"/>
+<text x="832" y="367" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">Ожидает</text>
+<text x="832" y="381" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">поступления</text>
+
+<!-- Ожидает поступления → На согласовании -->
+<path d="M 910 370 L 940 370 L 940 292 L 912 292" fill="none" stroke="#d97706" stroke-width="1.2" marker-end="url(#arrA)"/>
+
+<!-- На согласовании → Согласование (cross-lane to Lane 3) -->
+<path d="M 825 292 L 825 440 L 900 440 L 900 548" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 4. СОГЛАСОВАНИЕ - callActivity (Lane 3) ========== -->
+<rect x="835" y="550" width="160" height="52" rx="8" fill="#fff" stroke="#7c3aed" stroke-width="2.5"/>
+<rect x="841" y="556" width="148" height="40" rx="6" fill="none" stroke="#7c3aed" stroke-width="0.8" opacity="0.4"/>
+<text x="915" y="575" fill="#1e293b" font-size="12" font-weight="700" text-anchor="middle">Согласование</text>
+<text x="915" y="592" fill="#7c3aed" font-size="9" font-weight="600" text-anchor="middle">→ подпроцесс BPMN 2</text>
+
+<line x1="995" y1="576" x2="1058" y2="576" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 5. XOR "Результат?" (Lane 3) ========== -->
+<g transform="translate(1080 576)">
+  <rect x="-22" y="-22" width="44" height="44" rx="3" transform="rotate(45)" fill="#fff" stroke="#64748b" stroke-width="1.8"/>
+  <text x="0" y="2" fill="#475569" font-size="16" font-weight="700" text-anchor="middle" dominant-baseline="central">✕</text>
+</g>
+<text x="1080" y="618" fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle">Результат?</text>
+
+<!-- Branch: одобрен → UP to Согласован -->
+<path d="M 1080 545 L 1080 400 L 1188 400" fill="none" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+<text x="1092" y="472" fill="#16a34a" font-size="9" font-weight="600">одобрен</text>
+
+<!-- Branch: отклонен → Отклонен -->
+<path d="M 1080 607 L 1080 695 L 960 695" fill="none" stroke="#dc2626" stroke-width="1.4" marker-end="url(#arrR)"/>
+<text x="1025" y="690" fill="#dc2626" font-size="9" font-weight="600">отклонен</text>
+
+<rect x="820" y="673" width="138" height="42" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+<text x="889" y="699" fill="#dc2626" font-size="12" font-weight="700" text-anchor="middle">Отклонен</text>
+
+<!-- Отклонен → loop back to Черновик -->
+<path d="M 820 694 L 310 694 L 310 270 L 398 270" fill="none" stroke="#dc2626" stroke-width="1.3" stroke-dasharray="7 4" marker-end="url(#arrR)"/>
+<text x="560" y="710" fill="#dc2626" font-size="8" font-weight="500" font-style="italic">возврат в Черновик</text>
+
+<!-- Branch: частично → Частично согласован -->
+<path d="M 1111 576 L 1158 576" fill="none" stroke="#d97706" stroke-width="1.4" marker-end="url(#arrA)"/>
+<text x="1135" y="567" fill="#d97706" font-size="9" font-weight="600" text-anchor="middle">частично</text>
+
+<rect x="1160" y="554" width="155" height="44" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.8"/>
+<rect x="1170" y="563" width="13" height="9" rx="2" fill="none" stroke="#d97706" stroke-width="1.1"/>
+<rect x="1172" y="566" width="9" height="3" rx="1" fill="#d97706"/>
+<text x="1243" y="573" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">Частично</text>
+<text x="1243" y="587" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">согласован</text>
+
+<!-- Частично согласован → UP to Согласован -->
+<path d="M 1237 554 L 1237 400 L 1348 400" fill="none" stroke="#d97706" stroke-width="1.3" marker-end="url(#arrA)"/>
+
+
+<!-- Авто-согласование → Согласован -->
+<path d="M 910 195 L 1140 195 L 1140 370 L 1268 370 L 1268 380" fill="none" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+
+
+<!-- ========== 6. СОГЛАСОВАН (Lane 2) ========== -->
+<rect x="1190" y="378" width="160" height="48" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.8"/>
+<rect x="1200" y="387" width="13" height="9" rx="2" fill="none" stroke="#3b82f6" stroke-width="1.1"/>
+<rect x="1202" y="390" width="9" height="3" rx="1" fill="#3b82f6"/>
+<text x="1277" y="399" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">Согласован</text>
+<text x="1277" y="416" fill="#3b82f6" font-size="9.5" font-weight="500" text-anchor="middle">⏱ 5 раб. дней</text>
+
+<line x1="1350" y1="402" x2="1418" y2="402" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 7. XOR "РТУ?" (Lane 2) ========== -->
+<g transform="translate(1440 402)">
+  <rect x="-22" y="-22" width="44" height="44" rx="3" transform="rotate(45)" fill="#fff" stroke="#64748b" stroke-width="1.8"/>
+  <text x="0" y="2" fill="#475569" font-size="16" font-weight="700" text-anchor="middle" dominant-baseline="central">✕</text>
+</g>
+<text x="1440" y="445" fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle">РТУ?</text>
+
+<!-- Branch: РТУ проведен → В работе (UP) -->
+<path d="M 1440 371 L 1440 270 L 1538 270" fill="none" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+<text x="1468" y="320" fill="#16a34a" font-size="9" font-weight="600">РТУ проведен</text>
+
+<rect x="1540" y="248" width="140" height="44" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.8"/>
+<rect x="1550" y="257" width="13" height="9" rx="2" fill="none" stroke="#3b82f6" stroke-width="1.1"/>
+<rect x="1552" y="260" width="9" height="3" rx="1" fill="#3b82f6"/>
+<text x="1616" y="275" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">В работе</text>
+
+<!-- Branch: expired → Согласование истекло (DOWN) -->
+<path d="M 1440 433 L 1440 468 L 1538 468" fill="none" stroke="#dc2626" stroke-width="1.4" marker-end="url(#arrR)"/>
+<text x="1483" y="462" fill="#dc2626" font-size="8.5" font-weight="600">5 дн. / &gt;3 п.п.</text>
+
+<rect x="1540" y="446" width="170" height="44" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+<text x="1625" y="466" fill="#dc2626" font-size="11" font-weight="700" text-anchor="middle">Согласование</text>
+<text x="1625" y="480" fill="#dc2626" font-size="11" font-weight="700" text-anchor="middle">истекло</text>
+
+<!-- Согласование истекло → loop back to Черновик -->
+<path d="M 1625 490 L 1625 497 L 290 497 L 290 270 L 398 270" fill="none" stroke="#dc2626" stroke-width="1.3" stroke-dasharray="7 4" marker-end="url(#arrR)"/>
+<text x="950" y="494" fill="#dc2626" font-size="8" font-weight="500" font-style="italic">возврат в Черновик</text>
+
+
+<!-- В работе → XOR Итог -->
+<line x1="1680" y1="270" x2="1758" y2="270" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+
+
+<!-- ========== 8. XOR "Итог?" (Lane 2) ========== -->
+<g transform="translate(1780 270)">
+  <rect x="-22" y="-22" width="44" height="44" rx="3" transform="rotate(45)" fill="#fff" stroke="#64748b" stroke-width="1.8"/>
+  <text x="0" y="2" fill="#475569" font-size="16" font-weight="700" text-anchor="middle" dominant-baseline="central">✕</text>
+</g>
+<text x="1780" y="310" fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle">Итог?</text>
+
+<!-- Branch: все отгружено → Исполнен (UP) -->
+<path d="M 1780 239 L 1780 200 L 1878 200" fill="none" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+<text x="1822" y="220" fill="#16a34a" font-size="9" font-weight="600">все отгружено</text>
+
+<rect x="1880" y="178" width="130" height="44" rx="8" fill="#fff" stroke="#16a34a" stroke-width="1.8"/>
+<rect x="1890" y="187" width="13" height="9" rx="2" fill="none" stroke="#16a34a" stroke-width="1.1"/>
+<rect x="1892" y="190" width="9" height="3" rx="1" fill="#16a34a"/>
+<text x="1950" y="205" fill="#1e293b" font-size="12" font-weight="600" text-anchor="middle">Исполнен</text>
+
+<!-- Branch: клиент отменил → Закрыт частично (DOWN) -->
+<path d="M 1780 301 L 1780 370 L 1878 370" fill="none" stroke="#d97706" stroke-width="1.4" marker-end="url(#arrA)"/>
+<text x="1810" y="340" fill="#d97706" font-size="9" font-weight="600">клиент отменил</text>
+
+<rect x="1880" y="348" width="150" height="44" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.8"/>
+<rect x="1890" y="357" width="13" height="9" rx="2" fill="none" stroke="#d97706" stroke-width="1.1"/>
+<rect x="1892" y="360" width="9" height="3" rx="1" fill="#d97706"/>
+<text x="1960" y="368" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">Закрыт</text>
+<text x="1960" y="382" fill="#1e293b" font-size="10.5" font-weight="600" text-anchor="middle">частично</text>
+
+
+<!-- ========== END EVENT ========== -->
+<path d="M 2010 200 L 2090 200 L 2090 272" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+<path d="M 2030 370 L 2090 370 L 2090 308" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+<circle cx="2090" cy="290" r="17" fill="#fff" stroke="#dc2626" stroke-width="3"/>
+<circle cx="2090" cy="290" r="8" fill="#dc2626"/>
+<text x="2090" y="320" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">Завершен</text>
+
+
+<!-- ========== ОТМЕНЕН (standalone, Lane 2) ========== -->
+<rect x="130" y="418" width="135" height="44" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+<text x="197" y="445" fill="#dc2626" font-size="12" font-weight="700" text-anchor="middle">Отменен</text>
+<text x="197" y="475" fill="#94a3b8" font-size="8.5" font-style="italic" text-anchor="middle">(в любой момент)</text>
+
+<line x1="265" y1="440" x2="330" y2="440" stroke="#dc2626" stroke-width="1.4" marker-end="url(#arrR)"/>
+<circle cx="348" cy="440" r="14" fill="#fff" stroke="#dc2626" stroke-width="3"/>
+<circle cx="348" cy="440" r="6" fill="#dc2626"/>
+<text x="348" y="467" fill="#64748b" font-size="9" font-weight="600" text-anchor="middle">Завершен</text>
+
+
+<!-- ========== LEGEND ========== -->
+<g transform="translate(1680, 590)">
+  <rect x="0" y="0" width="340" height="120" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="170" y="20" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="1">ЛЕГЕНДА</text>
+  <rect x="15" y="32" width="28" height="14" rx="4" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="53" y="44" fill="#475569" font-size="9.5" font-weight="500">UserTask (ручная задача)</text>
+  <rect x="15" y="54" width="28" height="14" rx="4" fill="#fff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="53" y="66" fill="#475569" font-size="9.5" font-weight="500">ServiceTask (системная)</text>
+  <rect x="15" y="76" width="28" height="14" rx="4" fill="#fff" stroke="#7c3aed" stroke-width="2.5"/>
+  <rect x="17" y="78" width="24" height="10" rx="3" fill="none" stroke="#7c3aed" stroke-width="0.6"/>
+  <text x="53" y="88" fill="#475569" font-size="9.5" font-weight="500">CallActivity (подпроцесс)</text>
+  <rect x="15" y="98" width="28" height="14" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="53" y="110" fill="#475569" font-size="9.5" font-weight="500">Ошибка / откат</text>
+  <g transform="translate(200, 40)">
+    <rect x="-7" y="-7" width="14" height="14" rx="2" transform="rotate(45)" fill="#fff" stroke="#64748b" stroke-width="1.2"/>
+    <text x="0" y="2" fill="#475569" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central">✕</text>
+  </g>
+  <text x="225" y="44" fill="#475569" font-size="9.5" font-weight="500">XOR шлюз</text>
+  <line x1="190" y1="65" x2="218" y2="65" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <text x="225" y="69" fill="#475569" font-size="9.5" font-weight="500">Возврат (loop)</text>
+  <line x1="190" y1="88" x2="218" y2="88" stroke="#16a34a" stroke-width="1.4" marker-end="url(#arrG)"/>
+  <text x="225" y="92" fill="#475569" font-size="9.5" font-weight="500">Успешный путь</text>
+  <line x1="190" y1="110" x2="218" y2="110" stroke="#d97706" stroke-width="1.4" marker-end="url(#arrA)"/>
+  <text x="225" y="114" fill="#475569" font-size="9.5" font-weight="500">Альтернативный</text>
+</g>
+
+</svg>
+</div>
+
+<div class="note-box">
+  <span>⚠</span>
+  <div><strong>Черновик:</strong> автоудаление через 7 дней без изменений (предупреждение менеджеру за 3 дня).</div>
+</div>
+
+</body>
+</html>

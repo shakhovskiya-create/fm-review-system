@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.10.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Pool" name="Интеграция с WMS" processRef="Process_WMS" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_WMS" processType="None" isClosed="false" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_System" name="1С:УТ">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendJSON</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PNR</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecalcRent</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Rent</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShipByFact</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateRTU</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_WMS" name="WMS">
+        <bpmn:flowNodeRef>Task_ReceiveTask</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Pick</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FullPick</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PartialPick</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Warehouse" name="Специалист склада">
+        <bpmn:flowNodeRef>Task_Pick</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>Task_AskManager</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ManagerDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ConfirmShip</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CancelShip</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sendTask id="Task_SendJSON" name="Отправка JSON с заказом в WMS">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPNR</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="Task_PNR" name="Установка флага ПереданНаСклад (точка невозврата)">
+      <bpmn:incoming>Flow_ToPNR</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToWMS</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_ReceiveTask" name="Получение задания на отборку">
+      <bpmn:incoming>Flow_ToWMS</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPick</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_Pick" name="Отборка товара">
+      <bpmn:incoming>Flow_ToPick</bpmn:incoming>
+      <bpmn:outgoing>Flow_PickDone</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Pick">
+      <bpmn:incoming>Flow_PickDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_Full</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Partial</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_FullPick" name="Полная отборка (факт = план)">
+      <bpmn:incoming>Flow_Full</bpmn:incoming>
+      <bpmn:outgoing>Flow_FullToRTU</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_PartialPick" name="Частичная отборка (факт &lt; план)">
+      <bpmn:incoming>Flow_Partial</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRecalc</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_RecalcRent" name="Пересчет рентабельности по факту">
+      <bpmn:incoming>Flow_ToRecalc</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRentGw</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Rent">
+      <bpmn:incoming>Flow_ToRentGw</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotWorse</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Worse</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_ShipByFact" name="Отгрузка по факту">
+      <bpmn:incoming>Flow_NotWorse</bpmn:incoming>
+      <bpmn:outgoing>Flow_ShipToRTU</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_AskManager" name="Запрос решения менеджера (SLA 2 часа)">
+      <bpmn:incoming>Flow_Worse</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToManagerGw</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_ManagerDecision">
+      <bpmn:incoming>Flow_ToManagerGw</bpmn:incoming>
+      <bpmn:outgoing>Flow_Confirm</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cancel</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_ConfirmShip" name="Подтвердить отгрузку">
+      <bpmn:incoming>Flow_Confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_ConfirmToRTU</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_CancelShip" name="Отмена (авто через 2 ч)">
+      <bpmn:incoming>Flow_Cancel</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_CreateRTU" name="Создание и проведение РТУ">
+      <bpmn:incoming>Flow_FullToRTU</bpmn:incoming>
+      <bpmn:incoming>Flow_ShipToRTU</bpmn:incoming>
+      <bpmn:incoming>Flow_ConfirmToRTU</bpmn:incoming>
+      <bpmn:outgoing>Flow_RTUEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_OK" name="РТУ проведен">
+      <bpmn:incoming>Flow_RTUEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Cancel" name="Отменено">
+      <bpmn:incoming>Flow_CancelEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_SendJSON" />
+    <bpmn:sequenceFlow id="Flow_ToPNR" sourceRef="Task_SendJSON" targetRef="Task_PNR" />
+    <bpmn:sequenceFlow id="Flow_ToWMS" sourceRef="Task_PNR" targetRef="Task_ReceiveTask" />
+    <bpmn:sequenceFlow id="Flow_ToPick" sourceRef="Task_ReceiveTask" targetRef="Task_Pick" />
+    <bpmn:sequenceFlow id="Flow_PickDone" sourceRef="Task_Pick" targetRef="Gateway_Pick" />
+    <bpmn:sequenceFlow id="Flow_Full" name="полная" sourceRef="Gateway_Pick" targetRef="Task_FullPick" />
+    <bpmn:sequenceFlow id="Flow_Partial" name="частичная" sourceRef="Gateway_Pick" targetRef="Task_PartialPick" />
+    <bpmn:sequenceFlow id="Flow_FullToRTU" sourceRef="Task_FullPick" targetRef="Task_CreateRTU" />
+    <bpmn:sequenceFlow id="Flow_ToRecalc" sourceRef="Task_PartialPick" targetRef="Task_RecalcRent" />
+    <bpmn:sequenceFlow id="Flow_ToRentGw" sourceRef="Task_RecalcRent" targetRef="Gateway_Rent" />
+    <bpmn:sequenceFlow id="Flow_NotWorse" name="не ухудшилась" sourceRef="Gateway_Rent" targetRef="Task_ShipByFact" />
+    <bpmn:sequenceFlow id="Flow_Worse" name="ухудшилась" sourceRef="Gateway_Rent" targetRef="Task_AskManager" />
+    <bpmn:sequenceFlow id="Flow_ShipToRTU" sourceRef="Task_ShipByFact" targetRef="Task_CreateRTU" />
+    <bpmn:sequenceFlow id="Flow_ToManagerGw" sourceRef="Task_AskManager" targetRef="Gateway_ManagerDecision" />
+    <bpmn:sequenceFlow id="Flow_Confirm" name="отгрузить" sourceRef="Gateway_ManagerDecision" targetRef="Task_ConfirmShip" />
+    <bpmn:sequenceFlow id="Flow_Cancel" name="отменить" sourceRef="Gateway_ManagerDecision" targetRef="Task_CancelShip" />
+    <bpmn:sequenceFlow id="Flow_ConfirmToRTU" sourceRef="Task_ConfirmShip" targetRef="Task_CreateRTU" />
+    <bpmn:sequenceFlow id="Flow_CancelEnd" sourceRef="Task_CancelShip" targetRef="EndEvent_Cancel" />
+    <bpmn:sequenceFlow id="Flow_RTUEnd" sourceRef="Task_CreateRTU" targetRef="EndEvent_OK" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="1350" height="720" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1320" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_WMS_di" bpmnElement="Lane_WMS" isHorizontal="true">
+        <dc:Bounds x="160" y="280" width="1320" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Warehouse_di" bpmnElement="Lane_Warehouse" isHorizontal="true">
+        <dc:Bounds x="160" y="460" width="1320" height="140" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="160" y="600" width="1320" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="222" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendJSON_di" bpmnElement="Task_SendJSON" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="290" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PNR_di" bpmnElement="Task_PNR" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="420" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReceiveTask_di" bpmnElement="Task_ReceiveTask" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="420" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Pick_di" bpmnElement="Task_Pick" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="420" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Pick_di" bpmnElement="Gateway_Pick" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="555" y="345" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FullPick_di" bpmnElement="Task_FullPick" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="640" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PartialPick_di" bpmnElement="Task_PartialPick" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="640" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RecalcRent_di" bpmnElement="Task_RecalcRent" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="780" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Rent_di" bpmnElement="Gateway_Rent" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="915" y="155" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ShipByFact_di" bpmnElement="Task_ShipByFact" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1000" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AskManager_di" bpmnElement="Task_AskManager" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1000" y="650" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ManagerDecision_di" bpmnElement="Gateway_ManagerDecision" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1135" y="665" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ConfirmShip_di" bpmnElement="Task_ConfirmShip" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1220" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CancelShip_di" bpmnElement="Task_CancelShip" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1220" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateRTU_di" bpmnElement="Task_CreateRTU" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1200" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1342" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1325" y="205" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cancel_di" bpmnElement="EndEvent_Cancel" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1342" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1332" y="205" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="258" y="180" />
+        <di:waypoint x="290" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToPNR_di" bpmnElement="Flow_ToPNR">
+        <di:waypoint x="390" y="180" />
+        <di:waypoint x="420" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToWMS_di" bpmnElement="Flow_ToWMS">
+        <di:waypoint x="470" y="220" />
+        <di:waypoint x="470" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToPick_di" bpmnElement="Flow_ToPick">
+        <di:waypoint x="470" y="410" />
+        <di:waypoint x="470" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PickDone_di" bpmnElement="Flow_PickDone">
+        <di:waypoint x="520" y="530" />
+        <di:waypoint x="580" y="530" />
+        <di:waypoint x="580" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Full_di" bpmnElement="Flow_Full">
+        <di:waypoint x="580" y="345" />
+        <di:waypoint x="580" y="340" />
+        <di:waypoint x="640" y="340" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="588" y="318" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Partial_di" bpmnElement="Flow_Partial">
+        <di:waypoint x="605" y="370" />
+        <di:waypoint x="605" y="440" />
+        <di:waypoint x="640" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="610" y="422" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FullToRTU_di" bpmnElement="Flow_FullToRTU">
+        <di:waypoint x="740" y="340" />
+        <di:waypoint x="770" y="340" />
+        <di:waypoint x="770" y="180" />
+        <di:waypoint x="1200" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRecalc_di" bpmnElement="Flow_ToRecalc">
+        <di:waypoint x="740" y="440" />
+        <di:waypoint x="830" y="440" />
+        <di:waypoint x="830" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRentGw_di" bpmnElement="Flow_ToRentGw">
+        <di:waypoint x="880" y="180" />
+        <di:waypoint x="915" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NotWorse_di" bpmnElement="Flow_NotWorse">
+        <di:waypoint x="940" y="155" />
+        <di:waypoint x="940" y="140" />
+        <di:waypoint x="1000" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="948" y="118" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Worse_di" bpmnElement="Flow_Worse">
+        <di:waypoint x="940" y="205" />
+        <di:waypoint x="940" y="690" />
+        <di:waypoint x="1000" y="690" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="948" y="443" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ShipToRTU_di" bpmnElement="Flow_ShipToRTU">
+        <di:waypoint x="1100" y="140" />
+        <di:waypoint x="1150" y="140" />
+        <di:waypoint x="1150" y="180" />
+        <di:waypoint x="1200" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToManagerGw_di" bpmnElement="Flow_ToManagerGw">
+        <di:waypoint x="1100" y="690" />
+        <di:waypoint x="1135" y="690" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Confirm_di" bpmnElement="Flow_Confirm">
+        <di:waypoint x="1160" y="665" />
+        <di:waypoint x="1160" y="660" />
+        <di:waypoint x="1220" y="660" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1168" y="638" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Cancel_di" bpmnElement="Flow_Cancel">
+        <di:waypoint x="1160" y="715" />
+        <di:waypoint x="1160" y="770" />
+        <di:waypoint x="1220" y="770" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1168" y="752" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ConfirmToRTU_di" bpmnElement="Flow_ConfirmToRTU">
+        <di:waypoint x="1320" y="660" />
+        <di:waypoint x="1370" y="660" />
+        <di:waypoint x="1370" y="180" />
+        <di:waypoint x="1300" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelEnd_di" bpmnElement="Flow_CancelEnd">
+        <di:waypoint x="1320" y="770" />
+        <di:waypoint x="1400" y="770" />
+        <di:waypoint x="1400" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RTUEnd_di" bpmnElement="Flow_RTUEnd">
+        <di:waypoint x="1300" y="180" />
+        <di:waypoint x="1342" y="180" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

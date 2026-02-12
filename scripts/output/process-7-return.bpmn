@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.10.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Pool" name="Возврат товара по ЛС" processRef="Process_Return" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Return" processType="None" isClosed="false" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InitReturn</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="1С:УТ">
+        <bpmn:flowNodeRef>Gateway_LS</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateReturn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ToRemainder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Recalc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Level</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CancelApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReturnClosed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_60d</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sanctions</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FinCorrection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Exchange" name="Специалист товарообмена">
+        <bpmn:flowNodeRef>Task_Storno</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_InitReturn" name="Инициация возврата">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToLS</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_LS">
+      <bpmn:incoming>Flow_ToLS</bpmn:incoming>
+      <bpmn:outgoing>Flow_Active</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Closed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_CreateReturn" name="Создание Возврат товаров (привязка к РТУ)">
+      <bpmn:incoming>Flow_Active</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRemainder</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_ToRemainder" name="Товар в остаток ЛС (рент. по цене РТУ)">
+      <bpmn:incoming>Flow_ToRemainder</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRecalc</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Recalc" name="Пересчет накопленной рентабельности">
+      <bpmn:incoming>Flow_ToRecalc</bpmn:incoming>
+      <bpmn:incoming>Flow_StornoToRecalc</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToLevel</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Level">
+      <bpmn:incoming>Flow_ToLevel</bpmn:incoming>
+      <bpmn:outgoing>Flow_LevelChanged</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoChange</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_CancelApproval" name="Аннулирование согласований">
+      <bpmn:incoming>Flow_LevelChanged</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_ReturnClosed" name="Возврат по закрытой ЛС (товар в своб. остаток)">
+      <bpmn:incoming>Flow_Closed</bpmn:incoming>
+      <bpmn:outgoing>Flow_To60d</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_60d">
+      <bpmn:incoming>Flow_To60d</bpmn:incoming>
+      <bpmn:outgoing>Flow_Within60</bpmn:outgoing>
+      <bpmn:outgoing>Flow_After60</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Sanctions" name="Учет в санкциях (% выкупа)">
+      <bpmn:incoming>Flow_Within60</bpmn:incoming>
+      <bpmn:outgoing>Flow_SanctionsEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_FinCorrection" name="Только финансовая корректировка">
+      <bpmn:incoming>Flow_After60</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_Storno" name="Сторнирование РТУ (товар не покидал склад)">
+      <bpmn:outgoing>Flow_StornoToRecalc</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_OK" name="Возврат обработан">
+      <bpmn:incoming>Flow_CancelToEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_NoChange</bpmn:incoming>
+      <bpmn:incoming>Flow_SanctionsEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_FinEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_InitReturn" />
+    <bpmn:sequenceFlow id="Flow_ToLS" sourceRef="Task_InitReturn" targetRef="Gateway_LS" />
+    <bpmn:sequenceFlow id="Flow_Active" name="ЛС активна" sourceRef="Gateway_LS" targetRef="Task_CreateReturn" />
+    <bpmn:sequenceFlow id="Flow_Closed" name="ЛС закрыта" sourceRef="Gateway_LS" targetRef="Task_ReturnClosed" />
+    <bpmn:sequenceFlow id="Flow_ToRemainder" sourceRef="Task_CreateReturn" targetRef="Task_ToRemainder" />
+    <bpmn:sequenceFlow id="Flow_ToRecalc" sourceRef="Task_ToRemainder" targetRef="Task_Recalc" />
+    <bpmn:sequenceFlow id="Flow_StornoToRecalc" sourceRef="Task_Storno" targetRef="Task_Recalc" />
+    <bpmn:sequenceFlow id="Flow_ToLevel" sourceRef="Task_Recalc" targetRef="Gateway_Level" />
+    <bpmn:sequenceFlow id="Flow_LevelChanged" name="уровень изменился" sourceRef="Gateway_Level" targetRef="Task_CancelApproval" />
+    <bpmn:sequenceFlow id="Flow_NoChange" name="без изменений" sourceRef="Gateway_Level" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_CancelToEnd" sourceRef="Task_CancelApproval" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_To60d" sourceRef="Task_ReturnClosed" targetRef="Gateway_60d" />
+    <bpmn:sequenceFlow id="Flow_Within60" name="&#8804; 60 дней" sourceRef="Gateway_60d" targetRef="Task_Sanctions" />
+    <bpmn:sequenceFlow id="Flow_After60" name="&gt; 60 дней" sourceRef="Gateway_60d" targetRef="Task_FinCorrection" />
+    <bpmn:sequenceFlow id="Flow_SanctionsEnd" sourceRef="Task_Sanctions" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_FinEnd" sourceRef="Task_FinCorrection" targetRef="EndEvent_OK" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="1250" height="620" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1220" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="160" y="230" width="1220" height="320" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Exchange_di" bpmnElement="Lane_Exchange" isHorizontal="true">
+        <dc:Bounds x="160" y="550" width="1220" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="222" y="137" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InitReturn_di" bpmnElement="Task_InitReturn" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="290" y="115" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_LS_di" bpmnElement="Gateway_LS" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="315" y="295" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateReturn_di" bpmnElement="Task_CreateReturn" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="420" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ToRemainder_di" bpmnElement="Task_ToRemainder" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="560" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Recalc_di" bpmnElement="Task_Recalc" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="700" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Level_di" bpmnElement="Gateway_Level" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="835" y="295" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CancelApproval_di" bpmnElement="Task_CancelApproval" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="920" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReturnClosed_di" bpmnElement="Task_ReturnClosed" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="420" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_60d_di" bpmnElement="Gateway_60d" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="565" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Sanctions_di" bpmnElement="Task_Sanctions" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="660" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FinCorrection_di" bpmnElement="Task_FinCorrection" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="660" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Storno_di" bpmnElement="Task_Storno" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="700" y="585" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1082" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1058" y="345" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="258" y="155" />
+        <di:waypoint x="290" y="155" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToLS_di" bpmnElement="Flow_ToLS">
+        <di:waypoint x="340" y="195" />
+        <di:waypoint x="340" y="295" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Active_di" bpmnElement="Flow_Active">
+        <di:waypoint x="365" y="320" />
+        <di:waypoint x="420" y="320" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="367" y="298" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Closed_di" bpmnElement="Flow_Closed">
+        <di:waypoint x="340" y="345" />
+        <di:waypoint x="340" y="460" />
+        <di:waypoint x="420" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="348" y="442" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRemainder_di" bpmnElement="Flow_ToRemainder">
+        <di:waypoint x="520" y="320" />
+        <di:waypoint x="560" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRecalc_di" bpmnElement="Flow_ToRecalc">
+        <di:waypoint x="660" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_StornoToRecalc_di" bpmnElement="Flow_StornoToRecalc">
+        <di:waypoint x="750" y="585" />
+        <di:waypoint x="750" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToLevel_di" bpmnElement="Flow_ToLevel">
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="835" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LevelChanged_di" bpmnElement="Flow_LevelChanged">
+        <di:waypoint x="885" y="320" />
+        <di:waypoint x="920" y="320" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="865" y="298" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoChange_di" bpmnElement="Flow_NoChange">
+        <di:waypoint x="860" y="295" />
+        <di:waypoint x="860" y="270" />
+        <di:waypoint x="1100" y="270" />
+        <di:waypoint x="1100" y="302" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="948" y="252" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelToEnd_di" bpmnElement="Flow_CancelToEnd">
+        <di:waypoint x="1020" y="320" />
+        <di:waypoint x="1082" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To60d_di" bpmnElement="Flow_To60d">
+        <di:waypoint x="520" y="460" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Within60_di" bpmnElement="Flow_Within60">
+        <di:waypoint x="590" y="435" />
+        <di:waypoint x="590" y="430" />
+        <di:waypoint x="660" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="598" y="408" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_After60_di" bpmnElement="Flow_After60">
+        <di:waypoint x="590" y="485" />
+        <di:waypoint x="590" y="520" />
+        <di:waypoint x="660" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="598" y="502" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SanctionsEnd_di" bpmnElement="Flow_SanctionsEnd">
+        <di:waypoint x="760" y="430" />
+        <di:waypoint x="1100" y="430" />
+        <di:waypoint x="1100" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FinEnd_di" bpmnElement="Flow_FinEnd">
+        <di:waypoint x="760" y="520" />
+        <di:waypoint x="1100" y="520" />
+        <di:waypoint x="1100" y="338" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

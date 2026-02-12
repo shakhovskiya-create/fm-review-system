@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="bpmn_copilot_Definition_id" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.10.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:collaboration id="Collaboration_1" isClosed="false">
+    <bpmn:participant id="Participant_Pool" name="Согласование отрицательной рентабельности" processRef="Process_NegativeProfitability" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_NegativeProfitability" processType="None" isClosed="false" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Salesperson" name="Менеджер">
+        <bpmn:flowNodeRef>Gateway_Result</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdjustOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Draft</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Manager" name="Руководитель отдела продаж">
+        <bpmn:flowNodeRef>Task_ReviewOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Decision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProvideReason</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProvideRejection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MergeDecision</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="1С:УТ (система)">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NotifyManager</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecordDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NotifySalesperson</bpmn:flowNodeRef>
+        <bpmn:childLaneSet id="LaneSet_00zxaxm" />
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_ToCreateRequest</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_CreateRequest" name="Сформировать заявку на согласование">
+      <bpmn:incoming>Flow_ToCreateRequest</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToNotifyManager</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="Task_NotifyManager" name="Отправить уведомление руководителю">
+      <bpmn:incoming>Flow_ToNotifyManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReviewOrder</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="Task_RecordDecision" name="Зафиксировать решение в системе">
+      <bpmn:incoming>Flow_FromMergeDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToNotifySalesperson</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="Task_NotifySalesperson" name="Уведомить менеджера о результате">
+      <bpmn:incoming>Flow_ToNotifySalesperson</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToResultGateway</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="Task_ReviewOrder" name="Рассмотреть заказ">
+      <bpmn:incoming>Flow_ToReviewOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDecisionGateway</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Decision">
+      <bpmn:incoming>Flow_ToDecisionGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_ProvideReason" name="Указать комментарий-обоснование">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToMergeDecision1</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_ProvideRejection" name="Указать причину отказа">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToMergeDecision2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_MergeDecision">
+      <bpmn:incoming>Flow_ToMergeDecision2</bpmn:incoming>
+      <bpmn:incoming>Flow_ToMergeDecision1</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromMergeDecision</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_Result">
+      <bpmn:incoming>Flow_ToResultGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsRejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IsApproved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Approved" name="Заказ согласован">
+      <bpmn:incoming>Flow_IsApproved</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_AdjustOrder" name="Скорректировать параметры заказа">
+      <bpmn:incoming>Flow_IsRejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDraftEnd</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_Draft" name="Возврат в черновик">
+      <bpmn:incoming>Flow_ToDraftEnd</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_Draft" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ToCreateRequest" sourceRef="StartEvent_1" targetRef="Task_CreateRequest" />
+    <bpmn:sequenceFlow id="Flow_ToNotifyManager" sourceRef="Task_CreateRequest" targetRef="Task_NotifyManager" />
+    <bpmn:sequenceFlow id="Flow_ToReviewOrder" sourceRef="Task_NotifyManager" targetRef="Task_ReviewOrder" />
+    <bpmn:sequenceFlow id="Flow_FromMergeDecision" sourceRef="Gateway_MergeDecision" targetRef="Task_RecordDecision" />
+    <bpmn:sequenceFlow id="Flow_ToNotifySalesperson" sourceRef="Task_RecordDecision" targetRef="Task_NotifySalesperson" />
+    <bpmn:sequenceFlow id="Flow_ToResultGateway" sourceRef="Task_NotifySalesperson" targetRef="Gateway_Result" />
+    <bpmn:sequenceFlow id="Flow_ToDecisionGateway" sourceRef="Task_ReviewOrder" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Отклонить" sourceRef="Gateway_Decision" targetRef="Task_ProvideRejection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Approved" name="Согласовать" sourceRef="Gateway_Decision" targetRef="Task_ProvideReason">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToMergeDecision1" sourceRef="Task_ProvideReason" targetRef="Gateway_MergeDecision" />
+    <bpmn:sequenceFlow id="Flow_ToMergeDecision2" sourceRef="Task_ProvideRejection" targetRef="Gateway_MergeDecision" />
+    <bpmn:sequenceFlow id="Flow_IsRejected" name="Отклонено" sourceRef="Gateway_Result" targetRef="Task_AdjustOrder">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_IsApproved" name="Согласовано" sourceRef="Gateway_Result" targetRef="EndEvent_Approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToDraftEnd" sourceRef="Task_AdjustOrder" targetRef="EndEvent_Draft" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="1230" height="640" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1200" height="160" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="160" y="240" width="1200" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Salesperson_di" bpmnElement="Lane_Salesperson" isHorizontal="true">
+        <dc:Bounds x="160" y="460" width="1200" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="222" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateRequest_di" bpmnElement="Task_CreateRequest" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="297" y="120" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_NotifyManager_di" bpmnElement="Task_NotifyManager" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="468" y="120" width="130" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RecordDecision_di" bpmnElement="Task_RecordDecision" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="715" y="120" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_NotifySalesperson_di" bpmnElement="Task_NotifySalesperson" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="935" y="120" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReviewOrder_di" bpmnElement="Task_ReviewOrder" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="468" y="260" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="635" y="275" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="879" y="258" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProvideReason_di" bpmnElement="Task_ProvideReason" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="805" y="260" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProvideRejection_di" bpmnElement="Task_ProvideRejection" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="805" y="360" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MergeDecision_di" bpmnElement="Gateway_MergeDecision" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="975" y="275" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Result_di" bpmnElement="Gateway_Result" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1075" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1252" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1225" y="545" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdjustOrder_di" bpmnElement="Task_AdjustOrder" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1035" y="608" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Draft_di" bpmnElement="EndEvent_Draft" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1252" y="630" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1245" y="673" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ToCreateRequest_di" bpmnElement="Flow_ToCreateRequest">
+        <di:waypoint x="258" y="160" />
+        <di:waypoint x="297" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToNotifyManager_di" bpmnElement="Flow_ToNotifyManager">
+        <di:waypoint x="427" y="160" />
+        <di:waypoint x="468" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToReviewOrder_di" bpmnElement="Flow_ToReviewOrder">
+        <di:waypoint x="533" y="200" />
+        <di:waypoint x="533" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FromMergeDecision_di" bpmnElement="Flow_FromMergeDecision">
+        <di:waypoint x="1000" y="275" />
+        <di:waypoint x="1000" y="220" />
+        <di:waypoint x="780" y="220" />
+        <di:waypoint x="780" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToNotifySalesperson_di" bpmnElement="Flow_ToNotifySalesperson">
+        <di:waypoint x="845" y="160" />
+        <di:waypoint x="935" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToResultGateway_di" bpmnElement="Flow_ToResultGateway">
+        <di:waypoint x="1065" y="160" />
+        <di:waypoint x="1100" y="160" />
+        <di:waypoint x="1100" y="495" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDecisionGateway_di" bpmnElement="Flow_ToDecisionGateway">
+        <di:waypoint x="598" y="300" />
+        <di:waypoint x="635" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="660" y="325" />
+        <di:waypoint x="660" y="400" />
+        <di:waypoint x="805" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="717" y="377" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="685" y="300" />
+        <di:waypoint x="805" y="300" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="712" y="278" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToMergeDecision1_di" bpmnElement="Flow_ToMergeDecision1">
+        <di:waypoint x="935" y="300" />
+        <di:waypoint x="975" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToMergeDecision2_di" bpmnElement="Flow_ToMergeDecision2">
+        <di:waypoint x="935" y="400" />
+        <di:waypoint x="1000" y="400" />
+        <di:waypoint x="1000" y="325" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IsRejected_di" bpmnElement="Flow_IsRejected">
+        <di:waypoint x="1100" y="545" />
+        <di:waypoint x="1100" y="608" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1112" y="563" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IsApproved_di" bpmnElement="Flow_IsApproved">
+        <di:waypoint x="1125" y="520" />
+        <di:waypoint x="1252" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1156" y="500" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDraftEnd_di" bpmnElement="Flow_ToDraftEnd">
+        <di:waypoint x="1165" y="648" />
+        <di:waypoint x="1252" y="648" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.10.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Pool" name="Жизненный цикл локальной сметы" processRef="Process_LSLifecycle" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_LSLifecycle" processType="None" isClosed="false" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateLS</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CallActivity_Orders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Extend</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloseManual</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="1С:УТ">
+        <bpmn:flowNodeRef>Task_Active</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Event</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Shipped</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Closed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Expired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CloseApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CloseAuto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Cancelled</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Cancel</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Approver" name="Согласующий (РБЮ / ДП / ГД)">
+        <bpmn:flowNodeRef>Task_CloseApprove</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_CreateLS" name="Создание ЛС (НПСС фиксируется)">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToActive</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Active" name="Активна (создание заказов разрешено)">
+      <bpmn:incoming>Flow_ToActive</bpmn:incoming>
+      <bpmn:incoming>Flow_ShippedRemainder</bpmn:incoming>
+      <bpmn:incoming>Flow_ExtendBack</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEvent</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Event">
+      <bpmn:incoming>Flow_ToEvent</bpmn:incoming>
+      <bpmn:outgoing>Flow_NewOrder</bpmn:outgoing>
+      <bpmn:outgoing>Flow_TimeExpired</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CancelLS</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:callActivity id="CallActivity_Orders" name="Заказы клиента (см. BPMN 4)">
+      <bpmn:incoming>Flow_NewOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderDone</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="Gateway_Shipped">
+      <bpmn:incoming>Flow_OrderDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_AllShipped</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ShippedRemainder</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Closed" name="Закрыта (все отгружено)">
+      <bpmn:incoming>Flow_AllShipped</bpmn:incoming>
+      <bpmn:incoming>Flow_CloseAutoPath</bpmn:incoming>
+      <bpmn:incoming>Flow_CloseApprovePath</bpmn:incoming>
+      <bpmn:outgoing>Flow_ClosedEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Expired" name="Истекла (срок вышел)">
+      <bpmn:incoming>Flow_TimeExpired</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToExpiredGw</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Expired">
+      <bpmn:incoming>Flow_ToExpiredGw</bpmn:incoming>
+      <bpmn:outgoing>Flow_Extend</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CloseLS</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_Extend" name="Продление (макс. 2 раза)">
+      <bpmn:incoming>Flow_Extend</bpmn:incoming>
+      <bpmn:outgoing>Flow_ExtendBack</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="Task_CloseManual" name="Закрытие с частичной отгрузкой">
+      <bpmn:incoming>Flow_CloseLS</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCloseApproval</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_CloseApproval">
+      <bpmn:incoming>Flow_ToCloseApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_CloseAutoPath</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CloseApprovePath</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_CloseAuto" name="Закрытие без согласования (&lt; 1 п.п.)">
+      <bpmn:incoming>Flow_CloseAutoPath</bpmn:incoming>
+      <bpmn:outgoing>Flow_CloseAutoToClosed</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_CloseApprove" name="Согласование закрытия">
+      <bpmn:incoming>Flow_CloseApprovePath</bpmn:incoming>
+      <bpmn:outgoing>Flow_CloseApproveToClosed</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Cancelled" name="Отменена (0 отгрузок)">
+      <bpmn:incoming>Flow_CancelLS</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_OK" name="ЛС завершена">
+      <bpmn:incoming>Flow_ClosedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Cancel" name="ЛС отменена">
+      <bpmn:incoming>Flow_CancelEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CreateLS" />
+    <bpmn:sequenceFlow id="Flow_ToActive" sourceRef="Task_CreateLS" targetRef="Task_Active" />
+    <bpmn:sequenceFlow id="Flow_ToEvent" sourceRef="Task_Active" targetRef="Gateway_Event" />
+    <bpmn:sequenceFlow id="Flow_NewOrder" name="новый заказ" sourceRef="Gateway_Event" targetRef="CallActivity_Orders" />
+    <bpmn:sequenceFlow id="Flow_TimeExpired" name="срок истек" sourceRef="Gateway_Event" targetRef="Task_Expired" />
+    <bpmn:sequenceFlow id="Flow_CancelLS" name="отмена (0 отгрузок)" sourceRef="Gateway_Event" targetRef="Task_Cancelled" />
+    <bpmn:sequenceFlow id="Flow_OrderDone" sourceRef="CallActivity_Orders" targetRef="Gateway_Shipped" />
+    <bpmn:sequenceFlow id="Flow_AllShipped" name="все отгружено" sourceRef="Gateway_Shipped" targetRef="Task_Closed" />
+    <bpmn:sequenceFlow id="Flow_ShippedRemainder" name="есть остаток" sourceRef="Gateway_Shipped" targetRef="Task_Active" />
+    <bpmn:sequenceFlow id="Flow_ToExpiredGw" sourceRef="Task_Expired" targetRef="Gateway_Expired" />
+    <bpmn:sequenceFlow id="Flow_Extend" name="продлить" sourceRef="Gateway_Expired" targetRef="Task_Extend" />
+    <bpmn:sequenceFlow id="Flow_CloseLS" name="закрыть" sourceRef="Gateway_Expired" targetRef="Task_CloseManual" />
+    <bpmn:sequenceFlow id="Flow_ExtendBack" sourceRef="Task_Extend" targetRef="Task_Active" />
+    <bpmn:sequenceFlow id="Flow_ToCloseApproval" sourceRef="Task_CloseManual" targetRef="Gateway_CloseApproval" />
+    <bpmn:sequenceFlow id="Flow_CloseAutoPath" name="&lt; 1 п.п." sourceRef="Gateway_CloseApproval" targetRef="Task_CloseAuto" />
+    <bpmn:sequenceFlow id="Flow_CloseApprovePath" name="&#8805; 1 п.п." sourceRef="Gateway_CloseApproval" targetRef="Task_CloseApprove" />
+    <bpmn:sequenceFlow id="Flow_CloseAutoToClosed" sourceRef="Task_CloseAuto" targetRef="Task_Closed" />
+    <bpmn:sequenceFlow id="Flow_CloseApproveToClosed" sourceRef="Task_CloseApprove" targetRef="Task_Closed" />
+    <bpmn:sequenceFlow id="Flow_ClosedEnd" sourceRef="Task_Closed" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_CancelEnd" sourceRef="Task_Cancelled" targetRef="EndEvent_Cancel" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="1450" height="680" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1420" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="160" y="280" width="1420" height="310" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Approver_di" bpmnElement="Lane_Approver" isHorizontal="true">
+        <dc:Bounds x="160" y="590" width="1420" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="222" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateLS_di" bpmnElement="Task_CreateLS" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="290" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Active_di" bpmnElement="Task_Active" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="290" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Event_di" bpmnElement="Gateway_Event" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="425" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_Orders_di" bpmnElement="CallActivity_Orders" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="510" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Shipped_di" bpmnElement="Gateway_Shipped" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="645" y="355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Closed_di" bpmnElement="Task_Closed" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="730" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Expired_di" bpmnElement="Task_Expired" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="510" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Expired_di" bpmnElement="Gateway_Expired" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="645" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Extend_di" bpmnElement="Task_Extend" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="730" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseManual_di" bpmnElement="Task_CloseManual" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="870" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CloseApproval_di" bpmnElement="Gateway_CloseApproval" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1005" y="455" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseAuto_di" bpmnElement="Task_CloseAuto" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1090" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseApprove_di" bpmnElement="Task_CloseApprove" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1090" y="635" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cancelled_di" bpmnElement="Task_Cancelled" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="510" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="872" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="855" y="405" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cancel_di" bpmnElement="EndEvent_Cancel" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="652" y="552" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="637" y="595" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="258" y="180" />
+        <di:waypoint x="290" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToActive_di" bpmnElement="Flow_ToActive">
+        <di:waypoint x="340" y="220" />
+        <di:waypoint x="340" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToEvent_di" bpmnElement="Flow_ToEvent">
+        <di:waypoint x="390" y="380" />
+        <di:waypoint x="425" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NewOrder_di" bpmnElement="Flow_NewOrder">
+        <di:waypoint x="450" y="355" />
+        <di:waypoint x="450" y="180" />
+        <di:waypoint x="510" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="458" y="262" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TimeExpired_di" bpmnElement="Flow_TimeExpired">
+        <di:waypoint x="450" y="405" />
+        <di:waypoint x="450" y="480" />
+        <di:waypoint x="510" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="458" y="462" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelLS_di" bpmnElement="Flow_CancelLS">
+        <di:waypoint x="450" y="405" />
+        <di:waypoint x="450" y="570" />
+        <di:waypoint x="510" y="570" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="458" y="553" width="42" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OrderDone_di" bpmnElement="Flow_OrderDone">
+        <di:waypoint x="610" y="180" />
+        <di:waypoint x="670" y="180" />
+        <di:waypoint x="670" y="355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AllShipped_di" bpmnElement="Flow_AllShipped">
+        <di:waypoint x="695" y="380" />
+        <di:waypoint x="730" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="688" y="358" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ShippedRemainder_di" bpmnElement="Flow_ShippedRemainder">
+        <di:waypoint x="670" y="405" />
+        <di:waypoint x="670" y="420" />
+        <di:waypoint x="340" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="478" y="422" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToExpiredGw_di" bpmnElement="Flow_ToExpiredGw">
+        <di:waypoint x="610" y="480" />
+        <di:waypoint x="645" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Extend_di" bpmnElement="Flow_Extend">
+        <di:waypoint x="670" y="455" />
+        <di:waypoint x="670" y="180" />
+        <di:waypoint x="730" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="678" y="312" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseLS_di" bpmnElement="Flow_CloseLS">
+        <di:waypoint x="695" y="480" />
+        <di:waypoint x="920" y="480" />
+        <di:waypoint x="920" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="785" y="462" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ExtendBack_di" bpmnElement="Flow_ExtendBack">
+        <di:waypoint x="780" y="220" />
+        <di:waypoint x="780" y="260" />
+        <di:waypoint x="340" y="260" />
+        <di:waypoint x="340" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToCloseApproval_di" bpmnElement="Flow_ToCloseApproval">
+        <di:waypoint x="970" y="180" />
+        <di:waypoint x="1030" y="180" />
+        <di:waypoint x="1030" y="455" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseAutoPath_di" bpmnElement="Flow_CloseAutoPath">
+        <di:waypoint x="1030" y="455" />
+        <di:waypoint x="1030" y="420" />
+        <di:waypoint x="1090" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1038" y="402" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseApprovePath_di" bpmnElement="Flow_CloseApprovePath">
+        <di:waypoint x="1030" y="505" />
+        <di:waypoint x="1030" y="675" />
+        <di:waypoint x="1090" y="675" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1038" y="587" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseAutoToClosed_di" bpmnElement="Flow_CloseAutoToClosed">
+        <di:waypoint x="1140" y="380" />
+        <di:waypoint x="1140" y="380" />
+        <di:waypoint x="830" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseApproveToClosed_di" bpmnElement="Flow_CloseApproveToClosed">
+        <di:waypoint x="1190" y="675" />
+        <di:waypoint x="1250" y="675" />
+        <di:waypoint x="1250" y="380" />
+        <di:waypoint x="830" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ClosedEnd_di" bpmnElement="Flow_ClosedEnd">
+        <di:waypoint x="830" y="380" />
+        <di:waypoint x="872" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelEnd_di" bpmnElement="Flow_CancelEnd">
+        <di:waypoint x="610" y="570" />
+        <di:waypoint x="652" y="570" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

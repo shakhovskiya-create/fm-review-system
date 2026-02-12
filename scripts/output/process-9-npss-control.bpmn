@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+  id="Definitions_1"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Pool_1" name="BPMN 9: Контроль актуальности НПСС" processRef="Process_1" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_System" name="1С:УТ">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Check</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Age</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Green</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Yellow</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Orange</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Red</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Block</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_RBU" name="РБЮ">
+        <bpmn:flowNodeRef>Task_RBU</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_RBU</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_DP" name="ДП">
+        <bpmn:flowNodeRef>Task_DPTemp</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Finance" name="Финансовая служба">
+        <bpmn:flowNodeRef>Task_Recalc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Audit</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_Check" name="Проверка возраста&#10;НПСС при&#10;создании заказа">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Age" name="Возраст?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Green</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Yellow</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Orange</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Red</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_Green" name="0-30 дней&#10;(работа без&#10;ограничений)">
+      <bpmn:incoming>Flow_Green</bpmn:incoming>
+      <bpmn:outgoing>Flow_GreenEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Yellow" name="31-60 дней&#10;(предупреждение,&#10;работа разрешена)">
+      <bpmn:incoming>Flow_Yellow</bpmn:incoming>
+      <bpmn:outgoing>Flow_YellowEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Orange" name="61-90 дней&#10;(требуется&#10;подтверждение РБЮ)">
+      <bpmn:incoming>Flow_Orange</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRBU</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Red" name="&gt; 90 дней&#10;БЛОКИРОВКА&#10;(обязательный пересчет)">
+      <bpmn:incoming>Flow_Red</bpmn:incoming>
+      <bpmn:outgoing>Flow_RedEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_RBU" name="Подтверждение&#10;актуальности&#10;или пересчет">
+      <bpmn:incoming>Flow_ToRBU</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToGwRBU</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_RBU" name="Решение?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_ToGwRBU</bpmn:incoming>
+      <bpmn:outgoing>Flow_RBU_OK</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RBU_Recalc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_DPTemp" name="Временное&#10;разрешение&#10;(80+ дней)">
+      <bpmn:outgoing>Flow_DPEnd</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_Recalc" name="Пересчет НПСС&#10;(ежемесячно&#10;до 10-го числа)">
+      <bpmn:incoming>Flow_RBU_Recalc</bpmn:incoming>
+      <bpmn:outgoing>Flow_RecalcEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Audit" name="Квартальный аудит&#10;(100 SKU,&#10;точность &lt; 5%)">
+      <bpmn:outgoing>Flow_AuditEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_OK" name="Продолжение&#10;работы">
+      <bpmn:incoming>Flow_GreenEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_YellowEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_RBU_OK</bpmn:incoming>
+      <bpmn:incoming>Flow_DPEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_RecalcEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_AuditEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Block" name="Заблокировано">
+      <bpmn:incoming>Flow_RedEnd</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_1" />
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Check" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Check" targetRef="Gateway_Age" />
+    <bpmn:sequenceFlow id="Flow_Green" name="0-30 дн" sourceRef="Gateway_Age" targetRef="Task_Green">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">age &lt;= 30</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Yellow" name="31-60 дн" sourceRef="Gateway_Age" targetRef="Task_Yellow">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">age &gt; 30 &amp;&amp; age &lt;= 60</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Orange" name="61-90 дн" sourceRef="Gateway_Age" targetRef="Task_Orange">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">age &gt; 60 &amp;&amp; age &lt;= 90</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Red" name="&gt; 90 дн" sourceRef="Gateway_Age" targetRef="Task_Red">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">age &gt; 90</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_GreenEnd" sourceRef="Task_Green" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_YellowEnd" sourceRef="Task_Yellow" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_ToRBU" sourceRef="Task_Orange" targetRef="Task_RBU" />
+    <bpmn:sequenceFlow id="Flow_ToGwRBU" sourceRef="Task_RBU" targetRef="Gateway_RBU" />
+    <bpmn:sequenceFlow id="Flow_RBU_OK" name="актуальна" sourceRef="Gateway_RBU" targetRef="EndEvent_OK">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">decision == "actual"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RBU_Recalc" name="пересчет" sourceRef="Gateway_RBU" targetRef="Task_Recalc">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">decision == "recalc"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RedEnd" sourceRef="Task_Red" targetRef="EndEvent_Block" />
+    <bpmn:sequenceFlow id="Flow_DPEnd" sourceRef="Task_DPTemp" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_RecalcEnd" sourceRef="Task_Recalc" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_AuditEnd" sourceRef="Task_Audit" targetRef="EndEvent_OK" />
+
+    <bpmn:textAnnotation id="Note_1">
+      <bpmn:text>SLA корректировки:
+24 раб. часа (НПСС=0)
+Эскалация на ФС через 48ч</bpmn:text>
+    </bpmn:textAnnotation>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Pool_1_di" bpmnElement="Pool_1" isHorizontal="true">
+        <dc:Bounds x="160" y="60" width="1300" height="760" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="190" y="60" width="1270" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_RBU_di" bpmnElement="Lane_RBU" isHorizontal="true">
+        <dc:Bounds x="190" y="340" width="1270" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_DP_di" bpmnElement="Lane_DP" isHorizontal="true">
+        <dc:Bounds x="190" y="490" width="1270" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Finance_di" bpmnElement="Lane_Finance" isHorizontal="true">
+        <dc:Bounds x="190" y="640" width="1270" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="232" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Check_di" bpmnElement="Task_Check"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="310" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Age_di" bpmnElement="Gateway_Age" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="455" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="455" y="155" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Green_di" bpmnElement="Task_Green"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="560" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Yellow_di" bpmnElement="Task_Yellow"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="560" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Orange_di" bpmnElement="Task_Orange"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="560" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Red_di" bpmnElement="Task_Red"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="720" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RBU_di" bpmnElement="Task_RBU"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="720" y="375" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_RBU_di" bpmnElement="Gateway_RBU" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="875" y="390" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="875" y="370" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DPTemp_di" bpmnElement="Task_DPTemp"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="720" y="525" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Recalc_di" bpmnElement="Task_Recalc"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="960" y="660" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Audit_di" bpmnElement="Task_Audit"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="960" y="750" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1342" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1322" y="225" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Block_di" bpmnElement="EndEvent_Block"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="882" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="862" y="305" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Note_1_di" bpmnElement="Note_1">
+        <dc:Bounds x="1200" y="70" width="200" height="60" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="268" y="200" />
+        <di:waypoint x="310" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="410" y="200" />
+        <di:waypoint x="455" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Green_di" bpmnElement="Flow_Green">
+        <di:waypoint x="480" y="175" />
+        <di:waypoint x="480" y="120" />
+        <di:waypoint x="560" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="490" y="103" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Yellow_di" bpmnElement="Flow_Yellow">
+        <di:waypoint x="505" y="200" />
+        <di:waypoint x="560" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="510" y="183" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Orange_di" bpmnElement="Flow_Orange">
+        <di:waypoint x="480" y="225" />
+        <di:waypoint x="480" y="280" />
+        <di:waypoint x="560" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="490" y="263" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Red_di" bpmnElement="Flow_Red">
+        <di:waypoint x="480" y="225" />
+        <di:waypoint x="480" y="320" />
+        <di:waypoint x="720" y="320" />
+        <di:waypoint x="720" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="580" y="303" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GreenEnd_di" bpmnElement="Flow_GreenEnd">
+        <di:waypoint x="660" y="120" />
+        <di:waypoint x="1360" y="120" />
+        <di:waypoint x="1360" y="182" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_YellowEnd_di" bpmnElement="Flow_YellowEnd">
+        <di:waypoint x="660" y="200" />
+        <di:waypoint x="1342" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRBU_di" bpmnElement="Flow_ToRBU">
+        <di:waypoint x="660" y="280" />
+        <di:waypoint x="690" y="280" />
+        <di:waypoint x="690" y="415" />
+        <di:waypoint x="720" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToGwRBU_di" bpmnElement="Flow_ToGwRBU">
+        <di:waypoint x="820" y="415" />
+        <di:waypoint x="875" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RBU_OK_di" bpmnElement="Flow_RBU_OK">
+        <di:waypoint x="925" y="415" />
+        <di:waypoint x="1360" y="415" />
+        <di:waypoint x="1360" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1100" y="398" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RBU_Recalc_di" bpmnElement="Flow_RBU_Recalc">
+        <di:waypoint x="900" y="440" />
+        <di:waypoint x="900" y="700" />
+        <di:waypoint x="960" y="700" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="905" y="563" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RedEnd_di" bpmnElement="Flow_RedEnd">
+        <di:waypoint x="820" y="280" />
+        <di:waypoint x="882" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DPEnd_di" bpmnElement="Flow_DPEnd">
+        <di:waypoint x="820" y="565" />
+        <di:waypoint x="1360" y="565" />
+        <di:waypoint x="1360" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RecalcEnd_di" bpmnElement="Flow_RecalcEnd">
+        <di:waypoint x="1060" y="700" />
+        <di:waypoint x="1360" y="700" />
+        <di:waypoint x="1360" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AuditEnd_di" bpmnElement="Flow_AuditEnd">
+        <di:waypoint x="1060" y="790" />
+        <di:waypoint x="1360" y="790" />
+        <di:waypoint x="1360" y="218" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

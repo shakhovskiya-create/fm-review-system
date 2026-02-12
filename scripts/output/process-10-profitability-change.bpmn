@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+  id="Definitions_1"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Pool_1" name="BPMN 10: Изменение плановой рентабельности ЛС" processRef="Process_1" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Request</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="1С:УТ">
+        <bpmn:flowNodeRef>Gateway_Direction</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Increase</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cause</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NPSS</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Level</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Apply</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Annul</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Reject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Reject</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Approver" name="Согласующий (РБЮ / ДП / ГД)">
+        <bpmn:flowNodeRef>Task_RBU</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DP</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GD</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Result</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_Request" name="Запрос на&#10;изменение плановой&#10;рентабельности">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Direction" name="Направление?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Increase</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Decrease</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_Increase" name="Повышение&#10;(без согласования)">
+      <bpmn:incoming>Flow_Increase</bpmn:incoming>
+      <bpmn:outgoing>Flow_IncToApply</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Cause" name="Причина?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_Decrease</bpmn:incoming>
+      <bpmn:outgoing>Flow_NPSS</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Manual</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_NPSS" name="Снижение из-за&#10;пересчета НПСС&#10;(без согласования)">
+      <bpmn:incoming>Flow_NPSS</bpmn:incoming>
+      <bpmn:outgoing>Flow_NPSSToApply</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Level" name="Уровень?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_Manual</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRBU</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToDP</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToGD</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_RBU" name="Согласование РБЮ&#10;(0-3 п.п.)">
+      <bpmn:incoming>Flow_ToRBU</bpmn:incoming>
+      <bpmn:outgoing>Flow_RBUResult</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_DP" name="Согласование ДП&#10;(3.01-10 п.п.)">
+      <bpmn:incoming>Flow_ToDP</bpmn:incoming>
+      <bpmn:outgoing>Flow_DPResult</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_GD" name="Согласование ГД&#10;(&gt; 10 п.п.)">
+      <bpmn:incoming>Flow_ToGD</bpmn:incoming>
+      <bpmn:outgoing>Flow_GDResult</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Result" name="Решение?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_RBUResult</bpmn:incoming>
+      <bpmn:incoming>Flow_DPResult</bpmn:incoming>
+      <bpmn:incoming>Flow_GDResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_Apply" name="Применение&#10;изменения&#10;(запись в журнал)">
+      <bpmn:incoming>Flow_IncToApply</bpmn:incoming>
+      <bpmn:incoming>Flow_NPSSToApply</bpmn:incoming>
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAnnul</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Annul" name="Аннулирование&#10;согласований&#10;(если уровень изменился)">
+      <bpmn:incoming>Flow_ToAnnul</bpmn:incoming>
+      <bpmn:outgoing>Flow_AnnulEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Reject" name="Отказ&#10;(изменение&#10;не применено)">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_OK" name="Изменено">
+      <bpmn:incoming>Flow_AnnulEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Reject" name="Отклонено">
+      <bpmn:incoming>Flow_RejectEnd</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_1" />
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Request" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Request" targetRef="Gateway_Direction" />
+    <bpmn:sequenceFlow id="Flow_Increase" name="повышение" sourceRef="Gateway_Direction" targetRef="Task_Increase">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">direction == "increase"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Decrease" name="снижение" sourceRef="Gateway_Direction" targetRef="Gateway_Cause">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">direction == "decrease"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NPSS" name="пересчет НПСС" sourceRef="Gateway_Cause" targetRef="Task_NPSS">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">cause == "npss"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Manual" name="ручной запрос" sourceRef="Gateway_Cause" targetRef="Gateway_Level">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">cause == "manual"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToRBU" name="0-3 п.п." sourceRef="Gateway_Level" targetRef="Task_RBU">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">delta &lt;= 3</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToDP" name="3.01-10" sourceRef="Gateway_Level" targetRef="Task_DP">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">delta &gt; 3 &amp;&amp; delta &lt;= 10</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToGD" name="&gt; 10 п.п." sourceRef="Gateway_Level" targetRef="Task_GD">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">delta &gt; 10</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RBUResult" sourceRef="Task_RBU" targetRef="Gateway_Result" />
+    <bpmn:sequenceFlow id="Flow_DPResult" sourceRef="Task_DP" targetRef="Gateway_Result" />
+    <bpmn:sequenceFlow id="Flow_GDResult" sourceRef="Task_GD" targetRef="Gateway_Result" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="одобрено" sourceRef="Gateway_Result" targetRef="Task_Apply">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">result == "approved"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="отклонено" sourceRef="Gateway_Result" targetRef="Task_Reject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">result == "rejected"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_IncToApply" sourceRef="Task_Increase" targetRef="Task_Apply" />
+    <bpmn:sequenceFlow id="Flow_NPSSToApply" sourceRef="Task_NPSS" targetRef="Task_Apply" />
+    <bpmn:sequenceFlow id="Flow_ToAnnul" sourceRef="Task_Apply" targetRef="Task_Annul" />
+    <bpmn:sequenceFlow id="Flow_AnnulEnd" sourceRef="Task_Annul" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_RejectEnd" sourceRef="Task_Reject" targetRef="EndEvent_Reject" />
+
+    <bpmn:textAnnotation id="Note_1">
+      <bpmn:text>Журнал аудита:
+автор, дата, старое/новое
+значение, причина.
+Хранение: 5 лет.</bpmn:text>
+    </bpmn:textAnnotation>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Pool_1_di" bpmnElement="Pool_1" isHorizontal="true">
+        <dc:Bounds x="160" y="60" width="1340" height="620" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="190" y="60" width="1310" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="190" y="210" width="1310" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Approver_di" bpmnElement="Lane_Approver" isHorizontal="true">
+        <dc:Bounds x="190" y="490" width="1310" height="190" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="232" y="117" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Request_di" bpmnElement="Task_Request"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="310" y="95" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Direction_di" bpmnElement="Gateway_Direction" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="455" y="250" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Increase_di" bpmnElement="Task_Increase"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="560" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Cause_di" bpmnElement="Gateway_Cause" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="555" y="330" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_NPSS_di" bpmnElement="Task_NPSS"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="660" y="305" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Level_di" bpmnElement="Gateway_Level" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="655" y="410" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RBU_di" bpmnElement="Task_RBU"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="760" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DP_di" bpmnElement="Task_DP"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="760" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GD_di" bpmnElement="Task_GD"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="900" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Result_di" bpmnElement="Gateway_Result" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="1035" y="525" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Apply_di" bpmnElement="Task_Apply"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1110" y="305" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Annul_di" bpmnElement="Task_Annul"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1250" y="305" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Reject_di" bpmnElement="Task_Reject"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1110" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1392" y="327" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1382" y="370" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Reject_di" bpmnElement="EndEvent_Reject"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1282" y="432" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1272" y="475" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Note_1_di" bpmnElement="Note_1">
+        <dc:Bounds x="1250" y="70" width="200" height="60" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="268" y="135" />
+        <di:waypoint x="310" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="410" y="135" />
+        <di:waypoint x="480" y="135" />
+        <di:waypoint x="480" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Increase_di" bpmnElement="Flow_Increase">
+        <di:waypoint x="505" y="275" />
+        <di:waypoint x="560" y="265" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="505" y="248" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decrease_di" bpmnElement="Flow_Decrease">
+        <di:waypoint x="480" y="300" />
+        <di:waypoint x="480" y="355" />
+        <di:waypoint x="555" y="355" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="485" y="338" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NPSS_di" bpmnElement="Flow_NPSS">
+        <di:waypoint x="605" y="355" />
+        <di:waypoint x="660" y="345" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="605" y="328" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Manual_di" bpmnElement="Flow_Manual">
+        <di:waypoint x="580" y="380" />
+        <di:waypoint x="580" y="435" />
+        <di:waypoint x="655" y="435" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="585" y="418" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRBU_di" bpmnElement="Flow_ToRBU">
+        <di:waypoint x="680" y="460" />
+        <di:waypoint x="680" y="550" />
+        <di:waypoint x="760" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="690" y="533" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDP_di" bpmnElement="Flow_ToDP">
+        <di:waypoint x="705" y="435" />
+        <di:waypoint x="730" y="435" />
+        <di:waypoint x="730" y="630" />
+        <di:waypoint x="760" y="630" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="735" y="613" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToGD_di" bpmnElement="Flow_ToGD">
+        <di:waypoint x="705" y="435" />
+        <di:waypoint x="860" y="435" />
+        <di:waypoint x="860" y="630" />
+        <di:waypoint x="900" y="630" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="865" y="613" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RBUResult_di" bpmnElement="Flow_RBUResult">
+        <di:waypoint x="860" y="550" />
+        <di:waypoint x="1035" y="550" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DPResult_di" bpmnElement="Flow_DPResult">
+        <di:waypoint x="860" y="630" />
+        <di:waypoint x="1060" y="630" />
+        <di:waypoint x="1060" y="575" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GDResult_di" bpmnElement="Flow_GDResult">
+        <di:waypoint x="1000" y="630" />
+        <di:waypoint x="1060" y="630" />
+        <di:waypoint x="1060" y="575" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="1060" y="525" />
+        <di:waypoint x="1060" y="345" />
+        <di:waypoint x="1110" y="345" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1065" y="328" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="1085" y="550" />
+        <di:waypoint x="1160" y="550" />
+        <di:waypoint x="1160" y="490" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1095" y="533" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IncToApply_di" bpmnElement="Flow_IncToApply">
+        <di:waypoint x="660" y="265" />
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1160" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NPSSToApply_di" bpmnElement="Flow_NPSSToApply">
+        <di:waypoint x="760" y="345" />
+        <di:waypoint x="1110" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAnnul_di" bpmnElement="Flow_ToAnnul">
+        <di:waypoint x="1210" y="345" />
+        <di:waypoint x="1250" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AnnulEnd_di" bpmnElement="Flow_AnnulEnd">
+        <di:waypoint x="1350" y="345" />
+        <di:waypoint x="1392" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RejectEnd_di" bpmnElement="Flow_RejectEnd">
+        <di:waypoint x="1210" y="450" />
+        <di:waypoint x="1282" y="450" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

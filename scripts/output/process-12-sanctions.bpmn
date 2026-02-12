@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+  id="Definitions_1"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Pool_1" name="BPMN 12: Санкции за невыкуп (Этап 2)" processRef="Process_1" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_System" name="1С:УТ (авторасчет)">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Trigger</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Calc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Percent</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Mild</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Medium</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Severe</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Register</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Rehab</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Clean</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_RBU" name="РБЮ">
+        <bpmn:flowNodeRef>Task_Deficit</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_DP" name="ДП">
+        <bpmn:flowNodeRef>Gateway_Strategic</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Exception</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>Task_Notify</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_Trigger" name="ЛС закрыта&#10;или истекла&#10;(триггер)">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_Deficit" name="Определение&#10;подтвержденного&#10;дефицита">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_Calc" name="Расчет % выкупа&#10;(Отгруж.-Возвр.60д)&#10;/ (ЛС-Дефицит)">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Percent" name="% выкупа?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_OK</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Mild</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Medium</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Severe</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_OK" name="90-100%&#10;Без санкций">
+      <bpmn:incoming>Flow_OK</bpmn:incoming>
+      <bpmn:outgoing>Flow_OKEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Mild" name="70-89%&#10;Скидка -3 п.п.">
+      <bpmn:incoming>Flow_Mild</bpmn:incoming>
+      <bpmn:outgoing>Flow_MildToStrat</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Medium" name="50-69%&#10;Скидка -10 п.п.">
+      <bpmn:incoming>Flow_Medium</bpmn:incoming>
+      <bpmn:outgoing>Flow_MediumToStrat</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Severe" name="&lt; 50%&#10;Только стандартные&#10;цены">
+      <bpmn:incoming>Flow_Severe</bpmn:incoming>
+      <bpmn:outgoing>Flow_SevereToStrat</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Strategic" name="Тип клиента?" isMarkerVisible="true">
+      <bpmn:incoming>Flow_MildToStrat</bpmn:incoming>
+      <bpmn:incoming>Flow_MediumToStrat</bpmn:incoming>
+      <bpmn:incoming>Flow_SevereToStrat</bpmn:incoming>
+      <bpmn:outgoing>Flow_Strategic</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Regular</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_Exception" name="Отмена санкции&#10;(стратегический&#10;клиент)">
+      <bpmn:incoming>Flow_Strategic</bpmn:incoming>
+      <bpmn:outgoing>Flow_ExceptionEnd</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="Task_Register" name="Запись в реестр&#10;(контрагент, тип,&#10;дата, ЛС)">
+      <bpmn:incoming>Flow_Regular</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToNotify</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sendTask id="Task_Notify" name="Уведомление&#10;менеджера&#10;о санкции">
+      <bpmn:incoming>Flow_ToNotify</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:serviceTask id="Task_Rehab" name="Реабилитация&#10;(6 мес. без&#10;нарушений)">
+      <bpmn:outgoing>Flow_RehabEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_OK" name="Санкция&#10;применена">
+      <bpmn:incoming>Flow_NotifyEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Clean" name="Без санкций">
+      <bpmn:incoming>Flow_OKEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_ExceptionEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_RehabEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Trigger" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Trigger" targetRef="Task_Deficit" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Deficit" targetRef="Task_Calc" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Calc" targetRef="Gateway_Percent" />
+    <bpmn:sequenceFlow id="Flow_OK" name="90-100%" sourceRef="Gateway_Percent" targetRef="Task_OK">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">percent &gt;= 90</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Mild" name="70-89%" sourceRef="Gateway_Percent" targetRef="Task_Mild">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">percent &gt;= 70 &amp;&amp; percent &lt; 90</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Medium" name="50-69%" sourceRef="Gateway_Percent" targetRef="Task_Medium">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">percent &gt;= 50 &amp;&amp; percent &lt; 70</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Severe" name="&lt; 50%" sourceRef="Gateway_Percent" targetRef="Task_Severe">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">percent &lt; 50</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_OKEnd" sourceRef="Task_OK" targetRef="EndEvent_Clean" />
+    <bpmn:sequenceFlow id="Flow_MildToStrat" sourceRef="Task_Mild" targetRef="Gateway_Strategic" />
+    <bpmn:sequenceFlow id="Flow_MediumToStrat" sourceRef="Task_Medium" targetRef="Gateway_Strategic" />
+    <bpmn:sequenceFlow id="Flow_SevereToStrat" sourceRef="Task_Severe" targetRef="Gateway_Strategic" />
+    <bpmn:sequenceFlow id="Flow_Strategic" name="стратег.&#10;клиент" sourceRef="Gateway_Strategic" targetRef="Task_Exception">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">clientType == "strategic"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Regular" name="обычный&#10;клиент" sourceRef="Gateway_Strategic" targetRef="Task_Register">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">clientType == "regular"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ExceptionEnd" sourceRef="Task_Exception" targetRef="EndEvent_Clean" />
+    <bpmn:sequenceFlow id="Flow_ToNotify" sourceRef="Task_Register" targetRef="Task_Notify" />
+    <bpmn:sequenceFlow id="Flow_NotifyEnd" sourceRef="Task_Notify" targetRef="EndEvent_OK" />
+    <bpmn:sequenceFlow id="Flow_RehabEnd" sourceRef="Task_Rehab" targetRef="EndEvent_Clean" />
+
+    <bpmn:textAnnotation id="Note_1">
+      <bpmn:text>Кумулятивность:
+повторные нарушения
+суммируются.
+При -13+ п.п. -
+только стандартные цены.</bpmn:text>
+    </bpmn:textAnnotation>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Pool_1_di" bpmnElement="Pool_1" isHorizontal="true">
+        <dc:Bounds x="160" y="60" width="1300" height="700" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true">
+        <dc:Bounds x="190" y="60" width="1270" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_RBU_di" bpmnElement="Lane_RBU" isHorizontal="true">
+        <dc:Bounds x="190" y="340" width="1270" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_DP_di" bpmnElement="Lane_DP" isHorizontal="true">
+        <dc:Bounds x="190" y="460" width="1270" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="190" y="610" width="1270" height="150" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="232" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Trigger_di" bpmnElement="Task_Trigger"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="310" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Deficit_di" bpmnElement="Task_Deficit"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="310" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Calc_di" bpmnElement="Task_Calc"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="460" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Percent_di" bpmnElement="Gateway_Percent" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="605" y="165" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_OK_di" bpmnElement="Task_OK"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="700" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Mild_di" bpmnElement="Task_Mild"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="700" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Medium_di" bpmnElement="Task_Medium"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="700" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Severe_di" bpmnElement="Task_Severe"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="830" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Strategic_di" bpmnElement="Gateway_Strategic" isMarkerVisible="true"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="855" y="510" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Exception_di" bpmnElement="Task_Exception"
+        bioc:stroke="#6b3c00" bioc:fill="#ffe0b2"
+        color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="960" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Register_di" bpmnElement="Task_Register"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="960" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Notify_di" bpmnElement="Task_Notify"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="960" y="645" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Rehab_di" bpmnElement="Task_Rehab"
+        bioc:stroke="#0d4372" bioc:fill="#bbdefb"
+        color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="1100" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_OK_di" bpmnElement="EndEvent_OK"
+        bioc:stroke="#831311" bioc:fill="#ffcdd2"
+        color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="1132" y="667" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1118" y="710" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Clean_di" bpmnElement="EndEvent_Clean"
+        bioc:stroke="#205022" bioc:fill="#c8e6c9"
+        color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="1312" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1295" y="215" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Note_1_di" bpmnElement="Note_1">
+        <dc:Bounds x="1180" y="70" width="200" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="268" y="190" />
+        <di:waypoint x="310" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="230" />
+        <di:waypoint x="360" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="410" y="400" />
+        <di:waypoint x="510" y="400" />
+        <di:waypoint x="510" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="560" y="190" />
+        <di:waypoint x="605" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OK_di" bpmnElement="Flow_OK">
+        <di:waypoint x="630" y="165" />
+        <di:waypoint x="630" y="120" />
+        <di:waypoint x="700" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="640" y="103" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Mild_di" bpmnElement="Flow_Mild">
+        <di:waypoint x="655" y="190" />
+        <di:waypoint x="700" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="656" y="173" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Medium_di" bpmnElement="Flow_Medium">
+        <di:waypoint x="630" y="215" />
+        <di:waypoint x="630" y="270" />
+        <di:waypoint x="700" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="640" y="253" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Severe_di" bpmnElement="Flow_Severe">
+        <di:waypoint x="630" y="215" />
+        <di:waypoint x="630" y="310" />
+        <di:waypoint x="830" y="310" />
+        <di:waypoint x="830" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="710" y="293" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OKEnd_di" bpmnElement="Flow_OKEnd">
+        <di:waypoint x="800" y="120" />
+        <di:waypoint x="1330" y="120" />
+        <di:waypoint x="1330" y="172" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MildToStrat_di" bpmnElement="Flow_MildToStrat">
+        <di:waypoint x="800" y="190" />
+        <di:waypoint x="840" y="190" />
+        <di:waypoint x="840" y="535" />
+        <di:waypoint x="855" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MediumToStrat_di" bpmnElement="Flow_MediumToStrat">
+        <di:waypoint x="800" y="270" />
+        <di:waypoint x="820" y="270" />
+        <di:waypoint x="820" y="535" />
+        <di:waypoint x="855" y="535" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SevereToStrat_di" bpmnElement="Flow_SevereToStrat">
+        <di:waypoint x="880" y="310" />
+        <di:waypoint x="880" y="510" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Strategic_di" bpmnElement="Flow_Strategic">
+        <di:waypoint x="905" y="535" />
+        <di:waypoint x="960" y="515" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="910" y="498" width="42" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Regular_di" bpmnElement="Flow_Regular">
+        <di:waypoint x="880" y="510" />
+        <di:waypoint x="880" y="190" />
+        <di:waypoint x="960" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="885" y="158" width="45" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ExceptionEnd_di" bpmnElement="Flow_ExceptionEnd">
+        <di:waypoint x="1060" y="515" />
+        <di:waypoint x="1330" y="515" />
+        <di:waypoint x="1330" y="208" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToNotify_di" bpmnElement="Flow_ToNotify">
+        <di:waypoint x="1010" y="230" />
+        <di:waypoint x="1010" y="645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NotifyEnd_di" bpmnElement="Flow_NotifyEnd">
+        <di:waypoint x="1060" y="685" />
+        <di:waypoint x="1132" y="685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RehabEnd_di" bpmnElement="Flow_RehabEnd">
+        <di:waypoint x="1200" y="270" />
+        <di:waypoint x="1330" y="270" />
+        <di:waypoint x="1330" y="208" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

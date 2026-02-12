@@ -208,6 +208,51 @@ function calculateLayout(process) {
     }
   }
 
+  // Вынос "сиротских" потоков (второй старт, напр. Отменен) влево в лейне
+  const incomingCount = {};
+  for (const e of process.edges) {
+    incomingCount[e.to] = (incomingCount[e.to] || 0) + 1;
+  }
+  const pred = {};
+  for (const e of process.edges) {
+    if (!pred[e.to]) pred[e.to] = [];
+    pred[e.to].push(e.from);
+  }
+  const firstLaneId = process.lanes[0]?.id;
+  const mainStartId = process.nodes.find(n => n.lane === firstLaneId && n.type === 'eventStart')?.id;
+
+  for (const lane of process.lanes) {
+    const nodes = laneNodes[lane.id];
+    const orphans = nodes.filter(n => (incomingCount[n.id] || 0) === 0 && n.id !== mainStartId);
+    for (const orphanNode of orphans) {
+      const chain = [orphanNode.id];
+      const queue = [orphanNode.id];
+      while (queue.length) {
+        const n = queue.shift();
+        for (const e of process.edges) {
+          if (e.from !== n) continue;
+          const t = e.to;
+          if (chain.includes(t)) continue;
+          const allPredInChain = (pred[t] || []).every(p => chain.includes(p));
+          if (allPredInChain) {
+            chain.push(t);
+            queue.push(t);
+          }
+        }
+      }
+      const chainSet = new Set(chain);
+      const othersInLane = nodes.filter(n => !chainSet.has(n.id));
+      if (othersInLane.length === 0) continue;
+      const minXOther = Math.min(...othersInLane.map(n => n.x - n.width / 2));
+      const step = 110;
+      const leftStart = minXOther - step * chain.length - 80;
+      chain.forEach((nodeId, i) => {
+        const node = nodes.find(n => n.id === nodeId);
+        if (node) node.x = leftStart + step * i + node.width / 2;
+      });
+    }
+  }
+
   const laneInfo = {};
   let currentY = 0;
 
@@ -222,7 +267,8 @@ function calculateLayout(process) {
     let minY = Infinity, maxY = -Infinity;
     for (const node of nodes) {
       minY = Math.min(minY, node.y - node.height / 2);
-      const extraSpace = node.type.includes('event') ? CONFIG.eventLabelSpace : 0;
+      let extraSpace = node.type.includes('event') ? CONFIG.eventLabelSpace : 0;
+      if (node.type === 'gateway' && node.label && node.label !== 'X') extraSpace = 26;
       maxY = Math.max(maxY, node.y + node.height / 2 + extraSpace);
     }
 
@@ -349,6 +395,16 @@ function generateDrawioXml(layout, processName, diagramName) {
       <mxCell id="${xTextId}" value="X" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="${parentLaneId}">
         <mxGeometry x="${xX}" y="${xY}" width="${xSize}" height="${xSize}" as="geometry"/>
       </mxCell>`);
+      if (node.label && node.label !== 'X') {
+        const gwLabelId = cellId++;
+        const gwLabelWidth = Math.max(80, (node.label.length || 0) * 6);
+        const gwLabelX = relX + (node.width - gwLabelWidth) / 2;
+        const gwLabelY = relY + node.height + 4;
+        cells.push(`
+      <mxCell id="${gwLabelId}" value="${xmlEncode(node.label)}" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#333333;" vertex="1" parent="${parentLaneId}">
+        <mxGeometry x="${gwLabelX}" y="${gwLabelY}" width="${gwLabelWidth}" height="22" as="geometry"/>
+      </mxCell>`);
+      }
     }
 
     if (node.type.includes('event') && node.type !== 'eventStart' && node.label) {
@@ -411,7 +467,7 @@ function generateDrawioXml(layout, processName, diagramName) {
       const group = crossLaneGroups[edge.from] || [];
       const edgeIndex = group.indexOf(edge);
       const groupSize = group.length;
-      const spreadOffset = groupSize > 1 ? (edgeIndex - (groupSize - 1) / 2) * 20 : 0;
+      const spreadOffset = groupSize > 1 ? (edgeIndex - (groupSize - 1) / 2) * 38 : 0;
 
       const edgeStyle = 'rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;labelBackgroundColor=#ffffff;fontSize=10;';
 

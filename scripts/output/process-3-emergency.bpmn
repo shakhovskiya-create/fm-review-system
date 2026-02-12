@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.10.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Pool" name="Экстренное согласование (устное разрешение)" processRef="Process_Emergency" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Emergency" processType="None" isClosed="false" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Менеджер">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RequestOral</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_OralResult</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Fix1C</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CallActivity_Standard</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Warehouse" name="Склад">
+        <bpmn:flowNodeRef>Task_Ship</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Approver" name="Согласующий">
+        <bpmn:flowNodeRef>Task_PostFactum</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PostResult</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Result" name="Результат">
+        <bpmn:flowNodeRef>Task_Incident</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Incident</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Approved</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1" name="Срочная отгрузка">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_RequestOral" name="Запрос устного разрешения">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_OralResult">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_PostFactum" name="Согласование пост-фактум (SLA 24ч)">
+      <bpmn:incoming>Flow_ToPostFactum</bpmn:incoming>
+      <bpmn:outgoing>Flow_PostResult</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_PostResult">
+      <bpmn:incoming>Flow_PostResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_PostYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PostNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_RequestOral" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_RequestOral" targetRef="Gateway_OralResult" />
+    <bpmn:sequenceFlow id="Flow_Yes" name="да" sourceRef="Gateway_OralResult" targetRef="Task_Fix1C">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${oralApproval == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_No" name="нет" sourceRef="Gateway_OralResult" targetRef="CallActivity_Standard">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${oralApproval == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToShip" sourceRef="Task_Fix1C" targetRef="Task_Ship" />
+    <bpmn:sequenceFlow id="Flow_ToPostFactum" sourceRef="Task_Ship" targetRef="Task_PostFactum" />
+    <bpmn:sequenceFlow id="Flow_PostResult" sourceRef="Task_PostFactum" targetRef="Gateway_PostResult" />
+    <bpmn:sequenceFlow id="Flow_PostYes" name="да" sourceRef="Gateway_PostResult" targetRef="EndEvent_Approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${postApproved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_PostNo" name="нет" sourceRef="Gateway_PostResult" targetRef="Task_Incident">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${postApproved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_IncidentEnd" sourceRef="Task_Incident" targetRef="EndEvent_Incident" />
+    <bpmn:userTask id="Task_Fix1C" name="Фиксация в 1С (комментарий)">
+      <bpmn:incoming>Flow_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToShip</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Ship" name="Отгрузка товара">
+      <bpmn:incoming>Flow_ToShip</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPostFactum</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:subProcess id="CallActivity_Standard" name="Стандартный процесс (см. BPMN 2)">
+      <bpmn:incoming>Flow_No</bpmn:incoming>
+    </bpmn:subProcess>
+    <bpmn:serviceTask id="Task_Incident" name="Регистрация инцидента">
+      <bpmn:incoming>Flow_PostNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_IncidentEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Incident" name="Инцидент">
+      <bpmn:incoming>Flow_IncidentEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Approved" name="Согласовано пост-фактум">
+      <bpmn:incoming>Flow_PostYes</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Pool_di" bpmnElement="Participant_Pool" isHorizontal="true">
+        <dc:Bounds x="130" y="80" width="990" height="640" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Result_di" bpmnElement="Lane_Result" isHorizontal="true">
+        <dc:Bounds x="160" y="550" width="960" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Approver_di" bpmnElement="Lane_Approver" isHorizontal="true">
+        <dc:Bounds x="160" y="400" width="960" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Warehouse_di" bpmnElement="Lane_Warehouse" isHorizontal="true">
+        <dc:Bounds x="160" y="270" width="960" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="960" height="190" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="222" y="157" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="196" y="200" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RequestOral_di" bpmnElement="Task_RequestOral" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="300" y="135" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_OralResult_di" bpmnElement="Gateway_OralResult" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="445" y="150" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PostFactum_di" bpmnElement="Task_PostFactum" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="680" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_PostResult_di" bpmnElement="Gateway_PostResult" isMarkerVisible="true" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="825" y="450" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Fix1C_di" bpmnElement="Task_Fix1C" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="680" y="135" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Ship_di" bpmnElement="Task_Ship" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="680" y="295" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Incident_di" bpmnElement="Task_Incident" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="680" y="580" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Incident_di" bpmnElement="EndEvent_Incident" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="582" y="602" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="645" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="922" y="602" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="907" y="645" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_117xfdy_di" bpmnElement="CallActivity_Standard" bioc:stroke="#6b3c00" bioc:fill="#ffe0b2" color:background-color="#ffe0b2" color:border-color="#6b3c00">
+        <dc:Bounds x="890" y="135" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="258" y="175" />
+        <di:waypoint x="300" y="175" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="400" y="175" />
+        <di:waypoint x="445" y="175" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Yes_di" bpmnElement="Flow_Yes">
+        <di:waypoint x="495" y="175" />
+        <di:waypoint x="680" y="175" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="583" y="157" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_No_di" bpmnElement="Flow_No">
+        <di:waypoint x="470" y="150" />
+        <di:waypoint x="470" y="100" />
+        <di:waypoint x="940" y="100" />
+        <di:waypoint x="940" y="135" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="581" y="103" width="17" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToShip_di" bpmnElement="Flow_ToShip">
+        <di:waypoint x="730" y="215" />
+        <di:waypoint x="730" y="295" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToPostFactum_di" bpmnElement="Flow_ToPostFactum">
+        <di:waypoint x="730" y="375" />
+        <di:waypoint x="730" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PostResult_di" bpmnElement="Flow_PostResult">
+        <di:waypoint x="780" y="475" />
+        <di:waypoint x="825" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PostYes_di" bpmnElement="Flow_PostYes">
+        <di:waypoint x="850" y="500" />
+        <di:waypoint x="850" y="620" />
+        <di:waypoint x="922" y="620" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="880" y="603" width="13" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PostNo_di" bpmnElement="Flow_PostNo">
+        <di:waypoint x="850" y="500" />
+        <di:waypoint x="850" y="620" />
+        <di:waypoint x="780" y="620" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="811" y="603" width="17" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IncidentEnd_di" bpmnElement="Flow_IncidentEnd">
+        <di:waypoint x="680" y="620" />
+        <di:waypoint x="618" y="620" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_17z5m8y">
+    <bpmndi:BPMNPlane id="BPMNPlane_17cw8yb" bpmnElement="CallActivity_Standard" />
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
