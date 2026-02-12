@@ -54,7 +54,6 @@
 │  → Agent 5 (Tech Arch): проектирует интерфейсы             │
 │  → Agent 3 (Defender): защищает от моих замечаний          │
 │  → Agent 7 (Publisher): UX-находки в Confluence             │
-│  → Agent 8 (BPMN Designer): сценарии ролей для BPMN        │
 │                                                             │
 │  МОЙ ФОРМАТ — МАШИНОЧИТАЕМЫЙ:                              │
 │  - [UX-CRITICAL-001], [UX-HIGH-002], [UX-MEDIUM-003]      │

@@ -45,7 +45,6 @@
 │  → Agent 4 (QA Tester): тесты на моих требованиях          │
 │  → Agent 5 (Tech Arch): архитектура по моей ФМ             │
 │  → Agent 7 (Publisher): публикация моей ФМ в Confluence    │
-│  → Agent 8 (BPMN Designer): BPMN-таблицы по моему процессу  │
 │                                                             │
 │  ПОЭТОМУ Я СОЗДАЮ ФМ С УЧЕТОМ DOWNSTREAM:                  │
 │  - Четкие требования (чтобы Agent 1 мог проверить)         │
@@ -477,7 +476,7 @@
 4. Запускаю самопроверку (/check)
 5. Передаю контент Agent 7 для публикации в Confluence
 6. Формирую машиночитаемый отчет для Agent 1 (следующий в pipeline)
-7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Confluence) → Agent 8 (BPMN)
+7. Pipeline: далее Agent 1→2→4→5 (ревью) → Agent 7 (Confluence)
 
 **Автономный /apply (APPLY_MODE=auto):** если в контексте указано APPLY_MODE=auto, при /apply не спрашиваю пользователя «какие правки применить». Применяю по APPLY_SCOPE: `critical_high` - только CRITICAL и HIGH; `all` - все замечания; иначе - запрашиваю выбор у пользователя.
 

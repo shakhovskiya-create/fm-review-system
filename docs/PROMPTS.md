@@ -20,7 +20,6 @@ PROJECT_[NAME]/
 ├── AGENT_5_TECH_ARCHITECT/← ТЗ
 ├── AGENT_6_PRESENTER/     ← Презентации и экспорт
 ├── AGENT_7_PUBLISHER/     ← Публикация в Confluence
-├── AGENT_8_BPMN_DESIGNER/ ← BPMN-диаграммы
 └── REPORTS/               ← Итоговые отчёты
 
 ТЕКУЩИЕ ПРОЕКТЫ:
@@ -284,9 +283,8 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
   5. AGENT_5 + /auto → архитектура + ТЗ → FM v1.4
   6. Quality Gate → проверка готовности
 
-ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence + BPMN):
+ЭТАП 3 — ПУБЛИКАЦИЯ (Confluence):
   7. AGENT_7 + /auto → публикация в Confluence (Draft)
-  8. AGENT_8 + /auto → BPMN в Confluence через drawio
 
 ЭТАП 4 — БИЗНЕС-СОГЛАСОВАНИЕ (Confluence):
   9. Статус: Draft → Review → бизнес комментирует
@@ -316,7 +314,7 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 - `/roadmap` — дорожная карта внедрения
 - `/auto` — полный цикл без интервью
 
-> ⚠️ Confluence → Agent 7 (/publish), BPMN → Agent 8 (/bpmn)
+> ⚠️ Confluence → Agent 7 (/publish)
 
 ---
 
@@ -338,23 +336,6 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 
 ---
 
-## АГЕНТ 8: BPMN DESIGNER (BPMN-диаграммы в Confluence)
-
-```
-Прочитай свою роль из agents/AGENT_8_BPMN_DESIGNER.md
-
-Проект: PROJECT_SHPMNT_PROFIT
-```
-
-**Команды:**
-- `/bpmn` — создать BPMN-диаграмму из ФМ
-- `/bpmn-update` — обновить существующую BPMN
-- `/bpmn-validate` — валидация диаграммы (покрытие, связность)
-- `/bpmn-publish` — опубликовать в Confluence
-- `/auto` — полный цикл без интервью
-
----
-
 ## КОНВЕЙЕРНЫЙ РЕЖИМ (/auto)
 
 Каждый агент поддерживает команду `/auto` для работы в конвейере:
@@ -369,7 +350,6 @@ Agent 2: /auto → все роли + /apply
 Agent 4: /auto → все тесты + coverage
 Agent 5: /auto → архитектура + ТЗ
 Agent 7: /auto → публикация в Confluence
-Agent 8: /auto → BPMN в Confluence
 Agent 6: /auto → презентация + экспорт
 ```
 
@@ -384,12 +364,11 @@ Agent 6: /auto → презентация + экспорт
 ## СКРИПТЫ
 
 ```
-./scripts/orchestrate.sh    — Главное меню (9 агентов + управление)
+./scripts/orchestrate.sh    — Главное меню (8 агентов + управление)
 ./scripts/new_project.sh    — Создать новый проект
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
 python3 scripts/export_from_confluence.py  — Экспорт ФМ из Confluence (PDF/Word)
-node scripts/generate-bpmn.js              — Генерация BPMN-диаграмм
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
-# Agent 7 и 8 запускаются через orchestrate.sh (пп. 9, 10) или Claude Code напрямую
+# Agent 7 запускается через orchestrate.sh или Claude Code напрямую
 ```

@@ -41,7 +41,6 @@
 |----------|-----------------|--------|
 | publish_to_confluence.py: PAGE_ID из пути к doc или env PROJECT | scripts/publish_to_confluence.py (_get_page_id, путь projects/...) | ✅ |
 | export_from_confluence.py: --project=NAME или env PROJECT | scripts/export_from_confluence.py (_get_page_id, --project=) | ✅ |
-| publish-bpmn.py: env PROJECT → файл projects/PROJECT/CONFLUENCE_PAGE_ID | scripts/publish-bpmn.py (_get_page_id_from_project) | ✅ |
 | new_project создаёт файл CONFLUENCE_PAGE_ID | scripts/new_project.sh | ✅ |
 
 ---
@@ -68,15 +67,7 @@
 
 ---
 
-## 7. BPMN
-
-| Проверка | Где зафиксировано | Статус |
-|----------|-------------------|--------|
-| Цепочка: generate-bpmn.js (JSON → .drawio) + publish-bpmn.py (загрузка в Confluence) | README (BPMN-диаграммы), AGENT_8_BPMN_DESIGNER.md, CLAUDE.md | ✅ |
-
----
-
-## 8. Библиотеки scripts/lib (AG-13, FC-01)
+## 7. Библиотеки scripts/lib (AG-13, FC-01)
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
@@ -84,7 +75,7 @@
 | contract_validator.py — в experimental/, вне текущего контура | scripts/experimental/ | ✅ |
 | Журнал аудита (FC-12B): каждый PUT логируется в .audit_log/confluence_{PAGE_ID}.jsonl | confluence_utils.py (_audit_log), quality_gate.sh секция 7 | ✅ |
 
-## 9. Автономный /apply (APPLY_MODE, APPLY_SCOPE)
+## 8. Автономный /apply (APPLY_MODE, APPLY_SCOPE)
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
@@ -92,17 +83,17 @@
 | APPLY_SCOPE=critical_high — применить только CRITICAL и HIGH; all — все; иначе — запросить у пользователя | Контракт | ✅ |
 | Без APPLY_MODE=auto решение о наборе правок — за человеком (эскалация) | CLAUDE.md, агенты | ✅ |
 
-## 10. Контекст и папки проектов
+## 9. Контекст и папки проектов
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
 | Контекст интервью по проекту: .interview_context_${PROJECT}.txt | scripts/lib/common.sh (get_context_file), orchestrate (export PROJECT) | ✅ |
 | Канон контекста проекта: PROJECT_[NAME]/PROJECT_CONTEXT.md | CLAUDE.md (Автосохранение) | ✅ |
 | CHANGES/: new_project создаёт; FM-*-CHANGES.md по правилу в CHANGES/ | new_project.sh, CLAUDE.md § 9 | ✅ |
-| Папки агентов 7/8: AGENT_7_PUBLISHER, AGENT_8_BPMN_DESIGNER (новые); quality_gate принимает и старые имена | new_project.sh, quality_gate.sh | ✅ |
+| Папка агента 7: AGENT_7_PUBLISHER; quality_gate принимает и старые имена | new_project.sh, quality_gate.sh | ✅ |
 | Pipeline state: per-project, `projects/PROJECT/.pipeline_state.json`; меню 12 показывает состояние выбранного проекта | scripts/lib/common.sh (get_pipeline_state_file), orchestrate.sh | ✅ |
 
-## 11. Автономный запуск пайплайна (AUTONOMOUS, run_agent.py)
+## 10. Автономный запуск пайплайна (AUTONOMOUS, run_agent.py)
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|

@@ -30,7 +30,7 @@
   Версия: [текущая] | Confluence: PAGE_ID [id]
 ══════════════════════════════════════════════
 
-Порядок: Agent 1 → 2 → 4 → 5 → Quality Gate → 7 → 8 → 6
+Порядок: Agent 1 → 2 → 4 → 5 → Quality Gate → 7 → 6
 ```
 
 ---
@@ -45,8 +45,7 @@
 | 4 | Agent 5 | Tech Architect | /auto |
 | 5 | Quality Gate | (скрипт) | bash quality_gate.sh |
 | 6 | Agent 7 | Publisher | /auto |
-| 7 | Agent 8 | BPMN Designer | /auto |
-| 8 | Agent 6 | Presenter | /auto |
+| 7 | Agent 6 | Presenter | /auto |
 
 ---
 
@@ -97,13 +96,13 @@
 
 ---
 
-## ДЛЯ КАЖДОГО ЭТАПА (1-4, 6-8) выполнить:
+## ДЛЯ КАЖДОГО ЭТАПА (1-4, 6-7) выполнить:
 
 ### Перед запуском агента:
 
 1. Показать заголовок:
 ```
-═══ ЭТАП [N]/8: Agent [X] ([Name]) ═══
+═══ ЭТАП [N]/7: Agent [X] ([Name]) ═══
 ```
 
 2. **Прочитать файл роли** агента: `agents/AGENT_X_NAME.md`
@@ -158,7 +157,7 @@
 ## ЭТАП 5: Quality Gate (между Agent 5 и Agent 7)
 
 ```
-═══ ЭТАП 5/8: Quality Gate ═══
+═══ ЭТАП 5/7: Quality Gate ═══
 ```
 
 1. Запустить: `bash scripts/quality_gate.sh [PROJECT_NAME]`
@@ -243,10 +242,9 @@
 | 4 | Tech Arch | ✅ | 3 | 2 | 1.0.3 |
 | 5 | Quality Gate | ✅ | - | - | - |
 | 6 | Publisher | ✅ | - | PUT | v28 |
-| 7 | BPMN | ✅ | 3 диаграммы | - | - |
-| 8 | Presenter | ✅ | - | - | - |
+| 7 | Presenter | ✅ | - | - | - |
 
-Итого: [N]/8 этапов завершено. ФМ: v[X.Y.Z]
+Итого: [N]/7 этапов завершено. ФМ: v[X.Y.Z]
 ```
 
 ---
