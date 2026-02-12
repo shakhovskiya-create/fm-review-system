@@ -45,7 +45,7 @@
 │  → Agent 4 (QA Tester): тесты на моих требованиях          │
 │  → Agent 5 (Tech Arch): архитектура по моей ФМ             │
 │  → Agent 7 (Publisher): публикация моей ФМ в Confluence    │
-│  → Agent 8 (BPMN Designer): BPMN-диаграмма по моему процессу│
+│  → Agent 8 (BPMN Designer): BPMN-таблицы по моему процессу  │
 │                                                             │
 │  ПОЭТОМУ Я СОЗДАЮ ФМ С УЧЕТОМ DOWNSTREAM:                  │
 │  - Четкие требования (чтобы Agent 1 мог проверить)         │

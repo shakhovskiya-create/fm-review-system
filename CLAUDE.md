@@ -17,7 +17,7 @@
 - `agents/AGENT_5_TECH_ARCHITECT.md` — проектирование и ТЗ
 - `agents/AGENT_6_PRESENTER.md` — презентации, экспорт
 - `agents/AGENT_7_PUBLISHER.md` — управление ФМ в Confluence (публикация, версионность)
-- `agents/AGENT_8_BPMN_DESIGNER.md` — BPMN-диаграммы в Confluence (generate-bpmn.js + drawio)
+- `agents/AGENT_8_BPMN_DESIGNER.md` — BPMN-таблицы в Confluence (insert_bpmn_tables.py)
 
 **Confluence ресурсы:**
 - `docs/CONFLUENCE_TEMPLATE.md` - шаблон Confluence-страницы ФМ (XHTML, макросы, панели)
@@ -926,7 +926,7 @@ python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT --agents
 │  === ЭТАП 3: ПУБЛИКАЦИЯ (Confluence) ===                   │
 │  Agent 7 (Publisher)   → ПУБЛИКАЦИЯ В CONFLUENCE            │
 │         ↓                Страница + версионность            │
-│  Agent 8 (BPMN Designer)→ BPMN в Confluence (drawio)       │
+│  Agent 8 (BPMN Designer)→ BPMN-таблицы в Confluence (инлайн)│
 │                                                             │
 │  === ЭТАП 4: БИЗНЕС-СОГЛАСОВАНИЕ (Confluence) ===          │
 │  Бизнес читает страницу, оставляет комментарии            │
@@ -1018,7 +1018,7 @@ python3 scripts/run_agent.py --agent 1 --project PROJECT_SHPMNT_PROFIT
 | Agent 5 | Agent 1, 2, 4 | Полная картина для архитектуры |
 | Agent 6 | Все | Синтез для презентации |
 | Agent 7 | Confluence (текущая страница) | Управление контентом в Confluence (обновление, версии) |
-| Agent 8 | Agent 7 (Confluence) или ФМ | BPMN-диаграммы через generate-bpmn.js → drawio |
+| Agent 8 | Agent 7 (Confluence) или ФМ | BPMN-таблицы через insert_bpmn_tables.py (инлайн в разделы) |
 
 ### JSON-сайдкар (_summary.json) - FC-04
 
@@ -1079,17 +1079,16 @@ python3 scripts/run_agent.py --agent 1 --project PROJECT_SHPMNT_PROFIT
 3. Публикация: python3 scripts/publish_to_confluence.py
 
 НАСТРОЙКА BPMN:
-1. Node.js установлен (для generate-bpmn.js)
-2. Python установлен (для publish-bpmn.py)
-3. Bearer token для Confluence в .env
+1. Python установлен (для insert_bpmn_tables.py)
+2. Bearer token для Confluence в .env
 
 ПРОВЕРКА ПОДКЛЮЧЕНИЯ:
 - Confluence: python3 scripts/publish_to_confluence.py --test
-- BPMN: node scripts/generate-bpmn.js --test
+- BPMN: python3 scripts/insert_bpmn_tables.py (dry-run)
 
 FALLBACK (если недоступно):
 - Agent 7: сохранит HTML локально, загрузить позже
-- Agent 8: сгенерирует .drawio файл локально
+- Agent 8: сгенерирует XHTML-таблицы локально (/tmp)
 ```
 
 ### Confluence API
@@ -1120,35 +1119,35 @@ CONFLUENCE SERVER:
 - Требования: docs/CONFLUENCE_REQUIREMENTS.md
 ```
 
-### BPMN Диаграммы
+### BPMN-таблицы
 
 ```
-КОГДА: Agent 8 → /bpmn (основной), Agent 6 → /export-bpmn (схемы)
-ДЛЯ ЧЕГО: BPMN 2.0 диаграммы бизнес-процессов
+КОГДА: Agent 8 → /bpmn (основной)
+ДЛЯ ЧЕГО: BPMN 2.0 описания процессов в табличном формате
 
 ИНСТРУМЕНТЫ:
-1. generate-bpmn.js — JSON → .drawio конвертер
-2. publish-bpmn.py — загрузка .drawio в Confluence как вложение
-3. Confluence drawio macro — встраивание диаграммы на страницу
+1. insert_bpmn_tables.py — JSON → XHTML-таблицы, инлайн в разделы Confluence
 
-НОТАЦИЯ BPMN 2.0:
+НОТАЦИЯ BPMN 2.0 (символы в таблицах):
 ○  Start Event — начало процесса
 ●  End Event — завершение процесса
 □  Task — задача/действие
 ◇  Gateway (XOR) — исключающий выбор
-═  Swimlane — дорожка роли
+Дорожка — цвет фона строки по роли
 
 JSON СХЕМА ПРОЦЕССА:
 {
   "name": "Название процесса",
+  "section": "3.3",
   "lanes": [{"id": "role1", "name": "Роль", "color": "#dae8fc"}],
   "nodes": [{"id": "t1", "type": "task", "label": "Действие", "lane": "role1"}],
   "edges": [{"from": "start", "to": "t1", "label": ""}]
 }
 
 ПРАВИЛА:
-- Каждый процесс ФМ = отдельная BPMN-диаграмма
-- Диаграммы хранятся в Confluence как drawio attachments
+- Каждый процесс ФМ = отдельная BPMN-таблица
+- Таблицы встраиваются инлайн в соответствующие разделы ФМ
+- Каждая таблица обернута в expand-макрос для компактности
 - Валидация: все узлы связаны, нет висячих элементов
 ```
 
@@ -1167,7 +1166,7 @@ JSON СХЕМА ПРОЦЕССА:
 │     Действие: Все замечания агентов исправлены через /apply      │
 │                                                                  │
 │  2. PUBLISHED (публикация - CONFLUENCE)                         │
-│     Кто: Agent 7 опубликовал в Confluence, Agent 8 создал BPMN  │
+│     Кто: Agent 7 опубликовал в Confluence, Agent 8 добавил BPMN │
 │     Действие: Ссылка на страницу отправляется бизнес-заказчику  │
 │                                                                  │
 │  3. BUSINESS REVIEW (согласование с бизнесом)                   │
@@ -1219,13 +1218,12 @@ scripts/
 ├── publish_to_confluence.py  ← Обновление Confluence (v3.0, confluence_utils)
 ├── import_docx.py            ← Одноразовый импорт DOCX → Confluence (symlink)
 ├── export_from_confluence.py ← Экспорт ФМ из Confluence (PDF/Word)
-├── publish-bpmn.py           ← Загрузка .drawio в Confluence
-├── generate-bpmn.js          ← JSON → .drawio/.png конвертер
+├── insert_bpmn_tables.py     ← JSON → XHTML-таблицы инлайн в Confluence
 │
 ├── CONFLUENCE-УТИЛИТЫ:
 ├── add_navigation.py         ← Добавляет сворачиваемое оглавление на страницу
 ├── check_confluence_macros.py← Проверяет доступные макросы на Confluence Server
-├── check_drawio.py           ← Проверяет наличие плагина draw.io в Confluence
+├── check_drawio.py           ← Проверяет наличие плагина draw.io (legacy)
 ├── update_tobe_section.py    ← Обновляет секцию TO-BE на странице Confluence
 ├── find_tobe_location.py     ← Находит позицию секции TO-BE на странице
 ├── fix_diagram_location.py   ← Перемещает диаграммы в правильную секцию
