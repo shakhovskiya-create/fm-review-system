@@ -1,0 +1,204 @@
+{
+  "project": "PROJECT_SHPMNT_PROFIT",
+  "fmVersion": "1.0.6",
+  "timestamp": "2026-02-13T15:30:00Z",
+  "entries": [
+    {
+      "findingId": "B1",
+      "tests": ["TC-CORE-013"],
+      "fmSection": "3.6",
+      "tzObject": "РегистрСведений.SLAСогласования",
+      "status": "covered"
+    },
+    {
+      "findingId": "B2",
+      "tests": ["TC-CORE-024", "TC-EXT-010", "TC-EXT-011"],
+      "fmSection": "3.4",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "B3",
+      "tests": ["TC-CORE-025", "TC-CORE-026"],
+      "fmSection": "3.9, 3.17",
+      "tzObject": "РегистрНакопления.РезервыЛС",
+      "status": "covered"
+    },
+    {
+      "findingId": "B4",
+      "tests": ["TC-CORE-036"],
+      "fmSection": "3.18",
+      "tzObject": "РегламентноеЗадание.ПересчетСанкций",
+      "status": "covered"
+    },
+    {
+      "findingId": "B5",
+      "tests": ["TC-EXT-005", "TC-EXT-006"],
+      "fmSection": "3.6",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "B6",
+      "tests": ["TC-EXT-007", "TC-EXT-008"],
+      "fmSection": "3.6, 3.11",
+      "tzObject": "РегистрСведений.РентабельностьСогласования",
+      "status": "covered"
+    },
+    {
+      "findingId": "B7",
+      "tests": ["TC-CORE-006", "TC-EXT-009"],
+      "fmSection": "3.3, 3.10",
+      "tzObject": "РегистрНакопления.ВыручкаОтгруженного",
+      "status": "covered"
+    },
+    {
+      "findingId": "B8",
+      "tests": ["TC-EXT-019", "TC-EXT-020"],
+      "fmSection": "3.12, 3.15",
+      "tzObject": "Справочник.ЛокальнаяСмета",
+      "status": "covered"
+    },
+    {
+      "findingId": "B9",
+      "tests": ["TC-EXT-021", "TC-EXT-022"],
+      "fmSection": "3.17, 3.18",
+      "tzObject": "РегистрСведений.ДефицитТовара",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-001",
+      "tests": ["TC-CORE-035"],
+      "fmSection": "3.5",
+      "tzObject": "Обработка.ПанельМенеджера",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-002",
+      "tests": ["TC-CORE-002", "TC-CORE-003"],
+      "fmSection": "3.3",
+      "tzObject": "Документ.ЗаказКлиента",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-003",
+      "tests": ["TC-CORE-034"],
+      "fmSection": "3.6, 3.11",
+      "tzObject": "Обработка.ПрогрессСогласования",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-005",
+      "tests": ["TC-CORE-017", "TC-CORE-018", "TC-CORE-019"],
+      "fmSection": "3.7",
+      "tzObject": "Документ.ЭкстренноеСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-007",
+      "tests": ["TC-CORE-020", "TC-CORE-021", "TC-CORE-022"],
+      "fmSection": "3.8",
+      "tzObject": "Документ.ЗаказКлиента",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-008",
+      "tests": ["TC-CORE-033"],
+      "fmSection": "3.5",
+      "tzObject": "Обработка.ИнтерактивныйПересчет",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-010",
+      "tests": ["TC-CORE-037"],
+      "fmSection": "3.17",
+      "tzObject": "Документ.ЗаказКлиента",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-ROLE-013",
+      "tests": ["TC-CORE-024"],
+      "fmSection": "3.4",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-001",
+      "tests": ["TC-EXT-010", "TC-EXT-011"],
+      "fmSection": "3.4",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-002",
+      "tests": ["TC-EXT-005", "TC-EXT-006"],
+      "fmSection": "3.6",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-003",
+      "tests": ["TC-EXT-033"],
+      "fmSection": "3.6",
+      "tzObject": "Обработка.ДашбордСогласующего",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-004",
+      "tests": ["TC-EXT-012"],
+      "fmSection": "3.11",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-005",
+      "tests": ["TC-EXT-013"],
+      "fmSection": "3.8",
+      "tzObject": "Обработка.АрбитражДиректораДРП",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-006",
+      "tests": ["TC-EXT-014"],
+      "fmSection": "3.6",
+      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-007",
+      "tests": ["TC-EXT-015"],
+      "fmSection": "3.7",
+      "tzObject": "Документ.ЭкстренноеСогласование",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-008",
+      "tests": ["TC-EXT-023", "TC-EXT-024"],
+      "fmSection": "3.18",
+      "tzObject": "Справочник.СтратегическиеКлиенты",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-009",
+      "tests": ["TC-EXT-025"],
+      "fmSection": "3.12, 3.18",
+      "tzObject": "Документ.ЗакрытиеЛС",
+      "status": "covered"
+    },
+    {
+      "findingId": "UX-APPROVER-010",
+      "tests": ["TC-EXT-017", "TC-EXT-018"],
+      "fmSection": "3.15",
+      "tzObject": "РегистрСведений.АктуальностьНПСС",
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "totalFindings": 27,
+    "covered": 27,
+    "uncovered": 0,
+    "totalTests": 65,
+    "coveragePercent": 100,
+    "notes": "Все 9 бизнес-вопросов аудита (B1-B9) и все 17 UX-находок CRITICAL/HIGH/MEDIUM покрыты тестами. 4 gap-теста документируют неоднозначности ФМ, требующие решения до разработки."
+  }
+}

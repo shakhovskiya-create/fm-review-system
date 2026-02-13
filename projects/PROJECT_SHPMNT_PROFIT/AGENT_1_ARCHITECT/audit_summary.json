@@ -1,20 +1,22 @@
 {
   "agent": "Agent1_Architect",
-  "command": "/audit + /apply + re-audit + /apply",
-  "timestamp": "2026-02-13T11:00:00Z",
-  "fmVersion": "1.0.4",
+  "command": "/auto (pipeline audit)",
+  "timestamp": "2026-02-13T14:00:00Z",
+  "fmVersion": "1.0.6",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
   "counts": {
-    "critical": 5,
-    "high": 14,
-    "medium": 20,
-    "low": 6,
-    "total": 45
+    "critical": 4,
+    "high": 5,
+    "medium": 5,
+    "low": 3,
+    "total": 17,
+    "applied": 5,
+    "alreadyFixed": 12,
+    "businessDecisions": 9
   },
-  "appliedChanges": 45,
-  "outputFiles": [
-    "AUDIT-REPORT-v1.0.2-2026-02-13.md"
-  ],
-  "notes": "Full audit of v1.0.2 found 39 issues (applied as v1.0.3, Confluence v42). Re-audit of v1.0.3 found 6 more (applied as v1.0.4, Confluence v43). Total 45 fixes. Key: 9 broken cross-refs, approval bypass vector, buyout formula gap, escalation contradictions, expanded training program, glossary +5 terms, floor price scope clarification."
+  "appliedChanges": 5,
+  "confluenceVersion": 49,
+  "outputFiles": ["AUDIT-REPORT-v1.0.6-2026-02-13.md"],
+  "notes": "Re-audit v1.0.5->1.0.6: 5 fixes (cross-refs, glossary, KPI dedup, date). 12 of 18 findings already fixed in v1.0.5. 9 business decisions flagged (4 CRITICAL, 5 HIGH) - require stakeholder input."
 }
