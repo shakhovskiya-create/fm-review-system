@@ -10,7 +10,7 @@
 ### 1. Что сделано
 - Внедрена система self-improvement: `.patches/` + `EVOLVE.md` + `/evolve` команда
 - 4 стартовых патча записаны из аудита PROJECT_SHPMNT_PROFIT v1.0
-- Все 8 агентов получили секции: чтение патчей перед работой, запись после
+- Все 9 агентов получили секции: чтение патчей перед работой, запись после
 - Добавлен AskUserQuestion во все агенты
 - Создан governance framework: AGENT_PROTOCOL.md, DECISIONS.md, HANDOFF.md, /logs/
 

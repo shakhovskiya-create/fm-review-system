@@ -20,6 +20,7 @@ PROJECT_[NAME]/
 ├── AGENT_5_TECH_ARCHITECT/← ТЗ
 ├── AGENT_6_PRESENTER/     ← Презентации и экспорт
 ├── AGENT_7_PUBLISHER/     ← Публикация в Confluence
+├── AGENT_8_BPMN_DESIGNER/ ← BPMN-диаграммы
 └── REPORTS/               ← Итоговые отчёты
 
 ТЕКУЩИЕ ПРОЕКТЫ:
@@ -336,6 +337,23 @@ CONFLUENCE-FIRST PIPELINE (5 этапов):
 
 ---
 
+## АГЕНТ 8: BPMN DESIGNER (BPMN-диаграммы)
+
+```
+Прочитай свою роль из agents/AGENT_8_BPMN_DESIGNER.md
+
+Проект: PROJECT_SHPMNT_PROFIT
+```
+
+**Команды:**
+- `/bpmn` — создать BPMN-диаграмму из ФМ
+- `/bpmn-update` — обновить существующую BPMN
+- `/bpmn-validate` — проверка корректности диаграммы
+- `/bpmn-publish` — опубликовать в Confluence
+- `/auto` — полный цикл без интервью
+
+---
+
 ## КОНВЕЙЕРНЫЙ РЕЖИМ (/auto)
 
 Каждый агент поддерживает команду `/auto` для работы в конвейере:
@@ -350,6 +368,7 @@ Agent 2: /auto → все роли + /apply
 Agent 4: /auto → все тесты + coverage
 Agent 5: /auto → архитектура + ТЗ
 Agent 7: /auto → публикация в Confluence
+Agent 8: /auto → BPMN-диаграммы
 Agent 6: /auto → презентация + экспорт
 ```
 
@@ -364,7 +383,7 @@ Agent 6: /auto → презентация + экспорт
 ## СКРИПТЫ
 
 ```
-./scripts/orchestrate.sh    — Главное меню (8 агентов + управление)
+./scripts/orchestrate.sh    — Главное меню (9 агентов + управление)
 ./scripts/new_project.sh    — Создать новый проект
 ./scripts/quality_gate.sh   — Проверка готовности ФМ
 ./scripts/fm_version.sh     — Управление версиями ФМ
