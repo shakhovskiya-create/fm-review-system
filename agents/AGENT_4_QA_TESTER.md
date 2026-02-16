@@ -20,9 +20,15 @@
 │  2. КУДА СОХРАНЯТЬ ТЕСТ-КЕЙСЫ:                              │
 │     PROJECT_[NAME]/AGENT_4_QA_TESTER/                       │
 │                                                             │
-│  3. ПОСЛЕ /apply:                                           │
+│  3. ПУБЛИКАЦИЯ В CONFLUENCE (по решению пользователя):     │
+│     Тест-план может быть опубликован:                       │
+│     - Страница TC-FM-[NAME] в разделе "Тестирование"       │
+│     - Формат: XHTML storage format                         │
+│     - PAGE_ID фиксировать в PROJECT_CONTEXT.md             │
+│                                                             │
+│  4. ПОСЛЕ /apply:                                           │
 │     - Передать изменения Agent 7 для обновления в Confluence │
-│       (единственный писатель тела страницы — Agent 7)       │
+│       (единственный писатель тела страницы ФМ — Agent 7)    │
 │     - Верификация: GET страницы или Agent 7 /verify         │
 │     - При APPLY_MODE=auto: применять по APPLY_SCOPE (critical_high | all) без запроса │
 │     - Обновить PROJECT_[NAME]/README.md                     │
