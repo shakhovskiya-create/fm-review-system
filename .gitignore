@@ -41,3 +41,8 @@ scripts/experimental/camunda/output/
 
 # Backup files
 *.bak
+
+# Claude Code cache (session files)
+-Users-*/
+*.tar.gz
+*.jsonl
