@@ -145,6 +145,18 @@ Agent 3 (Defender) - по запросу при замечаниях бизне�
 - API: /rest/api/content/{PAGE_ID}?expand=body.storage,version
 - Формат: XHTML storage
 - Безопасность: lock + backup + retry (lib/confluence_utils.py)
+- **MCP-сервер:** `mcp-atlassian` (`.mcp.json`) - нативный доступ из Claude Code (11 инструментов: search, get/update/create page, comments, labels)
+
+## Hooks (автоматизация)
+
+Настроены в `.claude/settings.json`, скрипты в `.claude/hooks/`:
+
+| Хук | Тип | Назначение |
+|-----|-----|-----------|
+| `guard-confluence-write.sh` | PreToolUse (Bash) | Блокирует прямой curl PUT к Confluence |
+| `validate-xhtml-style.sh` | PostToolUse (Bash) | Проверяет XHTML стили и отсутствие AI-упоминаний |
+| `session-log.sh` | Stop | Логирует завершение сессии |
+| `auto-save-context.sh` | Stop | Обновляет timestamp в PROJECT_CONTEXT.md |
 
 ## Бизнес-согласование
 

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "/home/dev/projects/claude-agents/fm-review-system/.venv/bin/mcp-atlassian",
+      "args": [
+        "--confluence-url", "https://confluence.ekf.su",
+        "--no-confluence-ssl-verify",
+        "--env-file", "/home/dev/projects/claude-agents/fm-review-system/.env"
+      ]
+    }
+  }
+}

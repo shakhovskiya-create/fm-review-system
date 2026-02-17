@@ -1,0 +1,22 @@
+#!/bin/bash
+# Hook: Stop
+# Автоматически обновляет timestamp в PROJECT_CONTEXT.md при завершении ответа.
+# Фиксирует факт работы агента для межсессионной преемственности.
+
+set -e
+INPUT=$(cat)
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
+
+# Ищем активный проект (PROJECT_*)
+for ctx_file in "$PROJECT_DIR"/projects/PROJECT_*/PROJECT_CONTEXT.md; do
+  [ -f "$ctx_file" ] || continue
+
+  # Обновляем timestamp последней сессии (если есть маркер)
+  if grep -q "Последняя сессия:" "$ctx_file" 2>/dev/null; then
+    sed -i "s|Последняя сессия:.*|Последняя сессия: $TIMESTAMP|" "$ctx_file" 2>/dev/null || true
+  fi
+done
+
+exit 0
