@@ -29,15 +29,19 @@ echo "CONFLUENCE_PERSONAL_TOKEN=your_pat_here" >> .env
 
 Семантическая память между сессиями Claude Code. Агенты "помнят" предыдущие аудиты ФМ.
 
-### Установка (выполнить в терминале, НЕ внутри Claude Code):
+### Установка
 
-```bash
-# Способ 1: Через плагин (рекомендуется)
-# Запустить claude и выполнить:
+**Способ 1: Через Claude Code плагин (рекомендуется)**
+
+Выполнить ВНУТРИ чата Claude Code (это slash-команды, не bash):
+```
 /plugin marketplace add obra/superpowers-marketplace
 /plugin install episodic-memory@superpowers-marketplace
+```
 
-# Способ 2: Через npm + MCP
+**Способ 2: Через npm + MCP (в терминале)**
+
+```bash
 npm install -g episodic-memory
 # Затем добавить MCP-сервер (см. ниже)
 ```
