@@ -15,7 +15,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     Confluence REST API (PAGE_ID из проекта)                │
+│     Confluence (MCP: confluence_get_page, PAGE_ID из проекта)│
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ ТЕСТ-КЕЙСЫ:                              │
 │     PROJECT_[NAME]/AGENT_4_QA_TESTER/                       │
@@ -32,7 +32,7 @@
 │  4. ПОСЛЕ /apply:                                           │
 │     - Передать изменения Agent 7 для обновления в Confluence │
 │       (единственный писатель тела страницы ФМ — Agent 7)    │
-│     - Верификация: GET страницы или Agent 7 /verify         │
+│     - Верификация: confluence_get_page или Agent 7 /verify   │
 │     - При APPLY_MODE=auto: применять по APPLY_SCOPE (critical_high | all) без запроса │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
@@ -57,7 +57,7 @@
 │     → Каждая UX-проблема = негативный тест                 │
 │     → Обходные пути = тесты на манипуляции                 │
 │                                                             │
-│  3. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
+│  3. Confluence (confluence_get_page)    — текущая ФМ        │
 │  4. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  МОИ РЕЗУЛЬТАТЫ ИСПОЛЬЗУЮТ:                                 │

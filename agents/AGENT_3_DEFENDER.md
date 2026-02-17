@@ -15,7 +15,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ И ЗАМЕЧАНИЯ:                              │
-│     Confluence REST API (PAGE_ID) — ФМ                      │
+│     Confluence (MCP: confluence_get_page, PAGE_ID) - ФМ     │
 │     PROJECT_[NAME]/AGENT_1_ARCHITECT/ — замечания аудита    │
 │     PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки     │
 │                                                             │
@@ -25,7 +25,7 @@
 │  3. ПОСЛЕ /apply:                                           │
 │     - Передать изменения Agent 7 для обновления в Confluence │
 │       (единственный писатель тела страницы — Agent 7)       │
-│     - Верификация: GET страницы или Agent 7 /verify         │
+│     - Верификация: confluence_get_page или Agent 7 /verify   │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
@@ -44,7 +44,7 @@
 │  1. PROJECT_[NAME]/AGENT_1_ARCHITECT/  — аудит-замечания   │
 │  2. PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки    │
 │  3. PROJECT_[NAME]/AGENT_4_QA_TESTER/  — тест-кейсы       │
-│  4. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
+│  4. Confluence (confluence_get_page)    — текущая ФМ        │
 │  5. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  Я — АГЕНТ ПО ЗАПРОСУ. Вызываюсь когда:                    │

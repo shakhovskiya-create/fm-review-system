@@ -16,14 +16,14 @@
 │  PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/                      │
 │                                                             │
 │  ИСТОЧНИК ФМ (ЕДИНСТВЕННЫЙ):                               │
-│  Confluence REST API → PAGE_ID из PROJECT_[NAME]/           │
+│  Confluence (MCP: confluence_get_page) → PAGE_ID из проекта │
 │  PROJECT_[NAME]/PROJECT_CONTEXT.md - контекст               │
 │                                                             │
 │  ИНСТРУМЕНТЫ:                                               │
 │  - bpmn-auto-layout (Node.js) - автоматическая раскладка   │
 │  - bpmn-js / bpmn-moddle - генерация BPMN 2.0 XML          │
 │  - scripts/output/ - выходные .bpmn файлы                   │
-│  - Confluence REST API - загрузка как вложения              │
+│  - Confluence API - загрузка как вложения                   │
 │                                                             │
 │  ТЕКУЩИЕ ПРОЕКТЫ:                                           │
 │  - PROJECT_SHPMNT_PROFIT/ - Контроль рентабельности         │
@@ -39,7 +39,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │  ПЕРЕД НАЧАЛОМ РАБОТЫ - АВТОМАТИЧЕСКИ СКАНИРУЮ:            │
 │                                                             │
-│  1. Confluence (REST API, PAGE_ID)     - текущая ФМ        │
+│  1. Confluence (confluence_get_page)    - текущая ФМ        │
 │  2. PROJECT_[NAME]/PROJECT_CONTEXT.md  - контекст          │
 │  3. PROJECT_[NAME]/AGENT_1_ARCHITECT/  - аудит (BPMN-замечания) │
 │  4. PROJECT_[NAME]/AGENT_7_PUBLISHER/  - статус публикации │
@@ -60,7 +60,7 @@
 
 При вызове `/auto` вместо `/bpmn`:
 1. Пропускаю интервью - беру параметры из PROJECT_CONTEXT.md
-2. Читаю ФМ из Confluence (REST API, PAGE_ID)
+2. Читаю ФМ из Confluence (confluence_get_page, PAGE_ID)
 3. Извлекаю ВСЕ процессы из ФМ
 4. Генерирую BPMN-диаграммы для каждого процесса
 5. Загружаю как вложения в Confluence
@@ -205,7 +205,7 @@ fs.writeFileSync(`output/process-${id}.bpmn`, layoutedBpmn);
 ### Загрузка диаграмм как вложений
 
 ```
-Confluence REST API:
+Confluence API (REST, т.к. MCP не поддерживает вложения):
 POST /rest/api/content/{PAGE_ID}/child/attachment
 Headers:
   Authorization: Bearer {PAT}

@@ -27,7 +27,7 @@
 │  PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX                │
 │  PROJECT_[NAME]/AGENT_4_QA_TESTER/   — тесты               │
 │  PROJECT_[NAME]/AGENT_5_TECH_ARCHITECT/ — архитектура       │
-│  Confluence (REST API, PAGE_ID)      — ФМ                   │
+│  Confluence (confluence_get_page)    — ФМ                   │
 │  PROJECT_[NAME]/PROJECT_CONTEXT.md   — контекст             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -227,7 +227,7 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 **Автоматический сбор:**
 1. Читаю PROJECT_CONTEXT.md — паспорт, метрики, решения
 2. Сканирую AGENT_*/  — последние отчеты каждого агента
-3. Читаю ФМ из Confluence (REST API, PAGE_ID)
+3. Читаю ФМ из Confluence (confluence_get_page, PAGE_ID)
 4. Читаю PROJECT_[NAME]/CHANGELOG.md — историю изменений
 5. Синтезирую в выбранный формат
 

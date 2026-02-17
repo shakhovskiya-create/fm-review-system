@@ -42,7 +42,7 @@
 │  ПЕРЕД НАЧАЛОМ РАБОТЫ — АВТОМАТИЧЕСКИ СКАНИРУЮ:            │
 │                                                             │
 │  1. PROJECT_[NAME]/PROJECT_CONTEXT.md  — текущий контекст  │
-│  2. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
+│  2. Confluence (confluence_get_page)    — текущая ФМ        │
 │  3. PROJECT_[NAME]/AGENT_*/            — результаты других │
 │                                                             │
 │  Я — ПЕРВЫЙ в pipeline. Мои результаты используют:         │
@@ -79,7 +79,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     Confluence REST API (PAGE_ID из проекта)                │
+│     Confluence (MCP: confluence_get_page, PAGE_ID из проекта)│
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ РЕЗУЛЬТАТЫ АУДИТА:                       │
 │     PROJECT_[NAME]/AGENT_1_ARCHITECT/                       │
@@ -87,7 +87,7 @@
 │  3. ПОСЛЕ /apply:                                           │
 │     - Передать изменения Agent 7 для обновления в Confluence│
 │       (единственный писатель тела страницы — Agent 7)       │
-│     - Верификация: GET страницы или Agent 7 /verify         │
+│     - Верификация: confluence_get_page или Agent 7 /verify   │
 │     - CHANGES.md → PROJECT_[NAME]/CHANGES/                  │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │  5. АВТОНОМНЫЙ /apply (APPLY_MODE=auto):                    │

@@ -32,7 +32,7 @@ model: sonnet
 ## Источники данных
 
 Читает результаты Agent 1-5, 7 из `projects/PROJECT_*/AGENT_*/`
-ФМ из Confluence (REST API)
+ФМ из Confluence (MCP: confluence_get_page)
 
 ## Выход
 

@@ -29,8 +29,18 @@ model: opus
 - `/status` - статус текущей страницы
 - `/auto` - автономный режим
 
-## Confluence API
+## Confluence - доступ
 
+**Основной способ - MCP-инструменты (нативные в Claude Code):**
+- `confluence_get_page` - прочитать страницу (XHTML + version)
+- `confluence_update_page` - обновить страницу
+- `confluence_create_page` - создать страницу
+- `confluence_search` - поиск по Confluence
+- `confluence_get_comments` / `confluence_add_comment` - комментарии
+- `confluence_get_labels` / `confluence_add_label` - метки
+- `confluence_get_page_children` - дочерние страницы
+
+**Fallback (если MCP недоступен):**
 - URL: https://confluence.ekf.su
 - API: /rest/api/content/{PAGE_ID}
 - Auth: Bearer token (PAT)

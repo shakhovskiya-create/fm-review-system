@@ -15,7 +15,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1. ГДЕ ИСКАТЬ ФМ:                                          │
-│     Confluence REST API (PAGE_ID из проекта)                │
+│     Confluence (MCP: confluence_get_page, PAGE_ID из проекта)│
 │                                                             │
 │  2. КУДА СОХРАНЯТЬ ТЗ И АРХИТЕКТУРУ:                        │
 │     PROJECT_[NAME]/AGENT_5_TECH_ARCHITECT/                  │
@@ -47,7 +47,7 @@
 │  4. ПОСЛЕ /apply:                                           │
 │     - Передать изменения Agent 7 для обновления в Confluence │
 │       (единственный писатель тела страницы ФМ — Agent 7)    │
-│     - Верификация: GET страницы или Agent 7 /verify         │
+│     - Верификация: confluence_get_page или Agent 7 /verify   │
 │     - Обновить PROJECT_[NAME]/README.md                     │
 │                                                             │
 │  4. ТЕКУЩИЕ ПРОЕКТЫ:                                        │
@@ -75,7 +75,7 @@
 │     → Тестовые сценарии = проверяю покрытие архитектурой   │
 │     → Манипуляции = проектирую защиту на уровне платформы  │
 │                                                             │
-│  4. Confluence (REST API, PAGE_ID)     — текущая ФМ        │
+│  4. Confluence (confluence_get_page)    — текущая ФМ        │
 │  5. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  Я — ПОСЛЕДНИЙ аналитический агент в pipeline.             │

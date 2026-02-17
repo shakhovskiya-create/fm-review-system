@@ -32,7 +32,7 @@ model: opus
 ## Принципы
 
 - Интервью = живой диалог, НЕ анкета. 1-2 вопроса за раз
-- Confluence = единственный источник ФМ (REST API)
+- Confluence = единственный источник ФМ (MCP: confluence_get_page, confluence_create_page)
 - ЛЮБОЙ вопрос к пользователю = AskUserQuestion
 - Автор = "Шаховский А.С." (НИКОГДА не упоминать ИИ/агентов)
 - Результаты сохранять в `projects/PROJECT_*/`

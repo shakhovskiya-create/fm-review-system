@@ -23,15 +23,35 @@
 
 ## 3. Confluence = единственный источник ФМ
 
-- ВСЕ агенты ЧИТАЮТ ФМ из Confluence (REST API, PAGE_ID)
-- Правки в Confluence вносит только Agent 7 (PUT тела)
-- Агенты 0-5 передают изменения Agent 7
+- ВСЕ агенты ЧИТАЮТ ФМ из Confluence
+- Правки в Confluence вносит только Agent 7 (PUT тела), но агенты 0-5 при /apply тоже обновляют страницу напрямую
 - ЗАПРЕЩЕНО: читать ФМ из Word/DOCX как актуальный источник
-- API: https://confluence.ekf.su/rest/api/content/{PAGE_ID}, Bearer token (PAT), XHTML storage format
+
+**Доступ к Confluence - MCP-инструменты (основной способ):**
+
+Claude Code имеет прямой доступ к Confluence через MCP-сервер `mcp-atlassian`. Используй встроенные инструменты:
+
+| Инструмент | Назначение | Кто использует |
+|-----------|-----------|----------------|
+| `confluence_get_page` | Прочитать страницу ФМ (XHTML) | Все агенты (0-8) |
+| `confluence_update_page` | Обновить страницу (PUT) | Agent 7, агенты при /apply |
+| `confluence_create_page` | Создать новую страницу | Agent 7, Agent 0 |
+| `confluence_search` | Поиск по Confluence | Все агенты |
+| `confluence_get_comments` | Прочитать комментарии | Agent 3 (Defender) |
+| `confluence_add_comment` | Добавить комментарий | Agent 3, Agent 7 |
+| `confluence_get_labels` | Получить метки страницы | Agent 7 |
+| `confluence_add_label` | Добавить метку | Agent 7 |
+| `confluence_get_page_children` | Дочерние страницы | Agent 7 |
+
+**Fallback (если MCP недоступен):**
+- REST API: `https://confluence.ekf.su/rest/api/content/{PAGE_ID}`
+- Auth: Bearer token (PAT)
+- Формат: XHTML storage format
+- Библиотека: `scripts/lib/confluence_utils.py`
 
 ## 4. Версия ФМ
 
-- ВСЕГДА проверять текущую версию через Confluence API (GET страницы, парсинг мета-блока)
+- ВСЕГДА проверять текущую версию через `confluence_get_page` (парсинг мета-блока из XHTML)
 - НЕ полагаться на PROJECT_CONTEXT.md или локальные файлы
 - После /apply обновлять PROJECT_CONTEXT.md
 - Формат: X.Y.Z (X - мажорная, Y - минорная, Z - патч)
@@ -80,9 +100,9 @@
 
 **version.message в API:** "[FM X.Y.Z] краткое описание"
 
-## 9. Верификация после PUT
+## 9. Верификация после обновления
 
-1. GET страницы из Confluence
+1. `confluence_get_page` - прочитать страницу после обновления
 2. Проверить ОТСУТСТВИЕ старых значений в XHTML
 3. Проверить НАЛИЧИЕ новых значений
 4. Проверить version.number (должен инкрементироваться)
@@ -125,7 +145,7 @@
 
 Все ключевые документы публикуются в Confluence:
 - FM- (ФМ), TS- (ТЗ), ARC- (архитектура), TC- (тест-план), RPT- (отчет)
-- Если страница уже существует - ОБНОВИТЬ (PUT), НЕ создавать дубликат
+- Если страница уже существует - `confluence_update_page`, НЕ создавать дубликат
 - PAGE_ID фиксировать в PROJECT_CONTEXT.md
 - Все документы содержат таблицу "История версий"
 
@@ -184,7 +204,7 @@
 - ИСКЛЮЧЕНИЕ: первая публикация (v1.0.0) - всегда отдельная строка
 
 **Алгоритм:**
-1. GET страницы из Confluence
+1. `confluence_get_page` - прочитать страницу из Confluence
 2. Парсить мета-блок: текущая версия X.Y.Z
 3. Парсить таблицу "История версий": дата последней строки
 4. Если дата = сегодня -> дополнить описание, НЕ менять версию
