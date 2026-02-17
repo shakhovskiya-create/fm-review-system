@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Git
+.git/
+
+# OS
+.DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Archives
+*.tar.gz
+backups/
+
+# Logs (large, generated)
+logs/
+
+# Exports (generated artifacts)
+exports/

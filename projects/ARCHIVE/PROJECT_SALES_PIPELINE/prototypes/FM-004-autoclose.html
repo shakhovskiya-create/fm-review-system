@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM-004: Автозакрытие проектов — 1С:Предприятие</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- TITLE BAR -->
+        <div class="titlebar">
+            <div class="titlebar-logo">
+                <div class="titlebar-logo-icon">1C</div>
+                <div class="titlebar-text">
+                    <span>1С:Предприятие</span>
+                    <span>—</span>
+                    <span>Проектные продажи</span>
+                </div>
+            </div>
+            <div class="titlebar-controls">
+                <button class="titlebar-btn">─</button>
+                <button class="titlebar-btn">☐</button>
+                <button class="titlebar-btn close">✕</button>
+            </div>
+        </div>
+
+        <!-- APP BODY -->
+        <div class="app-body">
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="sidebar-user">
+                    <div class="sidebar-user-avatar"></div>
+                    <div class="sidebar-user-name">Администратор</div>
+                    <div class="sidebar-user-actions">
+                        <button class="sidebar-user-btn">⚙️</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-search">
+                    <span class="sidebar-search-icon">🔍</span>
+                    <input type="text" placeholder="Поиск...">
+                    <span class="sidebar-search-shortcut">Ctrl+F</span>
+                </div>
+
+                <nav class="sidebar-menu">
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">⭐</span>
+                        <span class="sidebar-item-text">Избранное</span>
+                    </a>
+                    <a class="sidebar-item" href="FM-001-pipeline.html">
+                        <span class="sidebar-item-icon">📊</span>
+                        <span class="sidebar-item-text">Воронка проектов</span>
+                    </a>
+                    <a class="sidebar-item" href="FM-002-stages.html">
+                        <span class="sidebar-item-icon">📈</span>
+                        <span class="sidebar-item-text">Стадии проектов</span>
+                    </a>
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">📋</span>
+                        <span class="sidebar-item-text">Проекты</span>
+                    </a>
+                    <a class="sidebar-item active" href="#">
+                        <span class="sidebar-item-icon">🔄</span>
+                        <span class="sidebar-item-text">Автозакрытие</span>
+                    </a>
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">⚙️</span>
+                        <span class="sidebar-item-text">Настройки CRM</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- CONTENT -->
+            <div class="content">
+                <!-- CONTENT TABS -->
+                <div class="content-tabs">
+                    <button class="content-tab content-tab-home">🏠</button>
+                    <button class="content-tab">Настройки</button>
+                    <button class="content-tab active">Автозакрытие проектов</button>
+                </div>
+
+                <!-- PAGE HEADER -->
+                <div class="page-header">
+                    <div class="page-nav">
+                        <button class="page-nav-btn">←</button>
+                        <button class="page-nav-btn">→</button>
+                    </div>
+                    <h1 class="page-title">Автозакрытие неактивных проектов</h1>
+                    <div class="page-actions">
+                        <button class="btn">Справка</button>
+                    </div>
+                </div>
+
+                <!-- TOOLBAR -->
+                <div class="toolbar">
+                    <button class="btn btn-primary">Сохранить настройки</button>
+                    <button class="btn">Запустить проверку</button>
+                    <button class="btn">Закрыть выбранные</button>
+                    <div class="toolbar-spacer"></div>
+                    <span class="text-secondary" style="font-size: 12px;">Последний запуск: 28.01.2026 03:00</span>
+                </div>
+
+                <!-- FORM BODY -->
+                <div class="form-body">
+                    <!-- SETTINGS PANEL -->
+                    <div class="settings-panel">
+                        <!-- LEFT: SETTINGS MENU -->
+                        <div class="settings-menu">
+                            <div class="settings-menu-item active">
+                                <span>⚙️</span>
+                                <span>Общие настройки</span>
+                            </div>
+                            <div class="settings-menu-item">
+                                <span>⏱️</span>
+                                <span>Сроки неактивности</span>
+                            </div>
+                            <div class="settings-menu-item">
+                                <span>📧</span>
+                                <span>Уведомления</span>
+                            </div>
+                            <div class="settings-menu-item">
+                                <span>🚫</span>
+                                <span>Исключения</span>
+                            </div>
+                            <div class="settings-menu-item">
+                                <span>📋</span>
+                                <span>Журнал действий</span>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: SETTINGS CONTENT -->
+                        <div class="settings-content">
+                            <div class="settings-header">Общие настройки автозакрытия</div>
+                            <div class="settings-body">
+                                <!-- Enable toggle -->
+                                <div class="setting-group">
+                                    <div class="setting-row">
+                                        <label class="toggle">
+                                            <input type="checkbox" checked>
+                                            <span class="toggle-switch"></span>
+                                        </label>
+                                        <span>Автозакрытие включено</span>
+                                    </div>
+                                    <div class="setting-desc">Система автоматически закрывает неактивные проекты по расписанию</div>
+                                </div>
+
+                                <!-- Thresholds -->
+                                <div class="setting-group">
+                                    <div class="setting-group-title">Пороги неактивности (дни)</div>
+
+                                    <div class="form-row">
+                                        <label class="form-label">Холодная воронка</label>
+                                        <div class="form-field" style="max-width: 100px;">
+                                            <input type="text" class="input" value="90">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label">Горячая воронка</label>
+                                        <div class="form-field" style="max-width: 100px;">
+                                            <input type="text" class="input" value="30">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <label class="form-label">Стадия "Лид"</label>
+                                        <div class="form-field" style="max-width: 100px;">
+                                            <input type="text" class="input" value="60">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Pre-notification -->
+                                <div class="setting-group">
+                                    <div class="setting-group-title">Предупреждение</div>
+
+                                    <div class="setting-row">
+                                        <label class="toggle">
+                                            <input type="checkbox" checked>
+                                            <span class="toggle-switch"></span>
+                                        </label>
+                                        <span>Уведомлять менеджера за N дней</span>
+                                    </div>
+
+                                    <div class="form-row" style="margin-top: 8px;">
+                                        <label class="form-label">Дней до закрытия</label>
+                                        <div class="form-field" style="max-width: 100px;">
+                                            <input type="text" class="input" value="7">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Rule preview -->
+                                <div class="rule-preview">
+                                    <strong>Правило:</strong> Проект закрывается автоматически, если:<br>
+                                    • Нет активности <code>90 дней</code> (холодная) или <code>30 дней</code> (горячая)<br>
+                                    • Менеджер уведомлён за <code>7 дней</code> и не продлил<br>
+                                    • Проект не в списке исключений
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CANDIDATES -->
+                    <div class="panel mt-lg">
+                        <div class="panel-header">
+                            <div class="panel-title">Кандидаты на закрытие (23 проекта)</div>
+                            <button class="btn btn-sm">Выбрать все</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="alert alert-warning">
+                                <strong>23 проекта</strong> будут автоматически закрыты в течение 7 дней, если не будет активности.
+                            </div>
+
+                            <div class="candidates-list">
+                                <div class="candidate-row danger">
+                                    <label class="checkbox candidate-checkbox">
+                                        <input type="checkbox">
+                                        <span class="checkbox-box"></span>
+                                    </label>
+                                    <div class="candidate-info">
+                                        <div class="candidate-name">ПР-2025-0456 — Реконструкция ТП-5</div>
+                                        <div class="candidate-meta">ООО "Энергосбыт" • Менеджер: Козлов И.И. • Последняя активность: 15.10.2025</div>
+                                    </div>
+                                    <div class="candidate-days">
+                                        <div class="candidate-days-value danger">105</div>
+                                        <div class="candidate-days-label">дней</div>
+                                    </div>
+                                    <div class="candidate-action">
+                                        <button class="btn btn-sm">Продлить</button>
+                                        <button class="btn btn-sm" style="color: var(--1c-error);">Закрыть</button>
+                                    </div>
+                                </div>
+
+                                <div class="candidate-row danger">
+                                    <label class="checkbox candidate-checkbox">
+                                        <input type="checkbox">
+                                        <span class="checkbox-box"></span>
+                                    </label>
+                                    <div class="candidate-info">
+                                        <div class="candidate-name">ПР-2025-0512 — Модернизация ЛЭП</div>
+                                        <div class="candidate-meta">АО "Сетевая компания" • Менеджер: Новиков А.А. • Последняя активность: 20.10.2025</div>
+                                    </div>
+                                    <div class="candidate-days">
+                                        <div class="candidate-days-value danger">100</div>
+                                        <div class="candidate-days-label">дней</div>
+                                    </div>
+                                    <div class="candidate-action">
+                                        <button class="btn btn-sm">Продлить</button>
+                                        <button class="btn btn-sm" style="color: var(--1c-error);">Закрыть</button>
+                                    </div>
+                                </div>
+
+                                <div class="candidate-row warning">
+                                    <label class="checkbox candidate-checkbox">
+                                        <input type="checkbox">
+                                        <span class="checkbox-box"></span>
+                                    </label>
+                                    <div class="candidate-info">
+                                        <div class="candidate-name">ПР-2025-0678 — Строительство ПС</div>
+                                        <div class="candidate-meta">ПАО "ФСК ЕЭС" • Менеджер: Сидорова М.В. • Последняя активность: 05.11.2025</div>
+                                    </div>
+                                    <div class="candidate-days">
+                                        <div class="candidate-days-value warning">84</div>
+                                        <div class="candidate-days-label">дней</div>
+                                    </div>
+                                    <div class="candidate-action">
+                                        <button class="btn btn-sm">Продлить</button>
+                                        <button class="btn btn-sm" style="color: var(--1c-error);">Закрыть</button>
+                                    </div>
+                                </div>
+
+                                <div class="candidate-row warning">
+                                    <label class="checkbox candidate-checkbox">
+                                        <input type="checkbox">
+                                        <span class="checkbox-box"></span>
+                                    </label>
+                                    <div class="candidate-info">
+                                        <div class="candidate-name">ПР-2025-0723 — Замена оборудования</div>
+                                        <div class="candidate-meta">ООО "Промэлектро" • Менеджер: Белов Д.С. • Последняя активность: 10.11.2025</div>
+                                    </div>
+                                    <div class="candidate-days">
+                                        <div class="candidate-days-value warning">79</div>
+                                        <div class="candidate-days-label">дней</div>
+                                    </div>
+                                    <div class="candidate-action">
+                                        <button class="btn btn-sm">Продлить</button>
+                                        <button class="btn btn-sm" style="color: var(--1c-error);">Закрыть</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

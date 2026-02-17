@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM-002: Стадии проекта — 1С:Предприятие</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Page-specific styles */
+        .stages-container {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 16px;
+        }
+
+        .stage-column {
+            min-width: 240px;
+            max-width: 240px;
+            background: var(--1c-bg-content);
+            border: 1px solid var(--1c-border);
+            border-radius: var(--1c-radius-lg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stage-header {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--1c-border);
+        }
+
+        .stage-name {
+            font-size: var(--1c-font-size-body);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stage-stats {
+            font-size: var(--1c-font-size-caption);
+            color: var(--1c-text-secondary);
+        }
+
+        .stage-probability {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: var(--1c-radius);
+            font-size: var(--1c-font-size-caption);
+            font-weight: 400;
+            margin-top: 8px;
+        }
+
+        .stage-probability.low { background: rgba(215, 25, 32, 0.15); color: var(--1c-error); }
+        .stage-probability.medium { background: rgba(255, 160, 26, 0.15); color: var(--1c-warning); }
+        .stage-probability.high { background: rgba(12, 220, 64, 0.15); color: #0B8C30; }
+
+        .stage-cards {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .project-card {
+            background: var(--1c-bg-app);
+            border-radius: var(--1c-radius);
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .project-card:hover {
+            background: #E8E8E8;
+        }
+
+        .project-card.selected {
+            background: rgba(255, 209, 26, 0.15);
+            border-left: 3px solid var(--1c-accent);
+        }
+
+        .project-card-title {
+            font-size: var(--1c-font-size-caption);
+            font-weight: 500;
+            color: var(--1c-link);
+            margin-bottom: 4px;
+        }
+
+        .project-card-client {
+            font-size: var(--1c-font-size-caption);
+            color: var(--1c-text-muted);
+            margin-bottom: 8px;
+        }
+
+        .project-card-amount {
+            font-weight: 500;
+            font-size: var(--1c-font-size-body);
+            color: var(--1c-text);
+        }
+
+        .project-card-date {
+            font-size: var(--1c-font-size-caption);
+            color: var(--1c-text-muted);
+            margin-top: 4px;
+        }
+
+        .stage-footer {
+            padding: 12px 16px;
+            background: var(--1c-bg-app);
+            border-radius: 0 0 var(--1c-radius-lg) var(--1c-radius-lg);
+            font-size: var(--1c-font-size-caption);
+            color: var(--1c-text-secondary);
+            text-align: center;
+        }
+
+        .probability-table {
+            margin-top: 24px;
+        }
+
+        .probability-bar {
+            height: 8px;
+            background: var(--1c-bg-app);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .probability-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .probability-bar-fill.p10 { width: 10%; background: rgba(215, 25, 32, 0.5); }
+        .probability-bar-fill.p25 { width: 25%; background: rgba(255, 160, 26, 0.5); }
+        .probability-bar-fill.p50 { width: 50%; background: rgba(255, 209, 26, 0.7); }
+        .probability-bar-fill.p75 { width: 75%; background: rgba(12, 220, 64, 0.5); }
+        .probability-bar-fill.p90 { width: 90%; background: rgba(12, 220, 64, 0.7); }
+        .probability-bar-fill.p100 { width: 100%; background: #0B8C30; }
+
+        .stage-won {
+            border-top: 3px solid #0B8C30;
+        }
+
+        .stage-won .stage-header {
+            background: rgba(12, 220, 64, 0.08);
+        }
+
+        .stage-won .project-card {
+            border-left: 3px solid #0B8C30;
+        }
+
+        .stage-won .stage-footer {
+            color: #0B8C30;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- TITLE BAR -->
+        <div class="titlebar">
+            <div class="titlebar-logo">
+                <div class="titlebar-logo-icon">1C</div>
+                <div class="titlebar-text">
+                    <span>1С:Предприятие</span>
+                    <span>—</span>
+                    <span>Проектные продажи</span>
+                </div>
+            </div>
+            <div class="titlebar-controls">
+                <button class="titlebar-btn">─</button>
+                <button class="titlebar-btn">☐</button>
+                <button class="titlebar-btn close">✕</button>
+            </div>
+        </div>
+
+        <!-- APP BODY -->
+        <div class="app-body">
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="sidebar-user">
+                    <div class="sidebar-user-avatar"></div>
+                    <div class="sidebar-user-name">Администратор</div>
+                    <div class="sidebar-user-actions">
+                        <button class="sidebar-user-btn">⚙️</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-search">
+                    <span class="sidebar-search-icon">🔍</span>
+                    <input type="text" placeholder="Поиск...">
+                    <span class="sidebar-search-shortcut">Ctrl+F</span>
+                </div>
+
+                <nav class="sidebar-menu">
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">⭐</span>
+                        <span class="sidebar-item-text">Избранное</span>
+                    </a>
+                    <a class="sidebar-item" href="FM-001-pipeline.html">
+                        <span class="sidebar-item-icon">📊</span>
+                        <span class="sidebar-item-text">Воронка проектов</span>
+                    </a>
+                    <a class="sidebar-item active" href="#">
+                        <span class="sidebar-item-icon">📈</span>
+                        <span class="sidebar-item-text">Стадии проектов</span>
+                    </a>
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">📋</span>
+                        <span class="sidebar-item-text">Проекты</span>
+                    </a>
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">👥</span>
+                        <span class="sidebar-item-text">Клиенты</span>
+                    </a>
+                    <a class="sidebar-item" href="FM-004-autoclose.html">
+                        <span class="sidebar-item-icon">🔄</span>
+                        <span class="sidebar-item-text">Автозакрытие</span>
+                    </a>
+                    <a class="sidebar-item" href="#">
+                        <span class="sidebar-item-icon">⚙️</span>
+                        <span class="sidebar-item-text">Настройки</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- CONTENT -->
+            <div class="content">
+                <!-- CONTENT TABS -->
+                <div class="content-tabs">
+                    <button class="content-tab content-tab-home">🏠</button>
+                    <button class="content-tab">Проекты</button>
+                    <button class="content-tab active">Стадии проектов</button>
+                </div>
+
+                <!-- PAGE HEADER -->
+                <div class="page-header">
+                    <div class="page-nav">
+                        <button class="page-nav-btn">←</button>
+                        <button class="page-nav-btn">→</button>
+                    </div>
+                    <h1 class="page-title">Стадии проектных продаж</h1>
+                    <div class="page-actions">
+                        <button class="btn">Горячая воронка</button>
+                    </div>
+                </div>
+
+                <!-- TOOLBAR -->
+                <div class="toolbar">
+                    <button class="btn btn-primary">Создать проект</button>
+                    <button class="btn">Фильтр</button>
+                    <button class="btn">Период ▾</button>
+                    <div class="toolbar-spacer"></div>
+                    <span class="text-secondary" style="font-size: 12px;">47 проектов в воронке</span>
+                </div>
+
+                <!-- FORM BODY -->
+                <div class="form-body">
+                    <!-- KANBAN STAGES -->
+                    <div class="stages-container">
+                        <!-- LEAD -->
+                        <div class="stage-column">
+                            <div class="stage-header">
+                                <div class="stage-name">Лид</div>
+                                <div class="stage-stats">8 проектов • 120 млн ₽</div>
+                                <span class="stage-probability low">10%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0890</div>
+                                    <div class="project-card-client">ООО "Техносервис"</div>
+                                    <div class="project-card-amount">15.5 млн ₽</div>
+                                    <div class="project-card-date">Создан: 20.01.2026</div>
+                                </div>
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0891</div>
+                                    <div class="project-card-client">АО "Строймаш"</div>
+                                    <div class="project-card-amount">8.2 млн ₽</div>
+                                    <div class="project-card-date">Создан: 21.01.2026</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Weighted: 12 млн ₽
+                            </div>
+                        </div>
+
+                        <!-- QUALIFICATION -->
+                        <div class="stage-column">
+                            <div class="stage-header">
+                                <div class="stage-name">Квалификация</div>
+                                <div class="stage-stats">12 проектов • 280 млн ₽</div>
+                                <span class="stage-probability low">25%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card selected">
+                                    <div class="project-card-title">ПР-2026-0847</div>
+                                    <div class="project-card-client">ПАО "Россети Центр"</div>
+                                    <div class="project-card-amount">45.2 млн ₽</div>
+                                    <div class="project-card-date">Встреча: 25.01.2026</div>
+                                </div>
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0856</div>
+                                    <div class="project-card-client">ООО "Энергомонтаж"</div>
+                                    <div class="project-card-amount">22.1 млн ₽</div>
+                                    <div class="project-card-date">Звонок: 23.01.2026</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Weighted: 70 млн ₽
+                            </div>
+                        </div>
+
+                        <!-- PROPOSAL -->
+                        <div class="stage-column">
+                            <div class="stage-header">
+                                <div class="stage-name">Предложение</div>
+                                <div class="stage-stats">15 проектов • 520 млн ₽</div>
+                                <span class="stage-probability medium">50%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0801</div>
+                                    <div class="project-card-client">РЖД</div>
+                                    <div class="project-card-amount">89.3 млн ₽</div>
+                                    <div class="project-card-date">ТКП отправлено</div>
+                                </div>
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0812</div>
+                                    <div class="project-card-client">АО "Мосэнерго"</div>
+                                    <div class="project-card-amount">128.5 млн ₽</div>
+                                    <div class="project-card-date">Смета готова</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Weighted: 260 млн ₽
+                            </div>
+                        </div>
+
+                        <!-- NEGOTIATION -->
+                        <div class="stage-column">
+                            <div class="stage-header">
+                                <div class="stage-name">Переговоры</div>
+                                <div class="stage-stats">8 проектов • 310 млн ₽</div>
+                                <span class="stage-probability high">75%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0756</div>
+                                    <div class="project-card-client">ПАО "Газпром"</div>
+                                    <div class="project-card-amount">156.0 млн ₽</div>
+                                    <div class="project-card-date">Согласование цены</div>
+                                </div>
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0789</div>
+                                    <div class="project-card-client">ООО "Лукойл-Энерго"</div>
+                                    <div class="project-card-amount">78.4 млн ₽</div>
+                                    <div class="project-card-date">Согласование сроков</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Weighted: 232 млн ₽
+                            </div>
+                        </div>
+
+                        <!-- CONTRACT -->
+                        <div class="stage-column">
+                            <div class="stage-header">
+                                <div class="stage-name">Договор</div>
+                                <div class="stage-stats">4 проекта • 95 млн ₽</div>
+                                <span class="stage-probability high">90%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0712</div>
+                                    <div class="project-card-client">ПАО "Россети"</div>
+                                    <div class="project-card-amount">52.0 млн ₽</div>
+                                    <div class="project-card-date">На подписании</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Weighted: 85 млн ₽
+                            </div>
+                        </div>
+
+                        <!-- WON -->
+                        <div class="stage-column stage-won">
+                            <div class="stage-header">
+                                <div class="stage-name">Выигран</div>
+                                <div class="stage-stats">6 проектов • 180 млн ₽</div>
+                                <span class="stage-probability" style="background: #0B8C30; color: white;">100%</span>
+                            </div>
+                            <div class="stage-cards">
+                                <div class="project-card">
+                                    <div class="project-card-title">ПР-2026-0698</div>
+                                    <div class="project-card-client">АО "МОЭСК"</div>
+                                    <div class="project-card-amount">67.0 млн ₽</div>
+                                    <div class="project-card-date">Договор №128 от 15.01</div>
+                                </div>
+                            </div>
+                            <div class="stage-footer">
+                                Факт: 180 млн ₽
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROBABILITY TABLE -->
+                    <div class="probability-table">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <div class="panel-title">Распределение вероятностей по стадиям</div>
+                            </div>
+                            <div class="panel-body">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 150px;">Стадия</th>
+                                            <th style="width: 80px;">%</th>
+                                            <th>Визуализация</th>
+                                            <th style="width: 100px;">Проектов</th>
+                                            <th style="width: 120px;">Сумма</th>
+                                            <th style="width: 120px;">Weighted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Лид</td>
+                                            <td>10%</td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p10"></div></div></td>
+                                            <td>8</td>
+                                            <td>120 млн ₽</td>
+                                            <td class="text-muted">12 млн ₽</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Квалификация</td>
+                                            <td>25%</td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p25"></div></div></td>
+                                            <td>12</td>
+                                            <td>280 млн ₽</td>
+                                            <td class="text-muted">70 млн ₽</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Предложение</td>
+                                            <td>50%</td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p50"></div></div></td>
+                                            <td>15</td>
+                                            <td>520 млн ₽</td>
+                                            <td class="text-muted">260 млн ₽</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Переговоры</td>
+                                            <td>75%</td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p75"></div></div></td>
+                                            <td>8</td>
+                                            <td>310 млн ₽</td>
+                                            <td class="text-muted">232 млн ₽</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Договор</td>
+                                            <td>90%</td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p90"></div></div></td>
+                                            <td>4</td>
+                                            <td>95 млн ₽</td>
+                                            <td class="text-muted">85 млн ₽</td>
+                                        </tr>
+                                        <tr style="background: rgba(12, 220, 64, 0.08);">
+                                            <td><strong>Выигран</strong></td>
+                                            <td><strong>100%</strong></td>
+                                            <td><div class="probability-bar"><div class="probability-bar-fill p100"></div></div></td>
+                                            <td><strong>6</strong></td>
+                                            <td><strong>180 млн ₽</strong></td>
+                                            <td><strong style="color: #0B8C30;">180 млн ₽</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
