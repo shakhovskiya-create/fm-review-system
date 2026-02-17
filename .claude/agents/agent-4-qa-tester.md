@@ -6,7 +6,7 @@ description: >
   построить матрицу трассируемости.
   Ключевые слова: "создай тесты", "тест-кейсы", "протестируй ФМ".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: opus
+model: sonnet
 ---
 
 # Agent 4: QA Tester - Тестирование ФМ

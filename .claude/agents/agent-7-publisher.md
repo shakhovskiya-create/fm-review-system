@@ -6,7 +6,7 @@ description: >
   Используй когда нужно: опубликовать ФМ, обновить страницу, проверить версию.
   Ключевые слова: "опубликуй в Confluence", "опубликуй ФМ", "залей в конф".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: opus
+model: sonnet
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence
