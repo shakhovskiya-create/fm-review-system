@@ -382,8 +382,9 @@ ${PREV_CONTEXT}"
             fi
             ;;
         "5."*)
-            # Публикация BPMN в Confluence
-            python3 "${SCRIPTS_DIR}/publish-bpmn.py" --all --update-page
+            # Публикация BPMN через Agent 8
+            PROJECT=$(select_project)
+            launch_claude_code "${ROOT_DIR}/agents/AGENT_8_BPMN_DESIGNER.md" "/bpmn-publish" "Проект: ${PROJECT}"
             ;;
         "6."*)
             header "ПРОЕКТЫ"

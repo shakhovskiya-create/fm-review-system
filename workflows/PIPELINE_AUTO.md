@@ -30,7 +30,7 @@
   Версия: [текущая] | Confluence: PAGE_ID [id]
 ══════════════════════════════════════════════
 
-Порядок: Agent 1 → 2 → 4 → 5 → Quality Gate → 7 → 6
+Порядок: Agent 1 → 2 → 4 → 5 → Quality Gate → 7 → 8 → 6
 ```
 
 ---
@@ -45,8 +45,9 @@
 | 4 | Agent 5 | Tech Architect | /auto |
 | 5 | Quality Gate | (скрипт) | bash quality_gate.sh |
 | 6 | Agent 7 | Publisher | /auto |
-| 7 | Agent 6 | Presenter | /auto |
-| 8 | /evolve | Self-Improvement | анализ .patches/ |
+| 7 | Agent 8 | BPMN Designer | /auto |
+| 8 | Agent 6 | Presenter | /auto |
+| 9 | /evolve | Self-Improvement | анализ .patches/ |
 
 ---
 
