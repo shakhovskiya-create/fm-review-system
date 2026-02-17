@@ -43,6 +43,28 @@ scripts/experimental/camunda/output/
 # Backup files
 *.bak
 
+# Word temp files
+~$*
+
+# Sync conflict files (Syncthing etc.)
+*.sync-conflict-*
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Temp working files (Confluence dumps, one-off scripts)
+projects/*/confluence_current.html
+projects/*/fm_current_full.html
+projects/*/fm_full_text.txt
+projects/*/fm_text_analysis.txt
+projects/*/fm_full_audit.txt
+projects/*/fm_text_audit.txt
+
+# Legacy DOCX (Confluence = source of truth)
+projects/*/FM_DOCUMENTS/
+projects/*/ARCHIVE/
+
 # Claude Code cache (session files)
 -Users-*/
 *.tar.gz
