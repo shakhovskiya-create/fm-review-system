@@ -1,0 +1,36 @@
+---
+description: Как создавать и редактировать .mdc правила Cursor в этом проекте
+globs: [".cursor/rules/*.mdc"]
+alwaysApply: false
+---
+
+# Создание Cursor Rules
+
+## Расположение
+Все правила: `.cursor/rules/*.mdc`
+
+## Формат файла
+```
+---
+description: Краткое описание - когда правило применяется
+globs: ["src/**/*.ts", "**/*.py"]
+alwaysApply: false
+---
+
+# Заголовок правила
+Содержание в Markdown
+```
+
+## Типы правил (frontmatter)
+- **Always** - alwaysApply: true, globs не нужны. ТОЛЬКО для главного project.mdc
+- **Auto Attached** - alwaysApply: false, globs заполнены. Подключается при работе с matching файлами
+- **Agent Requested** - alwaysApply: false, globs пустые. Агент выбирает по description
+- **Manual** - вызывается через @ruleName в чате
+
+## Принципы
+- Одна тема = один файл. Не смешивать
+- Kebab-case для имен: `fm-document.mdc`, `confluence.mdc`
+- До 500 строк на файл, иначе - разбить
+- Description решает - будет ли агент подключать правило, пиши конкретно
+- Используй @file для ссылок на конфиги: `@file ../tsconfig.json`
+- DO/DONT примеры эффективнее абстрактных инструкций
