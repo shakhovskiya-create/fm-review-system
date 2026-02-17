@@ -3,7 +3,9 @@
 scripts/.env.local
 .env.local
 *.local
-.claude/
+# Claude Code local settings (secrets, permissions)
+.claude/settings.local.json
+# Track shared config: .claude/agents/, .claude/hooks/, .claude/settings.json
 
 # Secrets
 .env
