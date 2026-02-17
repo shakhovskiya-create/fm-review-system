@@ -230,6 +230,6 @@
 | 1 | Adaptive Thinking (#7) | DONE (Agent 4->sonnet, Agent 7->sonnet) | 17.02.2026 |
 | 2 | GitHub Actions (#6) | DONE (workflow + secret) | 17.02.2026 |
 | 3 | Дедупликация агентов | DONE (9 файлов, ~800 строк) | 17.02.2026 |
-| 4 | Langfuse (#5) | TODO | — |
+| 4 | Langfuse (#5) | DONE (Cloud + hook + tracer) | 17.02.2026 |
 | 5 | Agent Teams (#8) | TODO | — |
 | 6 | Agent SDK (#9) | BLOCKED (ждем Beta) | — |

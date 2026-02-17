@@ -67,6 +67,12 @@ projects/*/fm_text_audit.txt
 projects/*/FM_DOCUMENTS/
 projects/*/ARCHIVE/
 
+# Langfuse infrastructure secrets
+infra/langfuse/.env.langfuse
+
+# Langfuse tracer state (dedup offsets)
+scripts/.langfuse_state/
+
 # Claude Code cache (session files)
 -Users-*/
 *.tar.gz

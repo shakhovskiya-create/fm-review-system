@@ -1,0 +1,114 @@
+name: Claude Code
+
+on:
+  # Автоматический review на каждый PR
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - "agents/**"
+      - "scripts/**"
+      - "docs/**"
+      - "workflows/**"
+      - "schemas/**"
+      - "CLAUDE.md"
+      - "AGENT_PROTOCOL.md"
+      - ".claude/**"
+
+  # Интерактивный режим: @claude в комментариях
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  # === JOB 1: Автоматический PR review ===
+  auto-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude PR Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Ты ревьюер для FM Review System - системы из 9 AI-агентов
+            для управления Функциональными Моделями (ФМ) проектов 1С.
+
+            Проверь этот PR по стандартам из CLAUDE.md. Обрати внимание на:
+
+            1. ФАЙЛЫ АГЕНТОВ (agents/AGENT_*.md):
+               - Инструкции следуют установленному формату
+               - Нет упоминаний AI/Claude/Bot/ИИ в пользовательских текстах
+               - Качество русского языка (нет длинного тире, нет буквы "е")
+               - Бизнес-язык, не технический жаргон
+
+            2. CONFLUENCE ИНТЕГРАЦИЯ (scripts/, docs/):
+               - Соответствие XHTML формату
+               - Неприкосновенность истории версий
+               - Паттерны обновления мета-блока
+               - Автор всегда "Шаховский А.С." в шаблонах
+
+            3. WORKFLOW ФАЙЛЫ (workflows/):
+               - Корректность последовательности pipeline
+               - Quality Gate проверки
+               - Протокол передачи между агентами
+
+            4. ОБЩЕЕ:
+               - Нет захардкоженных API ключей или токенов
+               - Корректное семантическое версионирование (X.Y.Z)
+               - Формат CHANGES.md соответствует стандарту
+
+            Используй inline comments для конкретных замечаний по коду.
+            Дай общую оценку в summary комментарии.
+
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
+            --max-turns 10
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob,Grep"
+
+  # === JOB 2: Интерактивный @claude ===
+  interactive:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Interactive
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: false
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
+            --max-turns 15
