@@ -29,6 +29,7 @@ import time
 import shutil
 import subprocess
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -52,6 +53,16 @@ AGENT_REGISTRY = {
 
 # Порядок конвейера: Agent 1 -> 2 -> 4 -> 5 -> QualityGate -> 7 -> 8 -> 6
 PIPELINE_ORDER = [1, 2, 4, 5, "quality_gate", 7, 8, 6]
+
+# Параллельные стадии (для --parallel)
+PARALLEL_STAGES = [
+    [1],                    # Stage 1: Architect (база для всех)
+    [2, 4],                 # Stage 2: Simulator + QA (параллельно)
+    [5],                    # Stage 3: TechArchitect (читает 1+2+4)
+    ["quality_gate"],       # Stage 4: Quality Gate
+    [7],                    # Stage 5: Publisher
+    [8, 6],                 # Stage 6: BPMN + Presenter (параллельно)
+]
 
 
 @dataclass
@@ -295,6 +306,40 @@ def run_quality_gate_with_reason(project: str, reason: str) -> int:
         return 1
 
 
+# --- Параллельный запуск ---
+
+def run_stage_parallel(
+    agent_ids: list[int],
+    project: str,
+    model: str,
+    dry_run: bool,
+    max_budget: float,
+    timeout: int,
+) -> dict[int, AgentResult]:
+    """Запуск нескольких агентов параллельно. Возвращает {agent_id: AgentResult}."""
+    stage_results = {}
+
+    with ThreadPoolExecutor(max_workers=len(agent_ids)) as executor:
+        futures = {
+            executor.submit(
+                run_single_agent, aid, project, "/auto",
+                model, dry_run, max_budget, timeout,
+            ): aid
+            for aid in agent_ids
+        }
+        for future in as_completed(futures):
+            aid = futures[future]
+            try:
+                stage_results[aid] = future.result()
+            except Exception as e:
+                log(f"Agent {aid}: исключение в потоке: {e}")
+                stage_results[aid] = AgentResult(
+                    agent_id=aid, status="failed", error=str(e),
+                )
+
+    return stage_results
+
+
 # --- Конвейер ---
 
 def run_pipeline(
@@ -305,103 +350,200 @@ def run_pipeline(
     max_budget_per_agent: float = 5.0,
     timeout_per_agent: int = 600,
     skip_qg_warnings: bool = False,
+    parallel: bool = False,
 ) -> dict:
-    """Запускает полный конвейер агентов."""
+    """Запускает полный конвейер агентов.
+
+    При parallel=True независимые агенты запускаются одновременно
+    (например, Agent 2 + Agent 4 в одной стадии).
+    """
     results = {}
-
-    # Фильтруем шаги
-    pipeline = list(PIPELINE_ORDER)
-    if agents_filter:
-        pipeline = [
-            step for step in PIPELINE_ORDER
-            if step == "quality_gate" or step in agents_filter
-        ]
-        # Quality Gate только если Agent 7 в списке
-        if 7 not in agents_filter:
-            pipeline = [s for s in pipeline if s != "quality_gate"]
-
     total_start = time.time()
-
-    log(f"{'=' * 60}")
-    log(f"  АВТОНОМНЫЙ КОНВЕЙЕР: {project}")
-    log(f"  Шаги: {pipeline}")
-    log(f"  Модель: {model}")
-    log(f"{'=' * 60}")
-
     total_cost = 0.0
+    pipeline_stopped = False
 
-    for step in pipeline:
+    if parallel:
+        # Параллельный режим: группируем агентов в стадии
+        stages = []
+        for stage in PARALLEL_STAGES:
+            if agents_filter:
+                filtered = [
+                    s for s in stage
+                    if s == "quality_gate" or s in agents_filter
+                ]
+                # Quality Gate только если Agent 7 в списке
+                if "quality_gate" in stage and 7 not in agents_filter:
+                    filtered = [s for s in filtered if s != "quality_gate"]
+                if filtered:
+                    stages.append(filtered)
+            else:
+                stages.append(list(stage))
 
-        # Quality Gate
-        if step == "quality_gate":
-            log("")
-            log("--- QUALITY GATE ---")
-            if dry_run:
-                log("  [DRY RUN] quality_gate.sh")
-                results["quality_gate"] = {"status": "dry_run"}
+        log(f"{'=' * 60}")
+        log(f"  АВТОНОМНЫЙ КОНВЕЙЕР (ПАРАЛЛЕЛЬНЫЙ): {project}")
+        log(f"  Стадии: {stages}")
+        log(f"  Модель: {model}")
+        log(f"{'=' * 60}")
+
+        for stage_idx, stage in enumerate(stages, 1):
+            if pipeline_stopped:
+                break
+
+            # Quality Gate (всегда один)
+            if stage == ["quality_gate"]:
+                log("")
+                log(f"--- Стадия {stage_idx}: QUALITY GATE ---")
+                if dry_run:
+                    log("  [DRY RUN] quality_gate.sh")
+                    results["quality_gate"] = {"status": "dry_run"}
+                    continue
+
+                exit_code, output = run_quality_gate(project)
+                for line in output.strip().split("\n")[-10:]:
+                    log(f"  {line}")
+
+                if exit_code == 1:
+                    log("КОНВЕЙЕР ОСТАНОВЛЕН: критические ошибки Quality Gate.")
+                    results["quality_gate"] = {"status": "failed", "exit_code": 1}
+                    pipeline_stopped = True
+                elif exit_code == 2:
+                    if skip_qg_warnings:
+                        log("Quality Gate: предупреждения пропущены (--skip-qg-warnings).")
+                        run_quality_gate_with_reason(project, "Автопропуск в автономном конвейере")
+                        results["quality_gate"] = {"status": "warnings_skipped"}
+                    else:
+                        log("КОНВЕЙЕР ОСТАНОВЛЕН: предупреждения Quality Gate.")
+                        log("  Используйте --skip-qg-warnings для продолжения.")
+                        results["quality_gate"] = {"status": "warnings", "exit_code": 2}
+                        pipeline_stopped = True
+                else:
+                    log("Quality Gate: все проверки пройдены.")
+                    results["quality_gate"] = {"status": "passed"}
                 continue
 
-            exit_code, output = run_quality_gate(project)
-            for line in output.strip().split("\n")[-10:]:
-                log(f"  {line}")
+            # Стадия с агентами
+            agent_ids = [s for s in stage if isinstance(s, int)]
+            if not agent_ids:
+                continue
 
-            if exit_code == 1:
-                log("КОНВЕЙЕР ОСТАНОВЛЕН: критические ошибки Quality Gate.")
-                results["quality_gate"] = {"status": "failed", "exit_code": 1}
-                break
-            elif exit_code == 2:
-                if skip_qg_warnings:
-                    log("Quality Gate: предупреждения пропущены (--skip-qg-warnings).")
-                    run_quality_gate_with_reason(project, "Автопропуск в автономном конвейере")
-                    results["quality_gate"] = {"status": "warnings_skipped"}
-                else:
-                    log("КОНВЕЙЕР ОСТАНОВЛЕН: предупреждения Quality Gate.")
-                    log("  Используйте --skip-qg-warnings для продолжения.")
-                    results["quality_gate"] = {"status": "warnings", "exit_code": 2}
-                    break
+            names = ", ".join(f"{aid} ({AGENT_REGISTRY[aid]['name']})" for aid in agent_ids)
+            mode = "параллельно" if len(agent_ids) > 1 else "один"
+            log("")
+            log(f"--- Стадия {stage_idx}: Agent {names} [{mode}] ---")
+
+            if len(agent_ids) == 1:
+                # Один агент — обычный запуск
+                agent_result = run_single_agent(
+                    agent_id=agent_ids[0], project=project, command="/auto",
+                    model=model, dry_run=dry_run,
+                    max_budget=max_budget_per_agent, timeout=timeout_per_agent,
+                )
+                stage_results = {agent_ids[0]: agent_result}
             else:
-                log("Quality Gate: все проверки пройдены.")
-                results["quality_gate"] = {"status": "passed"}
-            continue
+                # Несколько агентов — параллельный запуск
+                stage_results = run_stage_parallel(
+                    agent_ids, project, model, dry_run,
+                    max_budget_per_agent, timeout_per_agent,
+                )
 
-        # Обычный агент
-        agent_id = step
-        config = AGENT_REGISTRY[agent_id]
-        log("")
-        log(f"--- Agent {agent_id}: {config['name']} ---")
+            # Обработка результатов стадии
+            for aid, agent_result in stage_results.items():
+                total_cost += agent_result.cost_usd
+                results[aid] = {
+                    "status": agent_result.status,
+                    "duration": round(agent_result.duration_seconds, 1),
+                    "cost_usd": round(agent_result.cost_usd, 2),
+                    "summary": str(agent_result.summary_path) if agent_result.summary_path else None,
+                }
+                if agent_result.status == "failed":
+                    log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Agent {aid} ({AGENT_REGISTRY[aid]['name']}) завершился с ошибкой.")
+                    if agent_result.error:
+                        log(f"  {agent_result.error[:200]}")
+                    pipeline_stopped = True
+                elif agent_result.status == "partial":
+                    log(f"  ВНИМАНИЕ: Agent {aid} завершился частично. Продолжаем.")
+                if not agent_result.summary_path and agent_result.status != "dry_run":
+                    log(f"  ВНИМАНИЕ: _summary.json не найден для Agent {aid}.")
 
-        agent_result = run_single_agent(
-            agent_id=agent_id,
-            project=project,
-            command="/auto",
-            model=model,
-            dry_run=dry_run,
-            max_budget=max_budget_per_agent,
-            timeout=timeout_per_agent,
-        )
+    else:
+        # Последовательный режим (оригинальное поведение)
+        pipeline = list(PIPELINE_ORDER)
+        if agents_filter:
+            pipeline = [
+                step for step in PIPELINE_ORDER
+                if step == "quality_gate" or step in agents_filter
+            ]
+            if 7 not in agents_filter:
+                pipeline = [s for s in pipeline if s != "quality_gate"]
 
-        total_cost += agent_result.cost_usd
-        results[agent_id] = {
-            "status": agent_result.status,
-            "duration": round(agent_result.duration_seconds, 1),
-            "cost_usd": round(agent_result.cost_usd, 2),
-            "summary": str(agent_result.summary_path) if agent_result.summary_path else None,
-        }
+        log(f"{'=' * 60}")
+        log(f"  АВТОНОМНЫЙ КОНВЕЙЕР: {project}")
+        log(f"  Шаги: {pipeline}")
+        log(f"  Модель: {model}")
+        log(f"{'=' * 60}")
 
-        # Прерываем при ошибке
-        if agent_result.status == "failed":
-            log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Agent {agent_id} ({config['name']}) завершился с ошибкой.")
-            if agent_result.error:
-                log(f"  {agent_result.error[:200]}")
-            break
+        for step in pipeline:
+            if step == "quality_gate":
+                log("")
+                log("--- QUALITY GATE ---")
+                if dry_run:
+                    log("  [DRY RUN] quality_gate.sh")
+                    results["quality_gate"] = {"status": "dry_run"}
+                    continue
 
-        # Предупреждение при частичном выполнении
-        if agent_result.status == "partial":
-            log(f"  ВНИМАНИЕ: Agent {agent_id} завершился частично. Продолжаем.")
+                exit_code, output = run_quality_gate(project)
+                for line in output.strip().split("\n")[-10:]:
+                    log(f"  {line}")
 
-        # Предупреждение если нет _summary.json
-        if not agent_result.summary_path and agent_result.status != "dry_run":
-            log(f"  ВНИМАНИЕ: _summary.json не найден для Agent {agent_id}.")
+                if exit_code == 1:
+                    log("КОНВЕЙЕР ОСТАНОВЛЕН: критические ошибки Quality Gate.")
+                    results["quality_gate"] = {"status": "failed", "exit_code": 1}
+                    break
+                elif exit_code == 2:
+                    if skip_qg_warnings:
+                        log("Quality Gate: предупреждения пропущены (--skip-qg-warnings).")
+                        run_quality_gate_with_reason(project, "Автопропуск в автономном конвейере")
+                        results["quality_gate"] = {"status": "warnings_skipped"}
+                    else:
+                        log("КОНВЕЙЕР ОСТАНОВЛЕН: предупреждения Quality Gate.")
+                        log("  Используйте --skip-qg-warnings для продолжения.")
+                        results["quality_gate"] = {"status": "warnings", "exit_code": 2}
+                        break
+                else:
+                    log("Quality Gate: все проверки пройдены.")
+                    results["quality_gate"] = {"status": "passed"}
+                continue
+
+            agent_id = step
+            config = AGENT_REGISTRY[agent_id]
+            log("")
+            log(f"--- Agent {agent_id}: {config['name']} ---")
+
+            agent_result = run_single_agent(
+                agent_id=agent_id, project=project, command="/auto",
+                model=model, dry_run=dry_run,
+                max_budget=max_budget_per_agent, timeout=timeout_per_agent,
+            )
+
+            total_cost += agent_result.cost_usd
+            results[agent_id] = {
+                "status": agent_result.status,
+                "duration": round(agent_result.duration_seconds, 1),
+                "cost_usd": round(agent_result.cost_usd, 2),
+                "summary": str(agent_result.summary_path) if agent_result.summary_path else None,
+            }
+
+            if agent_result.status == "failed":
+                log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Agent {agent_id} ({config['name']}) завершился с ошибкой.")
+                if agent_result.error:
+                    log(f"  {agent_result.error[:200]}")
+                break
+
+            if agent_result.status == "partial":
+                log(f"  ВНИМАНИЕ: Agent {agent_id} завершился частично. Продолжаем.")
+
+            if not agent_result.summary_path and agent_result.status != "dry_run":
+                log(f"  ВНИМАНИЕ: _summary.json не найден для Agent {agent_id}.")
 
     # Итоги
     total_duration = time.time() - total_start
@@ -470,6 +612,8 @@ def main():
                         help="Таймаут на агента в секундах (по умолчанию: 600)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Показать промпты без выполнения")
+    parser.add_argument("--parallel", action="store_true",
+                        help="Параллельный запуск независимых агентов в конвейере")
     parser.add_argument("--skip-qg-warnings", action="store_true",
                         help="Пропустить предупреждения Quality Gate (не критические)")
     args = parser.parse_args()
@@ -499,6 +643,7 @@ def main():
             max_budget_per_agent=args.max_budget,
             timeout_per_agent=args.timeout,
             skip_qg_warnings=args.skip_qg_warnings,
+            parallel=args.parallel,
         )
         any_failed = any(
             r.get("status") == "failed"

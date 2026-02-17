@@ -231,5 +231,5 @@
 | 2 | GitHub Actions (#6) | DONE (workflow + secret) | 17.02.2026 |
 | 3 | Дедупликация агентов | DONE (9 файлов, ~800 строк) | 17.02.2026 |
 | 4 | Langfuse (#5) | DONE (Cloud + hook + tracer) | 17.02.2026 |
-| 5 | Agent Teams (#8) | TODO | — |
+| 5 | Agent Teams (#8) | DONE (--parallel, ThreadPoolExecutor) | 17.02.2026 |
 | 6 | Agent SDK (#9) | BLOCKED (ждем Beta) | — |
