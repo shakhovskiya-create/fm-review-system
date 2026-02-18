@@ -18,9 +18,11 @@
 - [x] memory: project добавлен во все 9 агентов
 - [x] MODEL_SELECTION.md создан (обоснование opus/sonnet по агентам)
 - [x] COMMON_RULES.md: правило 21 (Knowledge Graph)
-- [ ] CONTEXT.md (этот файл)
-- [ ] .claude/skills/fm-audit/ (skill для аудита ФМ)
-- [ ] .github/workflows/security-review.yml
+- [x] CONTEXT.md (этот файл)
+- [x] .claude/skills/fm-audit/ (skill для аудита ФМ, привязан к Agent 1)
+- [x] .github/workflows/security-review.yml
+- [x] seed_memory.py: исправлена дедупликация relations
+- [x] Полная верификация: 9 hooks, 3 skills, 2 MCP, 9 agents, 182 теста
 
 ### Блокеры
 - Нет

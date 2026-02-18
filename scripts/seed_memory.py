@@ -221,8 +221,9 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
         MEMORY_FILE.unlink()
         print("Reset: existing memory.jsonl deleted")
 
-    # Read existing entities to avoid duplicates
+    # Read existing data to avoid duplicates
     existing_names = set()
+    existing_rels = set()
     if MEMORY_FILE.exists():
         for line in MEMORY_FILE.read_text().splitlines():
             if line.strip():
@@ -230,10 +231,13 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
                     obj = json.loads(line)
                     if "name" in obj:
                         existing_names.add(obj["name"])
+                    elif "from" in obj and "to" in obj:
+                        existing_rels.add((obj["from"], obj["to"], obj["relationType"]))
                 except json.JSONDecodeError:
                     pass
 
     added = 0
+    rels_added = 0
     with open(MEMORY_FILE, "a") as f:
         for entity in entities:
             if entity["name"] not in existing_names:
@@ -242,8 +246,12 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
                 existing_names.add(entity["name"])
 
         for from_name, to_name, rel_type in relations:
-            rel = {"from": from_name, "to": to_name, "relationType": rel_type}
-            f.write(json.dumps(rel, ensure_ascii=False) + "\n")
+            rel_key = (from_name, to_name, rel_type)
+            if rel_key not in existing_rels:
+                rel = {"from": from_name, "to": to_name, "relationType": rel_type}
+                f.write(json.dumps(rel, ensure_ascii=False) + "\n")
+                rels_added += 1
+                existing_rels.add(rel_key)
 
     return added
 
