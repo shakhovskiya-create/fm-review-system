@@ -189,7 +189,7 @@ _→ Доставь через AskUserQuestion_
 
 ### В автономном режиме (/auto)
 
-При запуске через `run_agent.py --pipeline`:
+При запуске через `run_agent.py --pipeline` (или `--parallel`):
 - Exit code 0 → автоматически продолжить к Agent 7
 - Exit code 1 (CRITICAL) → остановить пайплайн, записать в лог, exit 1
 - Exit code 2 (WARN) → продолжить с `--reason "pipeline auto"`, записать предупреждения в лог

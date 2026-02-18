@@ -58,3 +58,35 @@ LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
+
+## Интеграция с FM Review System
+
+Два уровня трейсинга:
+
+### 1. PipelineTracer (per-pipeline)
+
+Встроен в `scripts/run_agent.py`. При запуске `--pipeline` или `--parallel` создает корневой trace с child span для каждого агента.
+
+```
+Pipeline Trace
+├── Agent 1 (Architect) — span + generation (tokens, cost)
+├── Agent 2 (Simulator) — span + generation
+├── Agent 4 (QA Tester) — span + generation
+├── Quality Gate — span
+├── Agent 7 (Publisher) — span + generation
+└── ...
+```
+
+Включается автоматически при наличии `LANGFUSE_PUBLIC_KEY` в env.
+
+### 2. Stop Hook Tracer (per-session)
+
+Скрипт `scripts/lib/langfuse_tracer.py`, вызывается из `.claude/hooks/langfuse-trace.sh` при завершении каждой Claude Code сессии. Парсит JSONL-транскрипт, считает токены и стоимость, отправляет в Langfuse.
+
+### Что видно в Langfuse Dashboard
+
+- Стоимость по агентам и моделям (opus vs sonnet)
+- Количество токенов (input/output/cache)
+- Длительность каждого агента
+- Вызовы инструментов (tool calls)
+- Pipeline-level метрики (общая стоимость, время)

@@ -157,8 +157,8 @@ ${PREV_CONTEXT}"
                 echo ""
             fi
 
-            # Автономный режим: вызов через Claude Code CLI (run_agent.py)
-            # FC-22: перенесен из experimental/ в scripts/, использует claude -p
+            # Автономный режим: вызов через Claude Code SDK (run_agent.py)
+            # FC-22: перенесен из experimental/ в scripts/, использует claude-code-sdk
             if [[ -n "${AUTONOMOUS:-}" ]]; then
                 AGENT_NUM=1
                 case "${agent_md}" in

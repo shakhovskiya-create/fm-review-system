@@ -75,7 +75,9 @@
 
 **Governance:** `AGENT_PROTOCOL.md`, `HANDOFF.md`, `DECISIONS.md`, `logs/`
 
-**Скрипты:** `scripts/orchestrate.sh` (главное меню), `scripts/run_agent.py` (автономный запуск), `scripts/quality_gate.sh`, `scripts/fm_version.sh`, `scripts/new_project.sh`, `scripts/export_from_confluence.py`
+**Скрипты:** `scripts/orchestrate.sh` (главное меню), `scripts/run_agent.py` (автономный запуск через Claude Code SDK + Langfuse), `scripts/quality_gate.sh`, `scripts/fm_version.sh`, `scripts/new_project.sh`, `scripts/export_from_confluence.py`
+
+**Observability:** `scripts/lib/langfuse_tracer.py` (Stop hook трейсер), `infra/langfuse/` (self-hosted Langfuse v3)
 
 **Схемы:** `schemas/agent-contracts.json` (v2.1)
 
@@ -111,7 +113,7 @@ Agent 0 (Create) -> Agent 1 (Audit) -> Agent 2 (Simulator) -> Agent 4 (QA) -> Ag
 
 **Запуск:**
 - В чате: "Запусти полный цикл ФМ FM-LS-PROFIT" (читает workflows/PIPELINE_AUTO.md)
-- Скрипт: `python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT`
+- Скрипт: `python3 scripts/run_agent.py --pipeline --project PROJECT_SHPMNT_PROFIT` (или `--parallel`)
 - Меню: `./scripts/orchestrate.sh`
 
 **Правила пайплайна:**

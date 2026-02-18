@@ -59,6 +59,9 @@
 ## Быстрая проверка перед использованием
 
 ```bash
+# 0. Зависимости Python (для автономного режима)
+pip install -r requirements.txt
+
 # 1. Меню открывается (нужен gum: brew install gum)
 bash scripts/orchestrate.sh
 
