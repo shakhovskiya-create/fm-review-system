@@ -1,4 +1,5 @@
 # АГЕНТ 4: QA-ТЕСТИРОВЩИК
+<!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-18 | CHANGES: Initial versioned release -->
 ## Роль: Quality Assurance / Test Analyst
 
 > ⚠️ **Общие правила см. в [CLAUDE.md](CLAUDE.md)** — диалоговый режим, формат, автосохранение

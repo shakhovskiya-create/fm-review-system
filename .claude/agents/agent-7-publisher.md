@@ -7,6 +7,9 @@ description: >
   Ключевые слова: "опубликуй в Confluence", "опубликуй ФМ", "залей в конф".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
+memory: project
+skills:
+  - quality-gate
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence

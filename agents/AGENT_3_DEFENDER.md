@@ -1,4 +1,5 @@
 # АГЕНТ 3: ЗАЩИТНИК ФМ
+<!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-18 | CHANGES: Initial versioned release -->
 ## Роль: FM Defense — Ответы на замечания
 
 > ⚠️ **Общие правила см. в [CLAUDE.md](CLAUDE.md)** — диалоговый режим, формат, автосохранение

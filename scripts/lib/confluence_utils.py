@@ -399,10 +399,10 @@ class ConfluenceClient:
 def create_client_from_env(page_id: Optional[str] = None) -> ConfluenceClient:
     """Create client using environment variables."""
     url = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-    token = os.environ.get("CONFLUENCE_TOKEN", "")
+    token = os.environ.get("CONFLUENCE_TOKEN", "") or os.environ.get("CONFLUENCE_PERSONAL_TOKEN", "")
 
     if not token:
-        raise ValueError("CONFLUENCE_TOKEN environment variable not set")
+        raise ValueError("CONFLUENCE_TOKEN (or CONFLUENCE_PERSONAL_TOKEN) environment variable not set")
 
     if page_id is None:
         page_id = os.environ.get("CONFLUENCE_PAGE_ID")

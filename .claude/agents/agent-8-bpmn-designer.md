@@ -7,6 +7,7 @@ description: >
   Ключевые слова: "создай BPMN", "визуализируй процесс", "диаграмма процесса".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
+memory: project
 ---
 
 # Agent 8: BPMN Designer - Диаграммы процессов

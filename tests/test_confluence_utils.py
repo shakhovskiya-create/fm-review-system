@@ -334,11 +334,22 @@ class TestRollback:
 
 class TestCreateClientFromEnv:
     def test_missing_token_raises(self):
-        """ValueError raised when CONFLUENCE_TOKEN not set."""
+        """ValueError raised when neither CONFLUENCE_TOKEN nor CONFLUENCE_PERSONAL_TOKEN set."""
         from confluence_utils import create_client_from_env
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError, match="CONFLUENCE_TOKEN"):
                 create_client_from_env("12345")
+
+    def test_fallback_to_personal_token(self):
+        """Client uses CONFLUENCE_PERSONAL_TOKEN when CONFLUENCE_TOKEN is not set."""
+        from confluence_utils import create_client_from_env
+        env = {
+            "CONFLUENCE_PERSONAL_TOKEN": "fallback-token",
+            "CONFLUENCE_PAGE_ID": "12345"
+        }
+        with patch.dict(os.environ, env, clear=True):
+            client = create_client_from_env()
+            assert client.token == "fallback-token"
 
     def test_missing_page_id_raises(self):
         """ValueError raised when no page_id provided."""

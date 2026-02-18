@@ -7,6 +7,7 @@ description: >
   Ключевые слова: "запусти аудит", "проверь ФМ", "какие проблемы в ФМ".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: opus
+memory: project
 ---
 
 # Agent 1: Architect - Аудит ФМ

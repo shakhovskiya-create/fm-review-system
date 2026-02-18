@@ -33,3 +33,11 @@ bash scripts/quality_gate.sh [PROJECT_NAME]
 ## После проверки
 
 Показать пользователю результат и предложить действие через AskUserQuestion.
+
+## В автономном режиме (/auto, pipeline)
+
+При запуске через `run_agent.py --pipeline`:
+- Exit 0 → автоматически продолжить к Agent 7
+- Exit 1 (CRITICAL) → остановить пайплайн, exit 1
+- Exit 2 (WARN) → продолжить с `--reason "pipeline auto"`, записать предупреждения в лог
+- Результаты: `PROJECT_*/REPORTS/quality_gate_*.log`

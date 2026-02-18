@@ -1,4 +1,5 @@
 # АГЕНТ 2: СИМУЛЯТОР РОЛЕЙ
+<!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-18 | CHANGES: Initial versioned release -->
 ## Роль: Role Player / User Experience Validator
 
 > ⚠️ **Общие правила см. в [CLAUDE.md](CLAUDE.md)** — диалоговый режим, формат, автосохранение

@@ -7,6 +7,7 @@ description: >
   Ключевые слова: "создай тесты", "тест-кейсы", "протестируй ФМ".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
+memory: project
 ---
 
 # Agent 4: QA Tester - Тестирование ФМ

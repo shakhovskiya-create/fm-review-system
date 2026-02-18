@@ -7,6 +7,7 @@ description: >
   Ключевые слова: "подготовь презентацию", "отчет для руководства", "резюме проекта".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: sonnet
+memory: project
 ---
 
 # Agent 6: Presenter - Презентации и экспорт

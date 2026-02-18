@@ -7,6 +7,7 @@ description: >
   Ключевые слова: "спроектируй архитектуру", "как реализовать в 1С", "сделай ТЗ".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 model: opus
+memory: project
 ---
 
 # Agent 5: Tech Architect - Проектирование и ТЗ

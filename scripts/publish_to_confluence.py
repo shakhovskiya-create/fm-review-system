@@ -28,7 +28,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 # Config - set CONFLUENCE_TOKEN environment variable before running
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+TOKEN = os.environ.get("CONFLUENCE_TOKEN", "") or os.environ.get("CONFLUENCE_PERSONAL_TOKEN", "")
 
 
 def _get_page_id(project_name=None):
