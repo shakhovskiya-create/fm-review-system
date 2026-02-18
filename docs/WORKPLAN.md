@@ -19,7 +19,7 @@
 | Hooks (9 шт + PreCompact) | 🟢 Готовы | 18.02.2026 |
 | Skills (3: evolve, quality-gate, fm-audit) | 🟢 Готовы | 18.02.2026 |
 | CONTEXT.md (progress file) | 🟢 Готов | 18.02.2026 |
-| CI/CD (claude.yml + security-review.yml) | 🟢 Готовы | 18.02.2026 |
+| CI/CD (claude.yml + security-review.yml + ci.yml) | 🟢 Готовы | 18.02.2026 |
 | **PROJECT_SHPMNT_PROFIT/** | 🟢 Готов | 17.02.2026 |
 
 **Легенда:** 🟢 Готов | 🟡 В работе | 🔴 Не начато / Устаревший | ⚪ Отменено
@@ -51,7 +51,27 @@
 | 14 | PreCompact hook | .claude/hooks/precompact-save-context.sh | ✅ |
 | 15 | Обновить CLAUDE.md (skills, hooks, progress) | CLAUDE.md | ✅ |
 | 16 | Обновить WORKPLAN.md | docs/WORKPLAN.md | ✅ |
-| 17 | Тесты + коммит | tests/, git | 🟡 |
+| 17 | Тесты + коммит | tests/, git | ✅ |
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — Testing Audit: покрытие 40% → 70%+ (ЗАВЕРШЕНА ✅)
+
+### Контекст
+Аудит тестирования (audit-fm-review.md) показал: 40% покрытия, нет CI workflow, нет integration tests, отсутствуют тесты для ключевых модулей.
+
+### План работ
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| 1 | CI workflow (pytest + coverage + bandit) | .github/workflows/ci.yml | ✅ |
+| 2 | Dependabot config | .github/dependabot.yml | ✅ |
+| 3 | Тесты seed_memory.py | tests/test_seed_memory.py | ✅ |
+| 4 | Тесты hooks | tests/test_hooks.py | ✅ |
+| 5 | Тесты run_agent.py | tests/test_pipeline.py (уже покрыт) | ✅ |
+| 6 | Тесты check_confluence_macros.py | tests/test_check_confluence_macros.py | ✅ |
+| 7 | Integration test stubs (pipeline, agent quality) | tests/test_integration.py | ✅ |
+| 8 | Прогон тестов (265 passed, 9 integration stubs) | tests/, git | ✅ |
 
 ---
 
