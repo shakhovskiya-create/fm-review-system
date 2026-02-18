@@ -33,6 +33,9 @@ __pycache__/
 # OS
 .DS_Store
 **/.DS_Store
+._*
+**/._*
+Thumbs.db
 
 # BPMN output (generated, not source)
 scripts/output/
@@ -77,3 +80,6 @@ scripts/.langfuse_state/
 -Users-*/
 *.tar.gz
 *.jsonl
+
+# Session logs (runtime, not source)
+logs/sessions.log
