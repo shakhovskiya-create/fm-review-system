@@ -77,7 +77,7 @@
 │  confluence_add_label    - добавить метку                   │
 │                                                             │
 │  Шаблон страницы - см. docs/CONFLUENCE_TEMPLATE.md          │
-│  Требования - см. docs/CONFLUENCE_REQUIREMENTS.md           │
+│  Требования - см. docs/CONFLUENCE_TEMPLATE.md                │
 │  Fallback: scripts/lib/confluence_utils.py (REST API)       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -247,7 +247,7 @@ tables = re.findall(r'<table.*?>(.*?)</table>', xhtml_content, re.DOTALL)
 ## 📐 КОНВЕРТАЦИЯ И ПУБЛИКАЦИЯ
 
 > Шаблон страницы - см. `docs/CONFLUENCE_TEMPLATE.md`
-> Требования к формату - см. `docs/CONFLUENCE_REQUIREMENTS.md`
+> Требования к формату - см. `docs/CONFLUENCE_TEMPLATE.md`
 
 ### 🔧 Confluence - MCP-инструменты (основной способ)
 

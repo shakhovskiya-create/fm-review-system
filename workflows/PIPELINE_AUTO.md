@@ -30,7 +30,7 @@
   Версия: [текущая] | Confluence: PAGE_ID [id]
 ══════════════════════════════════════════════
 
-Порядок: Agent 1 → 2 → 4 → 5 → Quality Gate → 7 → 8 → 6
+Порядок: Agent 1 → 2 → 4 → 5 → 3 → Quality Gate → 7 → 8 → 6
 ```
 
 ---
@@ -40,14 +40,22 @@
 | # | Агент | Роль | Команда |
 |---|-------|------|---------|
 | 1 | Agent 1 | Architect | /auto |
-| 2 | Agent 2 | Simulator | /auto |
+| 2 | Agent 2 | Simulator | /auto (= /simulate-all) |
 | 3 | Agent 4 | QA Tester | /auto |
 | 4 | Agent 5 | Tech Architect | /auto |
-| 5 | Quality Gate | (скрипт) | bash quality_gate.sh |
-| 6 | Agent 7 | Publisher | /auto |
-| 7 | Agent 8 | BPMN Designer | /auto |
-| 8 | Agent 6 | Presenter | /auto |
-| 9 | /evolve | Self-Improvement | анализ .patches/ |
+| 5 | Agent 3 | Defender | /auto |
+| 6 | Quality Gate | (скрипт) | bash quality_gate.sh |
+| 7 | Agent 7 | Publisher | /auto |
+| 8 | Agent 8 | BPMN Designer | /auto |
+| 9 | Agent 6 | Presenter | /auto |
+| 10 | /evolve | Self-Improvement | анализ .patches/ |
+
+> **Agent 2:** В конвейере запускает `/auto` (= `/simulate-all` + автоматический /apply).
+> Режим `/business` - отдельный ручной запуск перед бизнес-согласованием, не часть основного конвейера.
+>
+> **Agent 3:** Анализирует findings агентов 1, 2, 4, 5 и готовит аргументированные ответы.
+> Классифицирует каждую находку (покрыто / пробел / осознанный выбор / в бэклоге).
+> Находки типа "пробел" автоматически предлагаются к исправлению через /apply.
 
 ---
 
@@ -156,10 +164,10 @@ _→ Доставь через AskUserQuestion_
 
 ---
 
-## ЭТАП 5: Quality Gate (между Agent 5 и Agent 7)
+## ЭТАП 6: Quality Gate (между Agent 3 и Agent 7)
 
 ```
-═══ ЭТАП 5/7: Quality Gate ═══
+═══ ЭТАП 6/9: Quality Gate ═══
 ```
 
 1. Запустить: `bash scripts/quality_gate.sh [PROJECT_NAME]`
@@ -242,11 +250,13 @@ _→ Доставь через AskUserQuestion_
 | 2 | Simulator | ✅ | 5 | 3 | 1.0.2 |
 | 3 | QA Tester | ✅ | 8 | - | - |
 | 4 | Tech Arch | ✅ | 3 | 2 | 1.0.3 |
-| 5 | Quality Gate | ✅ | - | - | - |
-| 6 | Publisher | ✅ | - | PUT | v28 |
-| 7 | Presenter | ✅ | - | - | - |
+| 5 | Defender | ✅ | 4 | 2 | 1.0.4 |
+| 6 | Quality Gate | ✅ | - | - | - |
+| 7 | Publisher | ✅ | - | PUT | v28 |
+| 8 | BPMN | ✅ | - | - | - |
+| 9 | Presenter | ✅ | - | - | - |
 
-Итого: [N]/7 этапов завершено. ФМ: v[X.Y.Z]
+Итого: [N]/9 этапов завершено. ФМ: v[X.Y.Z]
 ```
 
 ---

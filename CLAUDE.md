@@ -63,7 +63,7 @@
 
 **Confluence:**
 - `docs/CONFLUENCE_TEMPLATE.md` - шаблон XHTML
-- `docs/CONFLUENCE_REQUIREMENTS.md` - требования к публикации
+- `docs/ARCHIVE/CONFLUENCE_REQUIREMENTS-2026-02-05.md` - исторический лог требований (архив)
 - `scripts/publish_to_confluence.py` - обновление Confluence (v3.0, lock+backup+retry)
 - `scripts/lib/confluence_utils.py` - API клиент
 
@@ -103,9 +103,11 @@ PROJECT_[NAME]/
 
 ```
 Agent 0 (Create) -> Agent 1 (Audit) -> Agent 2 (Simulator) -> Agent 4 (QA) -> Agent 5 (Tech Arch)
-  -> Quality Gate -> Agent 7 (Publish) -> Agent 8 (BPMN) -> Agent 6 (Presenter)
-Agent 3 (Defender) - по запросу при замечаниях бизнеса
+  -> Agent 3 (Defender) -> Quality Gate -> Agent 7 (Publish) -> Agent 8 (BPMN) -> Agent 6 (Presenter)
 ```
+
+> Agent 3 анализирует findings агентов 1, 2, 4, 5 перед Quality Gate.
+> Agent 2 в конвейере = /simulate-all. Режим /business - отдельно, перед бизнес-согласованием.
 
 **Запуск:**
 - В чате: "Запусти полный цикл ФМ FM-LS-PROFIT" (читает workflows/PIPELINE_AUTO.md)

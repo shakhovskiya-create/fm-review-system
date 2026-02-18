@@ -51,17 +51,18 @@ AGENT_REGISTRY = {
     8: {"name": "BPMNDesigner",  "file": "AGENT_8_BPMN_DESIGNER.md", "dir": "AGENT_8_BPMN_DESIGNER"},
 }
 
-# Порядок конвейера: Agent 1 -> 2 -> 4 -> 5 -> QualityGate -> 7 -> 8 -> 6
-PIPELINE_ORDER = [1, 2, 4, 5, "quality_gate", 7, 8, 6]
+# Порядок конвейера: Agent 1 -> 2 -> 4 -> 5 -> 3 -> QualityGate -> 7 -> 8 -> 6
+PIPELINE_ORDER = [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6]
 
 # Параллельные стадии (для --parallel)
 PARALLEL_STAGES = [
     [1],                    # Stage 1: Architect (база для всех)
     [2, 4],                 # Stage 2: Simulator + QA (параллельно)
     [5],                    # Stage 3: TechArchitect (читает 1+2+4)
-    ["quality_gate"],       # Stage 4: Quality Gate
-    [7],                    # Stage 5: Publisher
-    [8, 6],                 # Stage 6: BPMN + Presenter (параллельно)
+    [3],                    # Stage 4: Defender (анализ findings 1+2+4+5)
+    ["quality_gate"],       # Stage 5: Quality Gate
+    [7],                    # Stage 6: Publisher
+    [8, 6],                 # Stage 7: BPMN + Presenter (параллельно)
 ]
 
 
