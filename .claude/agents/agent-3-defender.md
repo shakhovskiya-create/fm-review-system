@@ -6,7 +6,7 @@ description: >
   классифицировать обратную связь, подготовить ответы.
   Ключевые слова: "замечания от бизнеса", "проанализируй замечания", "ответь на".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: sonnet
+model: opus
 ---
 
 # Agent 3: Defender - Защита ФМ

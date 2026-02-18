@@ -41,8 +41,8 @@
 |----------|--------|----------|
 | `agent-0-creator` | opus | `agents/AGENT_0_CREATOR.md` |
 | `agent-1-architect` | opus | `agents/AGENT_1_ARCHITECT.md` |
-| `agent-2-simulator` | sonnet | `agents/AGENT_2_ROLE_SIMULATOR.md` |
-| `agent-3-defender` | sonnet | `agents/AGENT_3_DEFENDER.md` |
+| `agent-2-simulator` | opus | `agents/AGENT_2_ROLE_SIMULATOR.md` |
+| `agent-3-defender` | opus | `agents/AGENT_3_DEFENDER.md` |
 | `agent-4-qa-tester` | sonnet | `agents/AGENT_4_QA_TESTER.md` |
 | `agent-5-tech-architect` | opus | `agents/AGENT_5_TECH_ARCHITECT.md` |
 | `agent-6-presenter` | sonnet | `agents/AGENT_6_PRESENTER.md` |

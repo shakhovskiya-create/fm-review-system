@@ -227,7 +227,7 @@
 
 | Шаг | Задача | Статус | Дата |
 |-----|--------|--------|------|
-| 1 | Adaptive Thinking (#7) | DONE (Agent 2,3,4,7->sonnet, no haiku) | 17.02.2026 |
+| 1 | Adaptive Thinking (#7) | DONE (Agent 4,7->sonnet) | 17.02.2026 |
 | 2 | GitHub Actions (#6) | DONE (workflow + secret) | 17.02.2026 |
 | 3 | Дедупликация агентов | DONE (9 файлов, ~800 строк) | 17.02.2026 |
 | 4 | Langfuse (#5) | DONE (Cloud + hook + tracer) | 17.02.2026 |
