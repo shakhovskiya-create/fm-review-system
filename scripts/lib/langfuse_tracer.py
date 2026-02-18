@@ -189,10 +189,10 @@ def calculate_cost(stats: SessionStats) -> float:
 
 
 def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
-    """Send trace to Langfuse."""
-    from langfuse import Langfuse
+    """Send trace to Langfuse (SDK v3 API)."""
+    from langfuse import get_client
 
-    langfuse = Langfuse()
+    langfuse = get_client()
 
     trace_name = (
         f"agent-{stats.agent_id}-{stats.agent_name}"
@@ -210,7 +210,11 @@ def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
     if stats.project:
         tags.append(f"project:{stats.project}")
 
-    trace = langfuse.trace(
+    # v3: create root span, then set trace metadata via update_trace()
+    pricing = MODEL_PRICING.get(stats.model, DEFAULT_PRICING)
+
+    root = langfuse.start_span(name=trace_name)
+    root.update_trace(
         name=trace_name,
         session_id=session_id,
         user_id="shahovsky",
@@ -225,8 +229,7 @@ def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
     )
 
     # Generation: aggregate LLM usage
-    pricing = MODEL_PRICING.get(stats.model, DEFAULT_PRICING)
-    trace.generation(
+    gen = root.start_generation(
         name="claude-code-session",
         model=stats.model,
         usage_details={
@@ -241,14 +244,14 @@ def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
         },
         metadata={"total_cost_usd": cost},
     )
+    gen.end()
 
     # Spans for tool usage
     for tool_name, count in stats.tool_calls.items():
-        trace.span(
-            name=f"tool:{tool_name}",
-            metadata={"call_count": count},
-        )
+        tool_span = root.start_span(name=f"tool:{tool_name}", metadata={"call_count": count})
+        tool_span.end()
 
+    root.end()
     langfuse.flush()
 
 
@@ -269,6 +272,10 @@ def main():
             sys.exit(0)
         if not os.environ.get("LANGFUSE_PUBLIC_KEY"):
             sys.exit(0)
+
+        # SDK v3 uses LANGFUSE_HOST, ensure it's set from LANGFUSE_BASE_URL fallback
+        if not os.environ.get("LANGFUSE_HOST") and os.environ.get("LANGFUSE_BASE_URL"):
+            os.environ["LANGFUSE_HOST"] = os.environ["LANGFUSE_BASE_URL"]
 
         # Incremental parsing
         last_offset = get_last_offset(transcript_path)
