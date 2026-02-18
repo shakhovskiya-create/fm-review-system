@@ -7,6 +7,13 @@
         "--no-confluence-ssl-verify",
         "--env-file", "/home/dev/projects/claude-agents/fm-review-system/.env"
       ]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": "/home/dev/projects/claude-agents/fm-review-system/.claude-memory/memory.jsonl"
+      }
     }
   }
 }

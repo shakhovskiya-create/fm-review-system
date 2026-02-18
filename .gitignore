@@ -81,5 +81,8 @@ scripts/.langfuse_state/
 *.tar.gz
 *.jsonl
 
+# Knowledge graph memory (runtime, user-specific)
+.claude-memory/
+
 # Session logs (runtime, not source)
 logs/sessions.log

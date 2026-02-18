@@ -84,5 +84,9 @@
   },
   "enabledPlugins": {
     "episodic-memory@superpowers-marketplace": true
-  }
+  },
+  "enabledMcpjsonServers": [
+    "confluence",
+    "memory"
+  ]
 }

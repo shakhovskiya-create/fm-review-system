@@ -31,4 +31,10 @@ if [ -n "$context" ]; then
   echo "$context"
 fi
 
+# Knowledge Graph: подсказка субагентам
+MEMORY_FILE="$PROJECT_DIR/.claude-memory/memory.jsonl"
+if [ -f "$MEMORY_FILE" ]; then
+  echo "Knowledge Graph available: use mcp__memory__search_nodes to find entities, decisions, findings."
+fi
+
 exit 0
