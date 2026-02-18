@@ -97,7 +97,7 @@ PROJECT_[NAME]/
 
 | Проект | ФМ | Статус |
 |--------|----|--------|
-| PROJECT_SHPMNT_PROFIT | FM-LS-PROFIT v1.0.1 | На согласовании |
+| PROJECT_SHPMNT_PROFIT | FM-LS-PROFIT v1.0.3 | Готов к разработке |
 
 ---
 

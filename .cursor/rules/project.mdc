@@ -1,5 +1,5 @@
 ---
-description: FM Review System - 8 агентов для жизненного цикла Функциональных Моделей 1С ERP
+description: FM Review System - 9 агентов для жизненного цикла Функциональных Моделей 1С ERP
 globs: ["**/*.md", "**/*.py", "**/*.sh", "agents/**", "scripts/**", "projects/**"]
 alwaysApply: true
 ---
@@ -7,7 +7,7 @@ alwaysApply: true
 # FM Review System
 
 ## О системе
-8 агентов для полного жизненного цикла ФМ (Функциональных Моделей) проектов 1С:
+9 агентов для полного жизненного цикла ФМ (Функциональных Моделей) проектов 1С:
 - Agent 0 (Creator) - создание ФМ с нуля
 - Agent 1 (Architect) - полный аудит ФМ
 - Agent 2 (Role Simulator) - симуляция ролей пользователей
@@ -16,6 +16,7 @@ alwaysApply: true
 - Agent 5 (Tech Architect) - проектирование и ТЗ
 - Agent 6 (Presenter) - презентации, экспорт
 - Agent 7 (Publisher) - публикация в Confluence
+- Agent 8 (BPMN Designer) - BPMN-диаграммы
 
 ## Маршрутизация по фразам
 - "Создай ФМ", "Новая ФМ" → Agent 0
@@ -26,6 +27,7 @@ alwaysApply: true
 - "Спроектируй", "Сделай ТЗ" → Agent 5
 - "Подготовь презентацию" → Agent 6
 - "Опубликуй в Confluence" → Agent 7
+- "Создай BPMN", "Диаграмма процесса" → Agent 8
 - "Полный цикл", "Конвейер" → workflows/PIPELINE_AUTO.md
 - "/evolve" → agents/EVOLVE.md
 

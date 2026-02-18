@@ -24,7 +24,7 @@ PROJECT_[NAME]/
 └── REPORTS/               ← Итоговые отчёты
 
 ТЕКУЩИЕ ПРОЕКТЫ:
-- PROJECT_SHPMNT_PROFIT/   ← Контроль рентабельности (FM v2.5.3)
+- PROJECT_SHPMNT_PROFIT/   ← Контроль рентабельности (FM v1.0.3)
 - PROJECT_SALES_PIPELINE/  ← Проектные продажи
 ```
 

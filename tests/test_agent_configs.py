@@ -193,7 +193,7 @@ class TestHooks:
         """Required hook events are configured."""
         content = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
         hooks = content.get("hooks", {})
-        required_events = ["SessionStart", "PreToolUse", "PostToolUse", "Stop"]
+        required_events = ["SessionStart", "SubagentStart", "SubagentStop", "PreToolUse", "PostToolUse", "Stop"]
         for event in required_events:
             assert event in hooks, f"Missing hook event: {event}"
 
@@ -208,6 +208,33 @@ class TestSkills:
         """Quality gate skill SKILL.md exists."""
         skill_file = SKILLS_DIR / "quality-gate" / "SKILL.md"
         assert skill_file.exists(), "quality-gate skill not found"
+
+    def test_evolve_not_on_readonly_agents(self):
+        """Evolve skill must NOT be assigned to agents with disallowedTools: Write, Edit."""
+        for agent_file in AGENT_FILES:
+            config = parse_frontmatter(agent_file)
+            disallowed = config.get("disallowedTools", "")
+            if "Write" in disallowed or "Edit" in disallowed:
+                skills = config.get("skills", [])
+                assert "evolve" not in skills, \
+                    f"{agent_file.name} has evolve skill but disallowedTools includes Write/Edit"
+
+    def test_skill_tool_compatibility(self):
+        """Skills requiring Write/Edit should not be on agents that disallow them.
+
+        The evolve skill modifies agent files, so it needs Write + Edit.
+        No agent with disallowedTools: Write, Edit should have it.
+        """
+        write_requiring_skills = {"evolve"}
+        for agent_file in AGENT_FILES:
+            config = parse_frontmatter(agent_file)
+            disallowed = config.get("disallowedTools", "")
+            has_write_block = "Write" in disallowed or "Edit" in disallowed
+            if has_write_block:
+                skills = set(config.get("skills", []))
+                conflict = skills & write_requiring_skills
+                assert not conflict, \
+                    f"{agent_file.name} has conflicting skills {conflict} with disallowedTools"
 
 
 class TestProjectTemplate:

@@ -411,7 +411,7 @@ async def run_single_agent(
         cost_usd=cost,
         num_turns=num_turns,
         session_id=session_id,
-        error=result_msg.result[:500] if result_msg and is_error else "",
+        error=(result_msg.result or "")[:500] if result_msg and is_error else "",
     )
 
 

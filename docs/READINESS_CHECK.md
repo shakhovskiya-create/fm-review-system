@@ -10,7 +10,7 @@
 
 | Компонент | Статус |
 |-----------|--------|
-| Агенты 0–7 | Все 8 файлов в `agents/`: CREATOR, ARCHITECT, ROLE_SIMULATOR, DEFENDER, QA_TESTER, TECH_ARCHITECT, PRESENTER, **PUBLISHER** |
+| Агенты 0–8 | Все 9 файлов в `agents/`: CREATOR, ARCHITECT, ROLE_SIMULATOR, DEFENDER, QA_TESTER, TECH_ARCHITECT, PRESENTER, PUBLISHER, **BPMN_DESIGNER** |
 | Скрипты интервью | agent0_new.sh … agent5_architect.sh присутствуют и вызываются из orchestrate |
 | orchestrate.sh | Меню 1–12; PIPELINE_FILES с AGENT_7_PUBLISHER; команда /publish |
 | new_project.sh | Создаёт CHANGES/, CONFLUENCE_PAGE_ID, папку AGENT_7_PUBLISHER |

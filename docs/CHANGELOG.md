@@ -269,7 +269,7 @@ PROJECT_[NAME]/
 ```
 
 **Созданные проекты:**
-- `PROJECT_SHPMNT_PROFIT/` — Контроль рентабельности (FM v2.5.3)
+- `PROJECT_SHPMNT_PROFIT/` — Контроль рентабельности (FM v1.0.3, ранее v2.5.x в Word)
 - `PROJECT_SALES_PIPELINE/` — Проектные продажи (планирование)
 
 **Обновлены:**
