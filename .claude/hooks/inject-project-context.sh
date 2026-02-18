@@ -37,6 +37,12 @@ if [ -f "$MEMORY_FILE" ]; then
   echo "- Knowledge Graph: ${entity_count} entities (use mcp__memory__search_nodes)"
 fi
 
+# Progress file hint
+CONTEXT_FILE="$PROJECT_DIR/CONTEXT.md"
+if [ -f "$CONTEXT_FILE" ]; then
+  echo "- Progress: CONTEXT.md exists (read for session continuity)"
+fi
+
 echo "========================================="
 
 exit 0

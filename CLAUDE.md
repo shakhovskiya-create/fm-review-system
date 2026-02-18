@@ -84,6 +84,14 @@
 - **Episodic Memory** (`episodic-memory@superpowers-marketplace`): семантический поиск по прошлым сессиям Claude Code. Хранение: `~/.config/superpowers/conversation-archive/`.
 - **Agent Memory** (`memory: project` в subagent frontmatter): персональная память каждого субагента (`.claude/agent-memory/<name>/MEMORY.md`).
 
+**Skills:** `.claude/skills/evolve/` (/evolve), `.claude/skills/quality-gate/` (предзагрузка Agent 7), `.claude/skills/fm-audit/` (чеклист аудита, предзагрузка Agent 1)
+
+**Progress file:** `CONTEXT.md` - инкрементальный лог для длительных сессий (читается SessionStart/PreCompact hooks)
+
+**Model Selection:** `docs/MODEL_SELECTION.md` - обоснование выбора моделей (opus/sonnet) по агентам
+
+**CI/CD:** `.github/workflows/claude.yml` (PR review + @claude), `.github/workflows/security-review.yml` (security scan)
+
 **Схемы:** `schemas/agent-contracts.json` (v2.1)
 
 ---
@@ -170,6 +178,7 @@ Agent 0 (Create) -> Agent 1 (Audit) -> Agent 2 (Simulator) -> Agent 4 (QA) -> Ag
 | `session-log.sh` | Stop | Логирует завершение сессии |
 | `auto-save-context.sh` | Stop | Обновляет timestamp в PROJECT_CONTEXT.md |
 | `langfuse-trace.sh` | Stop | Трейсинг сессии для Langfuse |
+| `precompact-save-context.sh` | PreCompact | Сохраняет контекст проекта перед компакцией |
 
 ## Бизнес-согласование
 

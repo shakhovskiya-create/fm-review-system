@@ -22,4 +22,10 @@ for ctx_file in "$PROJECT_DIR"/projects/PROJECT_*/PROJECT_CONTEXT.md; do
   fi
 done
 
+# Обновляем timestamp в CONTEXT.md (progress file)
+CONTEXT_FILE="$PROJECT_DIR/CONTEXT.md"
+if [ -f "$CONTEXT_FILE" ]; then
+  sed -i "s|^**Дата:**.*|**Дата:** $(date +%d.%m.%Y)|" "$CONTEXT_FILE" 2>/dev/null || true
+fi
+
 exit 0

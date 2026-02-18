@@ -10,13 +10,48 @@
 | Компонент | Статус | Последнее обновление |
 |-----------|--------|---------------------|
 | CLAUDE.md | 🟢 Готов | 18.02.2026 |
-| Субагенты (.claude/agents/) | 🟢 Готовы | 18.02.2026 |
-| COMMON_RULES.md | 🟢 Готов | 18.02.2026 |
+| Субагенты (.claude/agents/) | 🟢 Готовы (memory: project, 5 opus + 4 sonnet) | 18.02.2026 |
+| COMMON_RULES.md | 🟢 Готов (21 правило) | 18.02.2026 |
 | AGENT_PROTOCOL.md | 🟢 Готов | 18.02.2026 |
 | README.md | 🟢 Обновлен | 18.02.2026 |
+| Knowledge Graph (server-memory) | 🟢 Готов (11 сущностей) | 18.02.2026 |
+| Episodic Memory (plugin) | 🟢 Установлен (140 exchanges) | 18.02.2026 |
+| Hooks (9 шт + PreCompact) | 🟢 Готовы | 18.02.2026 |
+| Skills (3: evolve, quality-gate, fm-audit) | 🟢 Готовы | 18.02.2026 |
+| CONTEXT.md (progress file) | 🟢 Готов | 18.02.2026 |
+| CI/CD (claude.yml + security-review.yml) | 🟢 Готовы | 18.02.2026 |
 | **PROJECT_SHPMNT_PROFIT/** | 🟢 Готов | 17.02.2026 |
 
 **Легенда:** 🟢 Готов | 🟡 В работе | 🔴 Не начато / Устаревший | ⚪ Отменено
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — Память + контекст + skills (В РАБОТЕ 🟡)
+
+### Контекст
+Интеграция трех систем памяти + новые возможности Claude Code: PreCompact hook, skills, progress file, security review.
+
+### План работ
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| 1 | Установить Episodic Memory (plugin) | ~/.claude/plugins/ | ✅ |
+| 2 | Установить server-memory MCP | .mcp.json, .claude/settings.json | ✅ |
+| 3 | Засеять Knowledge Graph | scripts/seed_memory.py, .claude-memory/ | ✅ |
+| 4 | Обновить hooks (KG hints) | .claude/hooks/{inject,subagent}*.sh | ✅ |
+| 5 | Добавить memory: project во все 9 агентов | .claude/agents/agent-*.md | ✅ |
+| 6 | Правило 21 Knowledge Graph | agents/COMMON_RULES.md | ✅ |
+| 7 | Документация памяти в CLAUDE.md | CLAUDE.md | ✅ |
+| 8 | PreCompact hook | .claude/hooks/precompact-save-context.sh | ✅ |
+| 9 | MODEL_SELECTION.md | docs/MODEL_SELECTION.md | ✅ |
+| 10 | CONTEXT.md (progress file) | CONTEXT.md | ✅ |
+| 11 | Skill fm-audit | .claude/skills/fm-audit/SKILL.md | ✅ |
+| 12 | security-review.yml | .github/workflows/security-review.yml | ✅ |
+| 13 | MODEL_SELECTION.md | docs/MODEL_SELECTION.md | ✅ |
+| 14 | PreCompact hook | .claude/hooks/precompact-save-context.sh | ✅ |
+| 15 | Обновить CLAUDE.md (skills, hooks, progress) | CLAUDE.md | ✅ |
+| 16 | Обновить WORKPLAN.md | docs/WORKPLAN.md | ✅ |
+| 17 | Тесты + коммит | tests/, git | 🟡 |
 
 ---
 

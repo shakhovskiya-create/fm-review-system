@@ -193,7 +193,7 @@ class TestHooks:
         """Required hook events are configured."""
         content = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
         hooks = content.get("hooks", {})
-        required_events = ["SessionStart", "SubagentStart", "SubagentStop", "PreToolUse", "PostToolUse", "Stop"]
+        required_events = ["SessionStart", "SubagentStart", "SubagentStop", "PreToolUse", "PostToolUse", "PreCompact", "Stop"]
         for event in required_events:
             assert event in hooks, f"Missing hook event: {event}"
 
@@ -208,6 +208,18 @@ class TestSkills:
         """Quality gate skill SKILL.md exists."""
         skill_file = SKILLS_DIR / "quality-gate" / "SKILL.md"
         assert skill_file.exists(), "quality-gate skill not found"
+
+    def test_fm_audit_skill_exists(self):
+        """FM audit skill SKILL.md exists."""
+        skill_file = SKILLS_DIR / "fm-audit" / "SKILL.md"
+        assert skill_file.exists(), "fm-audit skill not found"
+
+    def test_fm_audit_on_architect(self):
+        """Agent 1 (architect) has fm-audit skill."""
+        agent_file = AGENTS_DIR / "agent-1-architect.md"
+        config = parse_frontmatter(agent_file)
+        skills = config.get("skills", [])
+        assert "fm-audit" in skills, "agent-1-architect missing fm-audit skill"
 
     def test_evolve_not_on_readonly_agents(self):
         """Evolve skill must NOT be assigned to agents with disallowedTools: Write, Edit."""
@@ -235,6 +247,28 @@ class TestSkills:
                 conflict = skills & write_requiring_skills
                 assert not conflict, \
                     f"{agent_file.name} has conflicting skills {conflict} with disallowedTools"
+
+
+class TestProgressAndDocs:
+    def test_context_md_exists(self):
+        """CONTEXT.md progress file exists."""
+        context_file = PROJECT_ROOT / "CONTEXT.md"
+        assert context_file.exists(), "CONTEXT.md progress file not found"
+
+    def test_model_selection_exists(self):
+        """MODEL_SELECTION.md exists."""
+        model_file = PROJECT_ROOT / "docs" / "MODEL_SELECTION.md"
+        assert model_file.exists(), "docs/MODEL_SELECTION.md not found"
+
+    def test_security_review_workflow_exists(self):
+        """security-review.yml GitHub Actions workflow exists."""
+        workflow = PROJECT_ROOT / ".github" / "workflows" / "security-review.yml"
+        assert workflow.exists(), ".github/workflows/security-review.yml not found"
+
+    def test_seed_memory_script_exists(self):
+        """seed_memory.py script exists."""
+        script = PROJECT_ROOT / "scripts" / "seed_memory.py"
+        assert script.exists(), "scripts/seed_memory.py not found"
 
 
 class TestProjectTemplate:

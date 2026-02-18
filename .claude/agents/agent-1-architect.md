@@ -11,6 +11,8 @@ maxTurns: 20
 permissionMode: default
 model: opus
 memory: project
+skills:
+  - fm-audit
 ---
 
 # Agent 1: Architect - Аудит ФМ
