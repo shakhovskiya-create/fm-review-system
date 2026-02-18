@@ -155,10 +155,14 @@ Agent 0 (Create) -> Agent 1 (Audit) -> Agent 2 (Simulator) -> Agent 4 (QA) -> Ag
 
 | Хук | Тип | Назначение |
 |-----|-----|-----------|
+| `inject-project-context.sh` | SessionStart | Инжектирует контекст активных проектов |
+| `subagent-context.sh` | SubagentStart (agent-.*) | Инжектирует контекст в субагенты |
 | `guard-confluence-write.sh` | PreToolUse (Bash) | Блокирует прямой curl PUT к Confluence |
 | `validate-xhtml-style.sh` | PostToolUse (Bash) | Проверяет XHTML стили и отсутствие AI-упоминаний |
+| `validate-summary.sh` | SubagentStop (agent-.*) | Валидация _summary.json после завершения агента |
 | `session-log.sh` | Stop | Логирует завершение сессии |
 | `auto-save-context.sh` | Stop | Обновляет timestamp в PROJECT_CONTEXT.md |
+| `langfuse-trace.sh` | Stop | Трейсинг сессии для Langfuse |
 
 ## Бизнес-согласование
 
