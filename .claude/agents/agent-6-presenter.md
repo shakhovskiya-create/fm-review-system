@@ -6,6 +6,8 @@ description: >
   создать отчет для руководства, резюме проекта.
   Ключевые слова: "подготовь презентацию", "отчет для руководства", "резюме проекта".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 15
+permissionMode: acceptEdits
 model: sonnet
 memory: project
 ---

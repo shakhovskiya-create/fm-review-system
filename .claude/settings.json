@@ -48,6 +48,18 @@
         ]
       }
     ],
+    "SubagentStop": [
+      {
+        "matcher": "agent-.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-summary.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

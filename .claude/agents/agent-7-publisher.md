@@ -6,10 +6,14 @@ description: >
   Используй когда нужно: опубликовать ФМ, обновить страницу, проверить версию.
   Ключевые слова: "опубликуй в Confluence", "опубликуй ФМ", "залей в конф".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 15
+permissionMode: acceptEdits
 model: sonnet
 memory: project
 skills:
   - quality-gate
+mcpServers:
+  confluence: {}
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence

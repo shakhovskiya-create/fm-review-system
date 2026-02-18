@@ -6,8 +6,12 @@ description: >
   структурировать бизнес-процесс, описать правила и ограничения.
   Ключевые слова: "создай ФМ", "новая ФМ", "опишем процесс".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 25
+permissionMode: acceptEdits
 model: opus
 memory: project
+mcpServers:
+  confluence: {}
 ---
 
 # Agent 0: Creator - Создание ФМ

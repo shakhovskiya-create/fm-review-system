@@ -5,7 +5,10 @@ description: >
   Используй когда нужно: ответить на замечания, проанализировать критику,
   классифицировать обратную связь, подготовить ответы.
   Ключевые слова: "замечания от бизнеса", "проанализируй замечания", "ответь на".
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, WebFetch
+disallowedTools: Write, Edit
+maxTurns: 20
+permissionMode: default
 model: opus
 memory: project
 ---
