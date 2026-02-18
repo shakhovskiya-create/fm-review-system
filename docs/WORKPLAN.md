@@ -1,7 +1,7 @@
 # WORKPLAN.md — План работ по системе FM Review Agents
 
 > **Цель:** Отслеживание прогресса, восстановление контекста при обрыве сессии
-> **Последнее обновление:** 18.02.2026, Блоки A+B завершены
+> **Последнее обновление:** 18.02.2026, Блоки A+B+C завершены
 
 ---
 
@@ -58,9 +58,47 @@
 |---|--------|--------|--------|
 | C-1 | CLAUDE.md уже компактный (191 строка), обновлена таблица хуков | - | ✅ |
 | C-2 | Решение: субагенты архитектурно лучше Skills для нашего кейса | - | ⚪ (осознанный выбор) |
-| C-3 | Переписать pipeline на Claude Agent SDK (Python) | 4-6ч | 🔴 (отдельная сессия) |
+| C-3 | Переписать pipeline на Claude Agent SDK (Python) | 4-6ч | ✅ |
 | C-4 | Тесты конфигурации агентов (75 тестов, pytest) | 1ч | ✅ |
-| C-5 | Настроить Langfuse для трейсинга pipeline | 2-3ч | 🔴 (отдельная сессия) |
+| C-5 | Настроить Langfuse для трейсинга pipeline | 2-3ч | ✅ |
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — C-3 + C-5: SDK + Langfuse (ЗАВЕРШЕНА ✅)
+
+### Контекст
+Переписка pipeline runner (`run_agent.py`) с subprocess на Claude Code SDK (claude-code-sdk v0.0.25).
+Интеграция Langfuse трейсинга прямо в pipeline (PipelineTracer).
+
+### Что сделано
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Исследование Claude Code SDK API (query, ClaudeCodeOptions, ResultMessage) | ✅ |
+| 2 | Исследование текущего langfuse_tracer.py (уже реализован, 303 строки) | ✅ |
+| 3 | Переписать run_agent.py на claude-code-sdk (async, query()) | ✅ |
+| 4 | Добавить PipelineTracer (Langfuse) с per-agent spans | ✅ |
+| 5 | Async parallel execution (asyncio.gather вместо ThreadPoolExecutor) | ✅ |
+| 6 | Тесты для pipeline (44 теста, все прошли) | ✅ |
+| 7 | Обновить requirements.txt (claude-code-sdk>=0.0.25) | ✅ |
+| 8 | Обновить WORKPLAN (C-3 и C-5 завершены) | ✅ |
+
+### Ключевые изменения
+
+**run_agent.py (682 -> ~520 строк):**
+- `subprocess.run(["claude", "-p", ...])` → `async for msg in query(prompt, options)`
+- `ThreadPoolExecutor` → `asyncio.gather()` для параллельных стадий
+- `ResultMessage` дает cost, duration, session_id, num_turns нативно
+- `PipelineTracer` создает root trace + child spans в Langfuse
+- `_load_dotenv()` для Langfuse env vars
+- Unified stage builder: `_build_parallel_stages()` / `_build_sequential_stages()`
+
+**Langfuse интеграция (PipelineTracer):**
+- Pipeline run = root trace (name=`pipeline-{project}`)
+- Каждый агент = child span (name=`agent-{id}-{name}`)
+- Quality Gate = child span (name=`quality-gate`)
+- Метаданные: cost_usd, duration, status, num_turns, session_id
+- Отключается без ошибок если LANGFUSE_PUBLIC_KEY не задан
 
 ---
 

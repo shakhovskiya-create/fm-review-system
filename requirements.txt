@@ -1,6 +1,6 @@
 # FM Review System — Python-зависимости
-# Для автономного запуска агентов (run_agent.py) через Claude API
-anthropic>=0.39.0
+# Pipeline runner (run_agent.py) — Claude Code SDK
+claude-code-sdk>=0.0.25
 
 # Публикация и экспорт (уже используются в проекте)
 python-docx>=1.0.0

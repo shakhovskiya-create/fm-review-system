@@ -2,6 +2,33 @@
 
 ---
 
+## 🔄 СИСТЕМА v2.3 — Claude Code SDK + Langfuse — 18.02.2026
+
+### Pipeline на Claude Code SDK (C-3)
+- **Было**: `subprocess.run(["claude", "-p", ...])` + ручной JSON-парсинг вывода
+- **Стало**: `claude-code-sdk` (v0.0.25): `async for msg in query(prompt, options)`
+- Async pipeline: `asyncio.gather()` для параллельных стадий (вместо ThreadPoolExecutor)
+- `ResultMessage` дает cost, duration, session_id, num_turns нативно
+- `ClaudeCodeOptions`: model, permission_mode, max_turns, append_system_prompt, extra_args
+- Unified stage builder: `_build_parallel_stages()` / `_build_sequential_stages()`
+
+### Langfuse Pipeline Tracing (C-5)
+- `PipelineTracer` встроен в `run_agent.py` (не отдельный скрипт)
+- Pipeline run = root trace, каждый агент = child span, Quality Gate = span
+- Метаданные: cost_usd, duration, status, num_turns, session_id per agent
+- Тихо отключается без ошибок если `LANGFUSE_PUBLIC_KEY` не задан
+- Совместим с существующим `langfuse_tracer.py` (Stop hook для per-session трейсинга)
+
+### Тесты
+- 44 новых теста (`tests/test_pipeline.py`): registry, stages, prompts, tracer, SDK imports
+- Всего: 174 теста, все проходят
+
+### Зависимости
+- Добавлен `claude-code-sdk>=0.0.25` в requirements.txt
+- Удален `anthropic>=0.39.0` (заменен SDK)
+
+---
+
 ## 🔄 СИСТЕМА v2.2 — Реструктуризация + Pipeline Fix — 03.02.2026
 
 ### Реструктуризация папок
