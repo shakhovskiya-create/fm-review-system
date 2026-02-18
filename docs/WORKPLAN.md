@@ -72,6 +72,10 @@
 | 6 | Тесты check_confluence_macros.py | tests/test_check_confluence_macros.py | ✅ |
 | 7 | Integration test stubs (pipeline, agent quality) | tests/test_integration.py | ✅ |
 | 8 | Прогон тестов (265 passed, 9 integration stubs) | tests/, git | ✅ |
+| 9 | Тесты export_from_confluence.py | tests/test_export_from_confluence.py | ✅ |
+| 10 | pip-audit (safety) в CI | .github/workflows/ci.yml | ✅ |
+| 11 | Тесты security (credentials, secrets, .env) | tests/test_security.py | ✅ |
+| 12 | Прогон тестов (301 passed) | tests/, git | ✅ |
 
 ---
 
