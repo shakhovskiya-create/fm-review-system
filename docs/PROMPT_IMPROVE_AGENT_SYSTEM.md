@@ -4,7 +4,7 @@
 > из нескольких AI-агентов, работающих через Claude Code CLI.
 >
 > Источник: опыт проекта FM Review System (9 агентов, Confluence, 1С).
-> Дата создания: 18.02.2026
+> Дата обновления: 18.02.2026
 
 ---
 
@@ -20,6 +20,13 @@
 
 Перед началом - изучи структуру моего проекта (прочитай README, CLAUDE.md, файлы агентов, скрипты запуска). Затем адаптируй каждый шаг под мою конкретную структуру.
 
+**Правило моделей: ВСЕГДА используй последнюю версию каждой модели Claude.**
+На момент создания этого промпта (февраль 2026):
+- Opus: `claude-opus-4-6`
+- Sonnet: `claude-sonnet-4-6`
+
+Если к моменту запуска вышли новые версии - используй их. Проверь актуальные model ID на https://docs.anthropic.com/en/docs/about-claude/models
+
 ---
 
 ### ШАГ 1: Adaptive Thinking - оптимизация моделей по агентам (~30 мин)
@@ -30,10 +37,9 @@
 
 1. Составь таблицу всех агентов с колонками: Агент | Текущая модель | Тип задачи | Рекомендуемая модель | Обоснование
 
-2. Критерии выбора модели:
-   - **Opus** - только для задач, требующих глубокого аналитического мышления: поиск противоречий в документах, сложная архитектура, создание контента с нуля из интервью
-   - **Sonnet** - для структурированных задач: генерация по шаблонам, классификация, стандартные сценарии, форматирование
-   - **Haiku** - для CRUD-операций: публикация в API, простые преобразования, копирование данных между системами
+2. Критерии выбора модели (два уровня):
+   - **Opus** - задачи, требующие глубокого аналитического мышления: поиск противоречий в документах, сложная архитектура, создание контента с нуля из интервью, принятие неочевидных решений
+   - **Sonnet** - структурированные задачи: генерация по шаблонам, классификация, стандартные сценарии, форматирование, CRUD-операции с API, публикация, простые преобразования
 
 3. Для каждого агента, который нужно переключить:
    - Если агенты определены в `.claude/agents/*.md` - измени поле `model:` в YAML frontmatter
@@ -42,10 +48,9 @@
 
 4. Посчитай экономию:
    ```
-   Стоимость за 1M токенов (февраль 2026):
+   Стоимость за 1M токенов:
    Opus:   $15 input, $75 output
-   Sonnet: $3 input,  $15 output
-   Haiku:  $0.80 input, $4 output
+   Sonnet: $3 input,  $15 output (в 5 раз дешевле)
    ```
 
 **Результат:** Таблица моделей по агентам, обновленные конфиги, расчет экономии.
@@ -143,7 +148,7 @@ jobs:
             Используй inline comments для замечаний.
 
           claude_args: |
-            --model claude-sonnet-4-5-20250929
+            --model claude-sonnet-4-6
             --max-turns 10
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob,Grep"
 
@@ -169,7 +174,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: false
           claude_args: |
-            --model claude-sonnet-4-5-20250929
+            --model claude-sonnet-4-6
             --max-turns 15
 ```
 
@@ -224,18 +229,18 @@ Claude Code сессия завершается
 """
 Langfuse tracer: парсит JSONL транскрипт Claude Code,
 отправляет метрики (токены, стоимость, инструменты) в Langfuse.
-Вызывается из Stop hook.
+Вызывается из Stop hook. Использует Langfuse SDK v3.
 """
 import json, os, re, sys
 from pathlib import Path
 from dataclasses import dataclass, field
 
-# АДАПТИРУЙ: актуальные цены моделей
+# АДАПТИРУЙ: актуальные цены моделей (проверь docs.anthropic.com/en/docs/about-claude/models)
 MODEL_PRICING = {
-    "claude-opus-4-6":            {"input": 15.0, "output": 75.0, "cache_creation": 18.75, "cache_read": 1.50},
-    "claude-sonnet-4-5-20250929": {"input": 3.0,  "output": 15.0, "cache_creation": 3.75,  "cache_read": 0.30},
-    "claude-haiku-4-5-20251001":  {"input": 0.80, "output": 4.0,  "cache_creation": 1.0,   "cache_read": 0.08},
+    "claude-opus-4-6":   {"input": 15.0, "output": 75.0, "cache_creation": 18.75, "cache_read": 1.50},
+    "claude-sonnet-4-6": {"input": 3.0,  "output": 15.0, "cache_creation": 3.75,  "cache_read": 0.30},
 }
+DEFAULT_PRICING = {"input": 3.0, "output": 15.0, "cache_creation": 3.75, "cache_read": 0.30}
 
 # АДАПТИРУЙ: имена твоих агентов
 AGENT_PATTERNS = {
@@ -306,7 +311,7 @@ def parse_transcript(path: str, start_offset: int = 0):
     return stats, line_count
 
 def calculate_cost(stats):
-    pricing = MODEL_PRICING.get(stats.model, MODEL_PRICING.get("claude-sonnet-4-5-20250929"))
+    pricing = MODEL_PRICING.get(stats.model, DEFAULT_PRICING)
     return round(
         stats.input_tokens * pricing["input"] / 1e6
         + stats.output_tokens * pricing["output"] / 1e6
@@ -330,11 +335,15 @@ def detect_agent(path):
     return "interactive"
 
 def send_to_langfuse(stats, cost, session_id):
-    from langfuse import Langfuse
-    lf = Langfuse()  # Читает LANGFUSE_* из env
+    """Отправка в Langfuse SDK v3. API v3: get_client() + start_span() + update_trace()."""
+    from langfuse import get_client
 
-    trace = lf.trace(
-        name=stats.agent_name,
+    langfuse = get_client()  # Читает LANGFUSE_* из env
+
+    trace_name = stats.agent_name
+    root = langfuse.start_span(name=trace_name)
+    root.update_trace(
+        name=trace_name,
         session_id=session_id,
         metadata={
             "model": stats.model,
@@ -345,8 +354,8 @@ def send_to_langfuse(stats, cost, session_id):
         tags=[f"agent:{stats.agent_name}", f"model:{stats.model}"],
     )
 
-    pricing = MODEL_PRICING.get(stats.model, {})
-    trace.generation(
+    pricing = MODEL_PRICING.get(stats.model, DEFAULT_PRICING)
+    gen = root.start_generation(
         name="session",
         model=stats.model,
         usage_details={
@@ -355,13 +364,20 @@ def send_to_langfuse(stats, cost, session_id):
             "cache_creation_input_tokens": stats.cache_creation_tokens,
             "cache_read_input_tokens": stats.cache_read_tokens,
         },
+        cost_details={
+            "input": stats.input_tokens * pricing["input"] / 1e6,
+            "output": stats.output_tokens * pricing["output"] / 1e6,
+        },
         metadata={"cost_usd": cost},
     )
+    gen.end()
 
     for tool, count in stats.tool_calls.items():
-        trace.span(name=f"tool:{tool}", metadata={"calls": count})
+        tool_span = root.start_span(name=f"tool:{tool}", metadata={"calls": count})
+        tool_span.end()
 
-    lf.flush()
+    root.end()
+    langfuse.flush()
 
 # --- Инкрементальный offset (не парсить транскрипт заново) ---
 STATE_DIR = Path(__file__).resolve().parent.parent / ".langfuse_state"
@@ -385,6 +401,10 @@ def main():
             sys.exit(0)
         if not os.environ.get("LANGFUSE_PUBLIC_KEY"):
             sys.exit(0)
+
+        # SDK v3 использует LANGFUSE_HOST, не LANGFUSE_BASE_URL
+        if not os.environ.get("LANGFUSE_HOST") and os.environ.get("LANGFUSE_BASE_URL"):
+            os.environ["LANGFUSE_HOST"] = os.environ["LANGFUSE_BASE_URL"]
 
         offset = get_offset(transcript)
         stats, new_offset = parse_transcript(transcript, offset)
@@ -446,9 +466,8 @@ exit 0
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_BASE_URL=https://cloud.langfuse.com  # или http://localhost:3000
-# ВАЖНО: SDK v3 использует LANGFUSE_HOST вместо LANGFUSE_BASE_URL
-LANGFUSE_HOST=https://cloud.langfuse.com
+# ВАЖНО: SDK v3 использует LANGFUSE_HOST (НЕ LANGFUSE_BASE_URL)
+LANGFUSE_HOST=https://cloud.langfuse.com  # или http://localhost:3000
 ```
 
 #### 4.6. Установи зависимость:
@@ -467,6 +486,7 @@ infra/langfuse/.env.langfuse
 
 **Ключевые решения:**
 - Hook запускает tracer в фоне (`& disown`) - не блокирует Claude Code (таймаут hook = 5 секунд)
+- Langfuse SDK v3: `get_client()` + `start_span()` + `update_trace()` + `start_generation()`, все с `.end()`
 - Дедупликация по message.id - Claude Code стримит ответы, один message.id появляется в JSONL несколько раз
 - Инкрементальный парсинг с offset - не перечитывать весь транскрипт каждый раз
 - При любой ошибке - тихий выход (sys.exit(0)), никогда не ломать сессию Claude Code

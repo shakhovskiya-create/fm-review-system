@@ -161,7 +161,7 @@ on:
 
 **Контроль стоимости:**
 - `--max-turns 10` (лимит итераций)
-- `--model claude-sonnet-4-5-20250929` (дешевле Opus)
+- `--model claude-sonnet-4-6` (дешевле Opus)
 - `paths:` фильтр (только релевантные файлы)
 - `timeout-minutes: 15` (лимит времени)
 - Оценка: ~$20/месяц при ~5 PR/неделю
@@ -189,29 +189,28 @@ on:
 | Agent 4 (QA Tester) | opus | **sonnet** DONE | Шаблонная генерация тестов |
 | Agent 5 (Tech Arch) | opus | opus | Проектирование архитектуры 1С:УТ |
 | Agent 6 (Presenter) | sonnet | sonnet | Уже оптимизирован |
-| Agent 7 (Publisher) | opus | **sonnet** DONE | CRUD операции с Confluence |
+| Agent 7 (Publisher) | opus | **sonnet** DONE | CRUD-операции с Confluence |
 | Agent 8 (BPMN) | sonnet | **sonnet** | Уже оптимизирован |
 
 **Стоимость моделей (за 1M токенов):**
 
-| Модель | Input | Output | Множитель vs Haiku |
+| Модель | Input | Output | Множитель vs Sonnet |
 |--------|-------|--------|-------------------|
-| Haiku 4.5 | $1 | $5 | 1x |
-| Sonnet 4.5 | $3 | $15 | 3x |
-| Opus 4.6 | $5 | $25 | 5x |
+| Sonnet 4.6 | $3 | $15 | 1x |
+| Opus 4.6 | $15 | $75 | 5x |
 
 **Экономия при оптимизации:**
 
 | Конфигурация | Стоимость pipeline | Экономия |
 |-------------|-------------------|----------|
 | Текущая (7 Opus + 2 Sonnet) | ~$6.15 | Baseline |
-| Рекомендуемая (3 Opus + 4 Sonnet + 1 Haiku) | ~$3.60 | **~41%** |
+| Рекомендуемая (4 Opus + 5 Sonnet) | ~$3.90 | **~37%** |
 
 **Изменения (4 файла):**
 - Agent 2: `model: opus` -> `model: sonnet`
 - Agent 3: `model: opus` -> `model: sonnet`
 - Agent 4: `model: opus` -> `model: sonnet`
-- Agent 7: `model: opus` -> `model: haiku`
+- Agent 7: `model: opus` -> `model: sonnet`
 
 **Effort Level (дополнительно):**
 - Opus 4.6 поддерживает adaptive thinking (автоматически решает глубину)
@@ -227,7 +226,7 @@ on:
 | Agent 2 (opus->sonnet) | Низкий | Мониторить глубину сценариев |
 | Agent 3 (opus->sonnet) | Низкий | Мониторить качество аргументов |
 | Agent 4 (opus->sonnet) | Низкий | Мониторить покрытие edge cases |
-| Agent 7 (opus->haiku) | Очень низкий | При ошибках XHTML - попробовать sonnet |
+| Agent 7 (opus->sonnet) | Очень низкий | Мониторить корректность XHTML |
 
 ---
 

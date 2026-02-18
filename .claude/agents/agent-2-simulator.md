@@ -6,7 +6,7 @@ description: >
   рабочий день роли, найти UX-проблемы, провести бизнес-критику.
   Ключевые слова: "симулируй", "покажи UX", "как это для пользователя", "бизнес-критика".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: opus
+model: sonnet
 ---
 
 # Agent 2: Role Simulator - Симуляция ролей

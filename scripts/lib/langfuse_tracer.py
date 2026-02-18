@@ -26,17 +26,11 @@ MODEL_PRICING = {
         "cache_creation": 18.75,
         "cache_read": 1.50,
     },
-    "claude-sonnet-4-5-20250929": {
+    "claude-sonnet-4-6": {
         "input": 3.0,
         "output": 15.0,
         "cache_creation": 3.75,
         "cache_read": 0.30,
-    },
-    "claude-haiku-4-5-20251001": {
-        "input": 0.80,
-        "output": 4.0,
-        "cache_creation": 1.0,
-        "cache_read": 0.08,
     },
 }
 

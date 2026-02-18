@@ -28,7 +28,7 @@
 - [ ] 1.1. Изменить model в `.claude/agents/agent-2-simulator.md`: `opus` -> `sonnet`
 - [ ] 1.2. Изменить model в `.claude/agents/agent-3-defender.md`: `opus` -> `sonnet`
 - [ ] 1.3. Изменить model в `.claude/agents/agent-4-qa-tester.md`: `opus` -> `sonnet`
-- [ ] 1.4. Изменить model в `.claude/agents/agent-7-publisher.md`: `opus` -> `haiku`
+- [ ] 1.4. Изменить model в `.claude/agents/agent-7-publisher.md`: `opus` -> `sonnet`
 - [ ] 1.5. Обновить IMPROVEMENT_ROADMAP.md: #7 статус -> DONE
 - [ ] 1.6. Commit + push
 
@@ -43,7 +43,7 @@
 | Agent 4 (QA Tester) | **sonnet** | Шаблонная генерация тестов |
 | Agent 5 (Tech Arch) | opus | Архитектура 1С:УТ |
 | Agent 6 (Presenter) | sonnet | Уже оптимизирован |
-| Agent 7 (Publisher) | **haiku** | CRUD операции |
+| Agent 7 (Publisher) | **sonnet** | CRUD-операции |
 | Agent 8 (BPMN) | sonnet | Уже оптимизирован |
 
 ---
@@ -63,7 +63,7 @@
   - `interactive`: на `@claude` в комментариях
 
 - [ ] 2.3. Настройки workflow:
-  - Model: `claude-sonnet-4-5-20250929` (экономия)
+  - Model: `claude-sonnet-4-6` (экономия)
   - Max turns: 10 (auto-review), 15 (interactive)
   - Timeout: 15 минут
   - Tools: inline comments + gh pr + Read
@@ -227,7 +227,7 @@
 
 | Шаг | Задача | Статус | Дата |
 |-----|--------|--------|------|
-| 1 | Adaptive Thinking (#7) | DONE (Agent 4->sonnet, Agent 7->sonnet) | 17.02.2026 |
+| 1 | Adaptive Thinking (#7) | DONE (Agent 2,3,4,7->sonnet, no haiku) | 17.02.2026 |
 | 2 | GitHub Actions (#6) | DONE (workflow + secret) | 17.02.2026 |
 | 3 | Дедупликация агентов | DONE (9 файлов, ~800 строк) | 17.02.2026 |
 | 4 | Langfuse (#5) | DONE (Cloud + hook + tracer) | 17.02.2026 |
