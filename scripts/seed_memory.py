@@ -222,6 +222,7 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
         print("Reset: existing memory.jsonl deleted")
 
     # Read existing data to avoid duplicates
+    # Handles both old format (no "type" field) and MCP format (with "type" field)
     existing_names = set()
     existing_rels = set()
     if MEMORY_FILE.exists():
@@ -229,9 +230,10 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
             if line.strip():
                 try:
                     obj = json.loads(line)
-                    if "name" in obj:
+                    obj_type = obj.get("type", "")
+                    if obj_type == "entity" or ("name" in obj and "entityType" in obj):
                         existing_names.add(obj["name"])
-                    elif "from" in obj and "to" in obj:
+                    elif obj_type == "relation" or ("from" in obj and "to" in obj):
                         existing_rels.add((obj["from"], obj["to"], obj["relationType"]))
                 except json.JSONDecodeError:
                     pass
@@ -241,14 +243,16 @@ def write_memory(entities: list[dict], relations: list[tuple], reset: bool = Fal
     with open(MEMORY_FILE, "a") as f:
         for entity in entities:
             if entity["name"] not in existing_names:
-                f.write(json.dumps(entity, ensure_ascii=False) + "\n")
+                # MCP server-memory requires "type" field to load entries
+                record = {"type": "entity", **entity}
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
                 added += 1
                 existing_names.add(entity["name"])
 
         for from_name, to_name, rel_type in relations:
             rel_key = (from_name, to_name, rel_type)
             if rel_key not in existing_rels:
-                rel = {"from": from_name, "to": to_name, "relationType": rel_type}
+                rel = {"type": "relation", "from": from_name, "to": to_name, "relationType": rel_type}
                 f.write(json.dumps(rel, ensure_ascii=False) + "\n")
                 rels_added += 1
                 existing_rels.add(rel_key)

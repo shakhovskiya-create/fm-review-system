@@ -217,3 +217,35 @@ class TestWriteMemory:
             write_memory(entities, relations)
         for line in memory_file.read_text().strip().split("\n"):
             json.loads(line)  # Should not raise
+
+    def test_mcp_format_has_type_field(self, tmp_path):
+        """MCP server-memory requires 'type' field in every JSONL entry."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        entities = AGENTS[:2]
+        relations = RELATIONS[:1]
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file):
+            write_memory(entities, relations)
+        for line in memory_file.read_text().strip().split("\n"):
+            obj = json.loads(line)
+            assert "type" in obj, f"Missing 'type' field: {obj}"
+            assert obj["type"] in ("entity", "relation"), f"Invalid type: {obj['type']}"
+
+    def test_entity_records_have_type_entity(self, tmp_path):
+        """Entity records must have type='entity'."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file):
+            write_memory(AGENTS[:1], [])
+        obj = json.loads(memory_file.read_text().strip())
+        assert obj["type"] == "entity"
+        assert obj["name"] == AGENTS[0]["name"]
+
+    def test_relation_records_have_type_relation(self, tmp_path):
+        """Relation records must have type='relation'."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file):
+            write_memory(AGENTS, RELATIONS[:1])
+        lines = memory_file.read_text().strip().split("\n")
+        # Last line should be the relation
+        rel = json.loads(lines[-1])
+        assert rel["type"] == "relation"
+        assert "from" in rel and "to" in rel
