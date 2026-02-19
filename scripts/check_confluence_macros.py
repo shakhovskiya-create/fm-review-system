@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 """Check available macros on Confluence Server."""
 
-import urllib.request
 import json
+import re
 import ssl
 import sys
+import urllib.request
 from pathlib import Path
-
-ssl._create_default_https_context = ssl._create_unverified_context
 
 # Load config
 SCRIPT_DIR = Path(__file__).parent
 ENV_FILE = SCRIPT_DIR / ".env.local"
 
-def load_env():
-    if not ENV_FILE.exists():
-        print(f"ERROR: {ENV_FILE} not found")
+
+def load_env(env_file=None):
+    """Load key=value config from an env file."""
+    path = env_file or ENV_FILE
+    if not Path(path).exists():
+        print(f"ERROR: {path} not found")
         sys.exit(1)
     config = {}
-    with open(ENV_FILE) as f:
+    with open(path) as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
@@ -26,14 +28,12 @@ def load_env():
                 config[key.strip()] = value.strip()
     return config
 
-CONFIG = load_env()
-CONFLUENCE_URL = CONFIG.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-TOKEN = CONFIG.get("CONFLUENCE_TOKEN", "")
 
-def api_get(endpoint):
-    url = f"{CONFLUENCE_URL}/rest/api/{endpoint}"
+def api_get(endpoint, confluence_url, token):
+    """Confluence REST API GET request."""
+    url = f"{confluence_url}/rest/api/{endpoint}"
     req = urllib.request.Request(url)
-    req.add_header("Authorization", f"Bearer {TOKEN}")
+    req.add_header("Authorization", f"Bearer {token}")
     req.add_header("Accept", "application/json")
     try:
         with urllib.request.urlopen(req) as resp:
@@ -42,77 +42,89 @@ def api_get(endpoint):
         print(f"Error: {e}")
         return None
 
-# Check content macros
-print("=== Checking Confluence Macros ===\n")
 
-# Get page content to see what macros are used
-page = api_get("content/83951683?expand=body.storage")
-if page:
-    body = page.get("body", {}).get("storage", {}).get("value", "")
+def find_macros(html_body):
+    """Extract unique macro names from Confluence XHTML body."""
+    macros = re.findall(r'ac:name="([^"]+)"', html_body)
+    return sorted(set(macros))
 
-    # Find all macro names
-    import re
-    macros = re.findall(r'ac:name="([^"]+)"', body)
-    unique_macros = sorted(set(macros))
 
-    print("Macros currently used on page:")
-    for m in unique_macros:
-        print(f"  - {m}")
+def main():
+    ssl._create_default_https_context = ssl._create_unverified_context
 
-print("\n=== Checking Draw.io / Diagrams ===")
-# Try to access draw.io macro endpoint
-drawio_check = api_get("contentbody/convert/storage?expand=webresource,embeddedContent")
-print(f"Draw.io check: {drawio_check}")
+    config = load_env()
+    confluence_url = config.get("CONFLUENCE_URL", "https://confluence.ekf.su")
+    token = config.get("CONFLUENCE_TOKEN", "")
 
-print("\n=== Checking Macro Browser ===")
-# Get all available macros via plugins API
-try:
-    url = f"{CONFLUENCE_URL}/rest/api/content/83951683/history"
-    req = urllib.request.Request(url)
-    req.add_header("Authorization", f"Bearer {TOKEN}")
-    req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req) as resp:
-        history = json.loads(resp.read())
-        print(f"Page history accessible: {bool(history)}")
-except Exception as e:
-    print(f"History error: {e}")
+    # Check content macros
+    print("=== Checking Confluence Macros ===\n")
 
-# Try plugins API
-print("\n=== Installed Plugins (search for diagram-related) ===")
-try:
-    # This endpoint may require admin rights
-    url = f"{CONFLUENCE_URL}/rest/plugins/1.0/"
-    req = urllib.request.Request(url)
-    req.add_header("Authorization", f"Bearer {TOKEN}")
-    req.add_header("Accept", "application/json")
-    with urllib.request.urlopen(req) as resp:
-        plugins = json.loads(resp.read())
-        if isinstance(plugins, dict) and 'plugins' in plugins:
-            for p in plugins.get('plugins', []):
-                name = p.get('name', '').lower()
-                key = p.get('key', '').lower()
-                if any(x in name or x in key for x in ['draw', 'diagram', 'mermaid', 'plant', 'gliffy', 'lucid', 'scroll']):
-                    print(f"  - {p.get('name')} ({p.get('key')})")
-except urllib.error.HTTPError as e:
-    print(f"Plugins API not accessible (need admin): {e.code}")
-except Exception as e:
-    print(f"Plugins error: {e}")
+    page = api_get("content/83951683?expand=body.storage", confluence_url, token)
+    if page:
+        body = page.get("body", {}).get("storage", {}).get("value", "")
+        unique_macros = find_macros(body)
 
-print("\n=== Testing Scroll Documents macro ===")
-# Check if scroll-document macro exists by looking at page macros
-if page:
-    body = page.get("body", {}).get("storage", {}).get("value", "")
-    if 'scroll' in body.lower():
-        print("Scroll-related content found in page")
-        scroll_macros = re.findall(r'ac:name="(scroll[^"]*)"', body, re.IGNORECASE)
-        print(f"Scroll macros: {scroll_macros}")
-    else:
-        print("No scroll macros currently on page")
+        print("Macros currently used on page:")
+        for m in unique_macros:
+            print(f"  - {m}")
 
-print("\n=== Summary ===")
-print("To embed diagrams, options are:")
-print("1. drawio macro - if Draw.io is installed")
-print("2. plantuml macro - if PlantUML is installed")
-print("3. mermaid macro - if Mermaid plugin is installed")
-print("4. Upload PNG/SVG as attachment and use ac:image")
-print("5. Use HTML table-based process visualization (current)")
+    print("\n=== Checking Draw.io / Diagrams ===")
+    drawio_check = api_get(
+        "contentbody/convert/storage?expand=webresource,embeddedContent",
+        confluence_url, token,
+    )
+    print(f"Draw.io check: {drawio_check}")
+
+    print("\n=== Checking Macro Browser ===")
+    try:
+        url = f"{confluence_url}/rest/api/content/83951683/history"
+        req = urllib.request.Request(url)
+        req.add_header("Authorization", f"Bearer {token}")
+        req.add_header("Accept", "application/json")
+        with urllib.request.urlopen(req) as resp:
+            history = json.loads(resp.read())
+            print(f"Page history accessible: {bool(history)}")
+    except Exception as e:
+        print(f"History error: {e}")
+
+    # Try plugins API
+    print("\n=== Installed Plugins (search for diagram-related) ===")
+    try:
+        url = f"{confluence_url}/rest/plugins/1.0/"
+        req = urllib.request.Request(url)
+        req.add_header("Authorization", f"Bearer {token}")
+        req.add_header("Accept", "application/json")
+        with urllib.request.urlopen(req) as resp:
+            plugins = json.loads(resp.read())
+            if isinstance(plugins, dict) and 'plugins' in plugins:
+                for p in plugins.get('plugins', []):
+                    name = p.get('name', '').lower()
+                    key = p.get('key', '').lower()
+                    if any(x in name or x in key for x in ['draw', 'diagram', 'mermaid', 'plant', 'gliffy', 'lucid', 'scroll']):
+                        print(f"  - {p.get('name')} ({p.get('key')})")
+    except urllib.error.HTTPError as e:
+        print(f"Plugins API not accessible (need admin): {e.code}")
+    except Exception as e:
+        print(f"Plugins error: {e}")
+
+    print("\n=== Testing Scroll Documents macro ===")
+    if page:
+        body = page.get("body", {}).get("storage", {}).get("value", "")
+        if 'scroll' in body.lower():
+            print("Scroll-related content found in page")
+            scroll_macros = re.findall(r'ac:name="(scroll[^"]*)"', body, re.IGNORECASE)
+            print(f"Scroll macros: {scroll_macros}")
+        else:
+            print("No scroll macros currently on page")
+
+    print("\n=== Summary ===")
+    print("To embed diagrams, options are:")
+    print("1. drawio macro - if Draw.io is installed")
+    print("2. plantuml macro - if PlantUML is installed")
+    print("3. mermaid macro - if Mermaid plugin is installed")
+    print("4. Upload PNG/SVG as attachment and use ac:image")
+    print("5. Use HTML table-based process visualization (current)")
+
+
+if __name__ == "__main__":
+    main()

@@ -138,8 +138,13 @@ class ConfluenceLock:
 
 class ConfluenceBackup:
     """
-    Backup manager for Confluence pages.
-    Saves page state before updates for rollback capability.
+    Local backup before Confluence PUT — safety net for rollback.
+
+    Why not rely on Confluence version history alone:
+    - Admin can purge history; local copy is under our control
+    - MCP server does raw PUT with no rollback; this catches partial writes
+    - Enables offline diff/audit even when Confluence is unreachable
+    Max 10 backups per page (auto-rotated).
     """
 
     def __init__(self, page_id: str):

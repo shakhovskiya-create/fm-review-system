@@ -27,6 +27,7 @@ from scripts.run_agent import (
     build_prompt,
     check_agent_status,
     find_summary_json,
+    log,
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -349,6 +350,160 @@ class TestLangfuseImports:
         import langfuse
         assert langfuse is not None
 
-    def test_get_client_importable(self):
-        from langfuse import get_client
-        assert callable(get_client)
+    def test_langfuse_client_importable(self):
+        from langfuse import Langfuse
+        assert callable(Langfuse)
+
+
+class TestLogFunction:
+    def test_log_writes_to_stderr(self, capsys):
+        log("test message")
+        captured = capsys.readouterr()
+        assert "test message" in captured.err
+        assert captured.out == ""
+
+    def test_log_has_timestamp(self, capsys):
+        log("hello")
+        captured = capsys.readouterr()
+        # Timestamp format: [HH:MM:SS]
+        import re
+        assert re.search(r'\[\d{2}:\d{2}:\d{2}\]', captured.err)
+
+
+class TestPipelineTracerEnabled:
+    """Tests for PipelineTracer with mocked Langfuse."""
+
+    def _make_tracer(self):
+        """Create a tracer with mocked Langfuse client."""
+        tracer = PipelineTracer.__new__(PipelineTracer)
+        tracer.project = "TEST"
+        tracer.model = "sonnet"
+        tracer.parallel = False
+        tracer.enabled = True
+        tracer.langfuse = MagicMock()
+        tracer.root = MagicMock()
+        return tracer
+
+    def test_start_pipeline_creates_trace(self):
+        tracer = self._make_tracer()
+        tracer.root = None  # Not yet started
+        tracer.langfuse.start_span.return_value = MagicMock()
+        tracer.start_pipeline()
+        tracer.langfuse.start_span.assert_called_once()
+
+    def test_start_agent_creates_child_span(self):
+        tracer = self._make_tracer()
+        mock_span = MagicMock()
+        tracer.root.start_span.return_value = mock_span
+        span = tracer.start_agent(1, "Architect")
+        assert span is mock_span
+        tracer.root.start_span.assert_called_once()
+
+    def test_end_agent_updates_span(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        result = AgentResult(agent_id=1, status="completed", cost_usd=1.5, duration_seconds=30)
+        tracer.end_agent(span, result)
+        span.update.assert_called_once()
+        span.end.assert_called_once()
+
+    def test_end_agent_creates_generation_for_cost(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        gen_mock = MagicMock()
+        span.start_generation.return_value = gen_mock
+        result = AgentResult(agent_id=1, status="completed", cost_usd=2.0)
+        tracer.end_agent(span, result)
+        span.start_generation.assert_called_once()
+        gen_mock.end.assert_called_once()
+
+    def test_end_agent_no_generation_for_zero_cost(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        result = AgentResult(agent_id=1, status="completed", cost_usd=0.0)
+        tracer.end_agent(span, result)
+        span.start_generation.assert_not_called()
+
+    def test_end_agent_error_level_for_failed(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        result = AgentResult(agent_id=1, status="failed", error="timeout")
+        tracer.end_agent(span, result)
+        call_kwargs = span.update.call_args[1]
+        assert call_kwargs["level"] == "ERROR"
+
+    def test_start_quality_gate(self):
+        tracer = self._make_tracer()
+        mock_span = MagicMock()
+        tracer.root.start_span.return_value = mock_span
+        span = tracer.start_quality_gate()
+        assert span is mock_span
+
+    def test_end_quality_gate_ok(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        tracer.end_quality_gate(span, 0, "passed")
+        call_kwargs = span.update.call_args[1]
+        assert call_kwargs["level"] == "DEFAULT"
+        span.end.assert_called_once()
+
+    def test_end_quality_gate_critical(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        tracer.end_quality_gate(span, 1, "critical")
+        call_kwargs = span.update.call_args[1]
+        assert call_kwargs["level"] == "ERROR"
+
+    def test_end_quality_gate_warning(self):
+        tracer = self._make_tracer()
+        span = MagicMock()
+        tracer.end_quality_gate(span, 2, "warning")
+        call_kwargs = span.update.call_args[1]
+        assert call_kwargs["level"] == "WARNING"
+
+    def test_finish_flushes_langfuse(self):
+        tracer = self._make_tracer()
+        results = {1: {"status": "completed"}, 2: {"status": "failed"}}
+        tracer.finish(3.5, 120.0, results)
+        tracer.root.update.assert_called_once()
+        tracer.root.end.assert_called_once()
+        tracer.langfuse.flush.assert_called_once()
+
+    def test_finish_counts_completed_and_failed(self):
+        tracer = self._make_tracer()
+        results = {
+            1: {"status": "completed"},
+            2: {"status": "completed"},
+            3: {"status": "failed"},
+        }
+        tracer.finish(5.0, 200.0, results)
+        call_kwargs = tracer.root.update.call_args[1]
+        meta = call_kwargs["metadata"]
+        assert meta["agents_completed"] == 2
+        assert meta["agents_failed"] == 1
+
+
+class TestFindSummaryJsonTmpPath:
+    """Test find_summary_json with controlled tmp directory."""
+
+    def test_finds_most_recent_summary(self, tmp_path):
+        agent_dir = tmp_path / "projects" / "TEST_PROJECT" / "AGENT_1_ARCHITECT"
+        agent_dir.mkdir(parents=True)
+        old = agent_dir / "old_summary.json"
+        old.write_text('{"status": "partial"}')
+        import time
+        time.sleep(0.05)
+        new = agent_dir / "new_summary.json"
+        new.write_text('{"status": "completed"}')
+
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            result = find_summary_json("TEST_PROJECT", 1)
+        assert result is not None
+        assert result.name == "new_summary.json"
+
+    def test_returns_none_for_empty_dir(self, tmp_path):
+        agent_dir = tmp_path / "projects" / "TEST_PROJECT" / "AGENT_1_ARCHITECT"
+        agent_dir.mkdir(parents=True)
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            result = find_summary_json("TEST_PROJECT", 1)
+        assert result is None

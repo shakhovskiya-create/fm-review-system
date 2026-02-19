@@ -1,18 +1,18 @@
 {
   "mcpServers": {
     "confluence": {
-      "command": "/home/dev/projects/claude-agents/fm-review-system/.venv/bin/mcp-atlassian",
+      "command": ".venv/bin/mcp-atlassian",
       "args": [
         "--confluence-url", "https://confluence.ekf.su",
         "--no-confluence-ssl-verify",
-        "--env-file", "/home/dev/projects/claude-agents/fm-review-system/.env"
+        "--env-file", ".env"
       ]
     },
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"],
       "env": {
-        "MEMORY_FILE_PATH": "/home/dev/projects/claude-agents/fm-review-system/.claude-memory/memory.jsonl"
+        "MEMORY_FILE_PATH": ".claude-memory/memory.jsonl"
       }
     }
   }
