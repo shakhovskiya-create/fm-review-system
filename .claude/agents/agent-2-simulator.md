@@ -12,6 +12,8 @@ maxTurns: 20
 permissionMode: default
 model: opus
 memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 2: Role Simulator - Симуляция ролей

@@ -13,6 +13,8 @@ model: opus
 memory: project
 skills:
   - fm-audit
+mcpServers:
+  memory: {}
 ---
 
 # Agent 1: Architect - Аудит ФМ

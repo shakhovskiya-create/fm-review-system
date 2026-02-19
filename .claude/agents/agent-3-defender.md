@@ -11,6 +11,8 @@ maxTurns: 20
 permissionMode: default
 model: opus
 memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 3: Defender - Защита ФМ

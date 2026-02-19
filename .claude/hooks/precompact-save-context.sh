@@ -32,7 +32,7 @@ if [ -n "$ACTIVE_PROJECT" ]; then
 
   # FM version из PROJECT_CONTEXT.md
   if [ -f "$PROJECT_PATH/PROJECT_CONTEXT.md" ]; then
-    FM_VER=$(grep -oP 'v\d+\.\d+\.\d+' "$PROJECT_PATH/PROJECT_CONTEXT.md" 2>/dev/null | tail -1)
+    FM_VER=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' "$PROJECT_PATH/PROJECT_CONTEXT.md" 2>/dev/null | tail -1)
     [ -n "$FM_VER" ] && echo "FM version: $FM_VER"
   fi
 fi

@@ -10,6 +10,8 @@ maxTurns: 25
 permissionMode: acceptEdits
 model: opus
 memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 5: Tech Architect - Проектирование и ТЗ

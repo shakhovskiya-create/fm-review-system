@@ -14,6 +14,7 @@ skills:
   - quality-gate
 mcpServers:
   confluence: {}
+  memory: {}
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence

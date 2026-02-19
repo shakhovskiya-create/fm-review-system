@@ -12,6 +12,7 @@ model: opus
 memory: project
 mcpServers:
   confluence: {}
+  memory: {}
 ---
 
 # Agent 0: Creator - Создание ФМ

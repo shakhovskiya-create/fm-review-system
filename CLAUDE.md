@@ -81,7 +81,7 @@
 
 **Memory (контекст между сессиями):**
 - **Knowledge Graph** (`@modelcontextprotocol/server-memory`): MCP-сервер для хранения сущностей, связей и фактов. Данные: `.claude-memory/memory.jsonl`. Seed: `scripts/seed_memory.py`. Инструменты: `mcp__memory__search_nodes`, `mcp__memory__create_entities`, `mcp__memory__add_observations`, `mcp__memory__create_relations`.
-- **Episodic Memory** (`episodic-memory@superpowers-marketplace`): семантический поиск по прошлым сессиям Claude Code. Хранение: `~/.config/superpowers/conversation-archive/`.
+- **Episodic Memory** (`episodic-memory@superpowers-marketplace`): семантический поиск по прошлым сессиям Claude Code. Настройка: глобально в `~/.claude/settings.json` (работает во всех проектах). Хранение: `~/.config/superpowers/conversation-archive/`. Доступна только в главной сессии (не субагентам).
 - **Agent Memory** (`memory: project` в subagent frontmatter): персональная память каждого субагента (`.claude/agent-memory/<name>/MEMORY.md`).
 
 **Skills:** `.claude/skills/evolve/` (/evolve), `.claude/skills/quality-gate/` (предзагрузка Agent 7), `.claude/skills/fm-audit/` (чеклист аудита, предзагрузка Agent 1)

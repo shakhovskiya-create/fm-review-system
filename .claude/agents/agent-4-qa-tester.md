@@ -11,6 +11,8 @@ maxTurns: 20
 permissionMode: default
 model: sonnet
 memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 4: QA Tester - Тестирование ФМ

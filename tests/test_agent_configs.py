@@ -160,6 +160,13 @@ class TestMCPServers:
         skills = config.get("skills", [])
         assert "quality-gate" in skills, "agent-7 should have quality-gate skill"
 
+    @pytest.mark.parametrize("agent_file", AGENT_FILES, ids=lambda f: f.stem)
+    def test_all_agents_have_memory_mcp(self, agent_file):
+        """All agents should have mcpServers.memory for Knowledge Graph access."""
+        config = parse_frontmatter(agent_file)
+        assert "mcpServers" in config, f"{agent_file.stem} missing mcpServers"
+        assert "memory" in config["mcpServers"], f"{agent_file.stem} missing memory MCP server"
+
 
 class TestHooks:
     def test_settings_json_valid(self):

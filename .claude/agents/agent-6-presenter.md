@@ -10,6 +10,8 @@ maxTurns: 15
 permissionMode: acceptEdits
 model: sonnet
 memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 6: Presenter - Презентации и экспорт
