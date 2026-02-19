@@ -12,7 +12,7 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"],
       "env": {
-        "MEMORY_FILE_PATH": ".claude-memory/memory.jsonl"
+        "MEMORY_FILE_PATH": "/home/dev/projects/claude-agents/fm-review-system/.claude-memory/memory.jsonl"
       }
     }
   }
