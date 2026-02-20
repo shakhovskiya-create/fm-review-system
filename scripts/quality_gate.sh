@@ -44,9 +44,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-check_pass() { ((PASS++)); echo -e "  ${GREEN}✅ $1${NC}"; }
-check_fail() { ((FAIL++)); echo -e "  ${RED}❌ $1${NC}"; }
-check_warn() { ((WARN++)); echo -e "  ${YELLOW}⚠️  $1${NC}"; }
+check_pass() { ((++PASS)); echo -e "  ${GREEN}✅ $1${NC}"; }
+check_fail() { ((++FAIL)); echo -e "  ${RED}❌ $1${NC}"; }
+check_warn() { ((++WARN)); echo -e "  ${YELLOW}⚠️  $1${NC}"; }
 
 # ─── 1. СТРУКТУРА ПРОЕКТА ───────────────────────────────────
 subheader "1. Структура проекта"
@@ -160,7 +160,7 @@ done
 # ─── 6. МАТРИЦА ТРАССИРУЕМОСТИ (FC-10A) ─────────────────────
 subheader "6. Трассируемость (FC-10A)"
 
-TRACE_MATRIX=$(find "${PROJECT_DIR}/AGENT_4_QA_TESTER" -name 'traceability-matrix.json' 2>/dev/null | head -1)
+TRACE_MATRIX=$(find "${PROJECT_DIR}/AGENT_4_QA_TESTER" -name 'traceability-matrix.json' 2>/dev/null | head -1) || true
 if [[ -n "$TRACE_MATRIX" ]]; then
     if command -v jq &>/dev/null; then
         total=$(jq -r '.summary.totalFindings // 0' "$TRACE_MATRIX" 2>/dev/null)
@@ -261,7 +261,7 @@ else
 fi
 
 # Проверка BPMN-диаграмм (drawio attachments или файлы)
-BPMN_COUNT=$(find "${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER" -name '*.drawio' 2>/dev/null | wc -l | tr -d ' ')
+BPMN_COUNT=$(find "${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER" -name '*.drawio' 2>/dev/null | wc -l | tr -d ' ') || true
 if [[ "${BPMN_COUNT:-0}" -gt 0 ]]; then
     check_pass "BPMN-диаграммы: ${BPMN_COUNT} файл(ов)"
 else

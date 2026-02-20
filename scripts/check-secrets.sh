@@ -15,6 +15,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/secrets.sh"
 
 # Required secrets (pipeline won't work without these)
 REQUIRED_KEYS=(ANTHROPIC_API_KEY)

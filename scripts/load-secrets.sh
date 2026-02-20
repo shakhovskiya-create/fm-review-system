@@ -11,43 +11,29 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/secrets.sh"
 SERVICE="fm-review"
 KEYS=(CONFLUENCE_TOKEN CONFLUENCE_PERSONAL_TOKEN LANGFUSE_SECRET_KEY LANGFUSE_PUBLIC_KEY GITHUB_TOKEN MIRO_ACCESS_TOKEN ANTHROPIC_API_KEY)
 
 # --- Priority 1: Infisical (Universal Auth) ---
+if _infisical_universal_auth "$PROJECT_DIR"; then
+    _loaded=0
+    while IFS= read -r _line; do
+        [[ "$_line" =~ ^export\ ([A-Za-z_][A-Za-z0-9_]*)=(.*) ]] && {
+            export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+            ((_loaded++))
+        }
+    done < <(INFISICAL_API_URL="${INFISICAL_API_URL:-}" INFISICAL_TOKEN="$INFISICAL_TOKEN" \
+        infisical export --format=dotenv-export \
+        --projectId="${INFISICAL_PROJECT_ID}" --env=dev 2>/dev/null)
+    if [[ $_loaded -gt 0 ]]; then
+        echo "[load-secrets] Loaded $_loaded secrets from Infisical (Universal Auth)"
+        return 0 2>/dev/null || exit 0
+    fi
+fi
+
 if command -v infisical &>/dev/null; then
-    # Load Machine Identity credentials if available
-    MI_ENV="$PROJECT_DIR/infra/infisical/.env.machine-identity"
-    if [[ -f "$MI_ENV" ]]; then
-        while IFS='=' read -r key val; do
-            [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
-            export "$key=$val"
-        done < "$MI_ENV"
-    fi
-
-    if [[ -n "$INFISICAL_CLIENT_ID" && -n "$INFISICAL_CLIENT_SECRET" ]]; then
-        # Universal Auth: get token and export secrets
-        # Pass secrets via environment variables instead of command line arguments
-        _token=$(INFISICAL_API_URL="${INFISICAL_API_URL}" INFISICAL_CLIENT_ID="${INFISICAL_CLIENT_ID}" INFISICAL_CLIENT_SECRET="${INFISICAL_CLIENT_SECRET}" infisical login \
-            --method=universal-auth \
-            --silent 2>/dev/null | grep -oP 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+')
-        if [[ -n "$_token" ]]; then
-            _loaded=0
-            while IFS= read -r _line; do
-                [[ "$_line" =~ ^export\ ([A-Za-z_][A-Za-z0-9_]*)=(.*) ]] && {
-                    export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
-                    ((_loaded++))
-                }
-            done < <(INFISICAL_API_URL="${INFISICAL_API_URL}" INFISICAL_TOKEN="$_token" \
-                infisical export --format=dotenv-export \
-                --projectId="${INFISICAL_PROJECT_ID}" --env=dev 2>/dev/null)
-            if [[ $_loaded -gt 0 ]]; then
-                echo "[load-secrets] Loaded $_loaded secrets from Infisical (Universal Auth)"
-                return 0 2>/dev/null || exit 0
-            fi
-        fi
-    fi
-
     # Fallback: try user-based Infisical login (if logged in previously)
     _loaded=0
     while IFS= read -r _line; do
