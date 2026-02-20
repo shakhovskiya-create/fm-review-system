@@ -24,8 +24,9 @@ FORBIDDEN_TAGS = re.compile(
 )
 
 # Event handler attributes (onclick, onload, onerror, etc.)
+# Matches: onclick="...", onclick='...', onclick=value (handles nested quotes)
 EVENT_HANDLERS = re.compile(
-    r"\s+on\w+\s*=\s*[\"'][^\"']*[\"']",
+    r'\s+on\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)',
     re.IGNORECASE,
 )
 
@@ -86,6 +87,8 @@ def sanitize_xhtml(body: str) -> Tuple[str, list]:
     if handlers_found:
         warnings.append(f"Removed {len(handlers_found)} event handler(s)")
         result = EVENT_HANDLERS.sub("", result)
+        # Clean up any leftover empty spaces before closing brackets that might have been left
+        result = re.sub(r'\s+>', '>', result)
 
     # 3. Remove javascript: URLs
     if JS_URLS.search(result):

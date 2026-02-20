@@ -39,17 +39,17 @@ def parse_frontmatter(file_path: Path) -> dict:
 
 class TestAgentFileDiscovery:
     def test_nine_agents_exist(self):
-        """All 9 agent files exist in .claude/agents/."""
-        assert len(AGENT_FILES) == 9, f"Expected 9 agents, found {len(AGENT_FILES)}"
+        """All 11 agent files exist in .claude/agents/ (agent-0 through agent-10)."""
+        assert len(AGENT_FILES) == 11, f"Expected 11 agents, found {len(AGENT_FILES)}"
 
     def test_agent_numbering(self):
-        """Agents are numbered 0-8 consecutively."""
+        """Agents are numbered 0-10 consecutively."""
         numbers = []
         for f in AGENT_FILES:
             match = re.match(r"agent-(\d+)-", f.name)
             assert match, f"File {f.name} does not match agent-N-name.md pattern"
             numbers.append(int(match.group(1)))
-        assert sorted(numbers) == list(range(9))
+        assert sorted(numbers) == list(range(11))
 
 
 class TestFrontmatter:

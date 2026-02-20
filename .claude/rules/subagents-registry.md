@@ -5,7 +5,7 @@ paths:
 
 # Реестр субагентов
 
-10 агентов зарегистрированы как Claude Code subagents в `.claude/agents/`:
+12 агентов зарегистрированы как Claude Code subagents в `.claude/agents/`:
 
 | Subagent | Модель | Протокол |
 |----------|--------|----------|
@@ -19,6 +19,8 @@ paths:
 | `agent-6-presenter` | sonnet | `agents/AGENT_6_PRESENTER.md` |
 | `agent-7-publisher` | sonnet | `agents/AGENT_7_PUBLISHER.md` |
 | `agent-8-bpmn-designer` | sonnet | `agents/AGENT_8_BPMN_DESIGNER.md` |
+| `agent-9-se-go` | opus | `agents/AGENT_9_SE_GO.md` |
+| `agent-10-se-1c` | opus | `agents/AGENT_10_SE_1C.md` |
 
 Каждый subagent при запуске читает свой протокол из `agents/` и `agents/COMMON_RULES.md`.
 

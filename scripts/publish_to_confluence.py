@@ -73,8 +73,10 @@ def _get_page_id(project_name=None):
     pid = os.environ.get("CONFLUENCE_PAGE_ID")
     if pid:
         return pid
-    # Fallback только для одного известного проекта (совместимость)
-    return "83951683"
+    raise ValueError(
+        "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
+        "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
+    )
 
 
 # === Color mapping ===

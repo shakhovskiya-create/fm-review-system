@@ -26,7 +26,13 @@ def _get_page_id(project_name=None):
                     line = line.strip()
                     if line and not line.startswith("#") and line.isdigit():
                         return line
-    return os.environ.get("CONFLUENCE_PAGE_ID") or "83951683"
+    pid = os.environ.get("CONFLUENCE_PAGE_ID")
+    if not pid:
+        raise ValueError(
+            "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
+            "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
+        )
+    return pid
 
 
 def _make_ssl_context():
@@ -519,6 +525,17 @@ def main():
     CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
     TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
 
+    # Handle --help before any validation (no side effects)
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("Usage: export_from_confluence.py [--pdf|--docx|--both] [--page=ID] [--project=PROJECT_NAME]")
+        print("  --pdf      Export PDF only")
+        print("  --docx     Export Word only")
+        print("  --both     Export both (default)")
+        print("  --page=ID  Page ID (overrides project file)")
+        print("  --project  Read PAGE_ID from projects/PROJECT_NAME/CONFLUENCE_PAGE_ID")
+        print("  Env: CONFLUENCE_PAGE_ID, CONFLUENCE_TOKEN, CONFLUENCE_URL")
+        sys.exit(0)
+
     if not TOKEN:
         print("ERROR: CONFLUENCE_TOKEN environment variable not set")
         sys.exit(1)
@@ -542,14 +559,7 @@ def main():
         elif arg.startswith("--project="):
             project_arg = arg.split("=")[1]
         elif arg in ("--help", "-h"):
-            print("Usage: export_from_confluence.py [--pdf|--docx|--both] [--page=ID] [--project=PROJECT_NAME]")
-            print("  --pdf      Export PDF only")
-            print("  --docx     Export Word only")
-            print("  --both     Export both (default)")
-            print("  --page=ID  Page ID (overrides project file)")
-            print("  --project  Read PAGE_ID from projects/PROJECT_NAME/CONFLUENCE_PAGE_ID")
-            print(f"  Default PAGE_ID: env CONFLUENCE_PAGE_ID or PROJECT, or {PAGE_ID}")
-            sys.exit(0)
+            pass  # handled before TOKEN/PAGE_ID checks at start of main()
 
     if project_arg:
         page_id = _get_page_id(project_arg)

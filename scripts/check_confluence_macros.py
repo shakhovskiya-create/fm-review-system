@@ -2,6 +2,7 @@
 """Check available macros on Confluence Server."""
 
 import json
+import os
 import re
 import ssl
 import sys
@@ -67,7 +68,11 @@ def main():
     # Check content macros
     print("=== Checking Confluence Macros ===\n")
 
-    page = api_get("content/83951683?expand=body.storage", confluence_url, token)
+    page_id = config.get("CONFLUENCE_PAGE_ID") or os.environ.get("CONFLUENCE_PAGE_ID")
+    if not page_id:
+        print("ERROR: CONFLUENCE_PAGE_ID not set in env or .env.local")
+        sys.exit(1)
+    page = api_get(f"content/{page_id}?expand=body.storage", confluence_url, token)
     if page:
         body = page.get("body", {}).get("storage", {}).get("value", "")
         unique_macros = find_macros(body)
@@ -85,7 +90,7 @@ def main():
 
     print("\n=== Checking Macro Browser ===")
     try:
-        url = f"{confluence_url}/rest/api/content/83951683/history"
+        url = f"{confluence_url}/rest/api/content/{page_id}/history"
         req = urllib.request.Request(url)
         req.add_header("Authorization", f"Bearer {token}")
         req.add_header("Accept", "application/json")

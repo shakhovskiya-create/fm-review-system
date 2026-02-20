@@ -117,7 +117,7 @@ class PipelineTracer:
         self.root = self.langfuse.start_span(name=f"pipeline-{self.project}")
         self.root.update_trace(
             name=f"pipeline-{self.project}",
-            user_id="shahovsky",
+            user_id=os.environ.get("USER", "unknown"),
             metadata={
                 "project": self.project,
                 "model": self.model,
