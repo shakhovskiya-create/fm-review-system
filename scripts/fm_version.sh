@@ -38,14 +38,16 @@ list)
     for f in "${FM_DIR}"/*.docx "${FM_DIR}"/*.md; do
         [[ -f "$f" ]] || continue
         fname=$(basename "$f")
-        fdate=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f" 2>/dev/null || date -r "$f" "+%Y-%m-%d %H:%M")
+        fdate=$(date -r "$f" "+%Y-%m-%d %H:%M" 2>/dev/null || stat -c '%y' "$f" 2>/dev/null | cut -d. -f1)
         fsize=$(du -h "$f" | cut -f1)
         ver=$(get_fm_version "$f")
         
-        # Проверяем есть ли файл изменений
+        # Проверяем есть ли файл изменений (FM_DOCUMENTS/ или CHANGES/)
         changes_file="${FM_DIR}/$(basename "$f" .docx)-CHANGES.md"
+        changes_dir="${ROOT_DIR}/projects/${PROJECT}/CHANGES"
         has_changes=""
         [[ -f "$changes_file" ]] && has_changes=" ${ICO_DOC}"
+        [[ -z "$has_changes" ]] && ls "${changes_dir}/"*CHANGES*.md &>/dev/null && has_changes=" ${ICO_DOC}"
         
         echo -e "  ${GREEN}${ver:-—}${NC}  ${fname}  ${DIM}${fdate} (${fsize})${NC}${has_changes}"
     done
@@ -57,10 +59,10 @@ diff)
     PROJECT=$(select_project)
     FM_DIR="${ROOT_DIR}/projects/${PROJECT}/FM_DOCUMENTS"
 
-    # Собираем список файлов с изменениями
+    # Собираем список файлов с изменениями (FM_DOCUMENTS/ и CHANGES/)
     CHANGES_FILES=()
-    for f in "${FM_DIR}"/*-CHANGES.md; do
-        [[ -f "$f" ]] && CHANGES_FILES+=("$(basename "$f")")
+    for f in "${FM_DIR}"/*-CHANGES.md "${ROOT_DIR}/projects/${PROJECT}/CHANGES/"*-CHANGES.md; do
+        [[ -f "$f" ]] && CHANGES_FILES+=("$f")
     done
     
     if [[ ${#CHANGES_FILES[@]} -eq 0 ]]; then
@@ -109,10 +111,11 @@ bump)
     success "Новая версия: ${NEW_VER}"
     info "Копируйте текущую ФМ и внесите изменения через агента"
     
-    # Создаем файл изменений
-    FM_DIR="${ROOT_DIR}/projects/${PROJECT}/FM_DOCUMENTS"
+    # Создаем файл изменений в CHANGES/ (стандартная папка)
+    CHANGES_DIR="${ROOT_DIR}/projects/${PROJECT}/CHANGES"
+    mkdir -p "$CHANGES_DIR"
     BASENAME=$(basename "$FM_PATH" | sed "s/${CURRENT_VER}/${NEW_VER}/")
-    CHANGES_FILE="${FM_DIR}/$(echo "$BASENAME" | sed 's/\.docx$/-CHANGES.md/' | sed 's/\.md$/-CHANGES.md/')"
+    CHANGES_FILE="${CHANGES_DIR}/$(echo "$BASENAME" | sed 's/\.docx$/-CHANGES.md/' | sed 's/\.md$/-CHANGES.md/')"
     
     cat > "$CHANGES_FILE" <<EOF
 # Изменения ${NEW_VER} ($(date '+%Y-%m-%d'))

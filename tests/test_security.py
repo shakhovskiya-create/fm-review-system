@@ -1,0 +1,217 @@
+"""
+Tests for security: API key handling, credential management, secret hygiene.
+
+Validates that:
+- No hardcoded secrets in source files
+- Token/credential env vars are properly handled
+- .env is in .gitignore
+- Scripts fail gracefully without credentials
+"""
+import os
+import re
+from pathlib import Path
+
+import pytest
+
+PROJECT_ROOT = Path(__file__).parent.parent
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+
+
+class TestNoHardcodedSecrets:
+    """Scan source files for hardcoded secrets."""
+
+    # Patterns that suggest hardcoded secrets
+    SECRET_PATTERNS = [
+        (r'(?:token|password|secret|key)\s*=\s*["\'][A-Za-z0-9+/=]{20,}["\']', "Possible hardcoded secret"),
+        (r'Bearer\s+[A-Za-z0-9+/=]{20,}', "Possible hardcoded Bearer token"),
+        (r'Basic\s+[A-Za-z0-9+/=]{20,}', "Possible hardcoded Basic auth"),
+    ]
+
+    def _get_source_files(self):
+        """Get all Python and shell source files."""
+        py_files = list(SCRIPTS_DIR.rglob("*.py"))
+        sh_files = list((PROJECT_ROOT / ".claude" / "hooks").glob("*.sh"))
+        return py_files + sh_files
+
+    @pytest.mark.parametrize("pattern,desc", SECRET_PATTERNS)
+    def test_no_secrets_in_scripts(self, pattern, desc):
+        for source_file in self._get_source_files():
+            content = source_file.read_text()
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            assert not matches, (
+                f"{desc} found in {source_file.relative_to(PROJECT_ROOT)}: {matches[:3]}"
+            )
+
+    def test_no_secrets_in_agent_configs(self):
+        """Agent .md files should not contain secrets."""
+        agents_dir = PROJECT_ROOT / ".claude" / "agents"
+        for agent_file in agents_dir.glob("agent-*.md"):
+            content = agent_file.read_text()
+            for pattern, desc in self.SECRET_PATTERNS:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                assert not matches, f"{desc} in {agent_file.name}"
+
+
+class TestEnvFileHandling:
+    """Validate .env file security."""
+
+    def test_env_in_gitignore(self):
+        gitignore = PROJECT_ROOT / ".gitignore"
+        assert gitignore.exists(), ".gitignore not found"
+        content = gitignore.read_text()
+        assert ".env" in content, ".env not in .gitignore"
+
+    def test_env_example_exists(self):
+        env_example = PROJECT_ROOT / ".env.example"
+        assert env_example.exists(), ".env.example not found"
+
+    def test_env_example_has_no_real_values(self):
+        env_example = PROJECT_ROOT / ".env.example"
+        if not env_example.exists():
+            pytest.skip(".env.example not found")
+        content = env_example.read_text()
+        for line in content.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, _, value = line.partition("=")
+                value = value.strip().strip("'\"")
+                # Value should be empty, a placeholder, or a comment
+                assert len(value) < 50 or value.startswith("your_") or value.startswith("<"), (
+                    f"Suspicious value in .env.example: {key}={value[:30]}..."
+                )
+
+    def test_env_not_tracked_by_git(self):
+        """.env file must not be tracked by git (contains real tokens locally)."""
+        import subprocess
+        result = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", ".env"],
+            capture_output=True, text=True, cwd=str(PROJECT_ROOT),
+        )
+        assert result.returncode != 0, ".env is tracked by git - remove it with git rm --cached .env"
+
+
+class TestCredentialHandling:
+    """Validate proper credential handling in scripts."""
+
+    def test_confluence_utils_requires_token(self):
+        """create_client_from_env raises ValueError without token."""
+        import sys
+        sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
+        from fm_review.confluence_utils import create_client_from_env
+
+        with patch_env({}):
+            with pytest.raises(ValueError, match="CONFLUENCE_TOKEN"):
+                create_client_from_env("12345")
+
+    def test_confluence_utils_accepts_personal_token(self):
+        """create_client_from_env accepts CONFLUENCE_PERSONAL_TOKEN as fallback."""
+        import sys
+        sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
+        from fm_review.confluence_utils import create_client_from_env
+
+        with patch_env({"CONFLUENCE_PERSONAL_TOKEN": "test-pat-token"}):
+            client = create_client_from_env("12345")
+            assert client.token == "test-pat-token"
+
+    def test_confluence_utils_requires_page_id(self):
+        """create_client_from_env raises ValueError without page_id."""
+        import sys
+        sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
+        from fm_review.confluence_utils import create_client_from_env
+
+        with patch_env({"CONFLUENCE_TOKEN": "test-token"}):
+            with pytest.raises(ValueError, match="page_id"):
+                create_client_from_env()
+
+    def test_export_script_reads_token_from_env(self):
+        """export_from_confluence.py reads CONFLUENCE_TOKEN from env."""
+        source = (SCRIPTS_DIR / "export_from_confluence.py").read_text()
+        assert 'os.environ.get("CONFLUENCE_TOKEN"' in source
+
+    def test_publish_script_uses_confluence_utils(self):
+        """publish_to_confluence.py uses confluence_utils for API access."""
+        source = (SCRIPTS_DIR / "publish_to_confluence.py").read_text()
+        assert "confluence_utils" in source or "ConfluenceClient" in source
+
+    def test_hooks_dont_read_env_files(self):
+        """Hook scripts should not read .env files directly."""
+        hooks_dir = PROJECT_ROOT / ".claude" / "hooks"
+        for hook_file in hooks_dir.glob("*.sh"):
+            content = hook_file.read_text()
+            # Hooks should use env vars, not source .env files
+            assert not re.search(r'source\s+.*\.env', content), (
+                f"Hook {hook_file.name} sources .env file directly"
+            )
+
+
+class TestSSLSafety:
+    """Ensure no global SSL context override in production code."""
+
+    def test_no_global_ssl_override(self):
+        """Production scripts must not set ssl._create_default_https_context globally."""
+        for py_file in SCRIPTS_DIR.rglob("*.py"):
+            content = py_file.read_text()
+            code_lines = [
+                line for line in content.split("\n")
+                if "ssl._create_default_https_context" in line
+                and not line.strip().startswith("#")
+                and "=" in line
+            ]
+            assert not code_lines, (
+                f"{py_file.name} has global SSL override: {code_lines[0].strip()}"
+            )
+
+
+class TestAuthHeaders:
+    """Validate correct authentication header usage."""
+
+    def test_scripts_use_bearer_not_basic(self):
+        """All scripts should use Bearer token, not Basic auth."""
+        for py_file in SCRIPTS_DIR.rglob("*.py"):
+            content = py_file.read_text()
+            if "Authorization" in content:
+                assert "Bearer" in content, (
+                    f"{py_file.name} uses Authorization but not Bearer"
+                )
+                # Basic auth should not be used (except in comments)
+                code_lines = [
+                    l for l in content.split("\n")
+                    if "Basic" in l and not l.strip().startswith("#")
+                ]
+                assert not code_lines, (
+                    f"{py_file.name} uses Basic auth: {code_lines[0].strip()}"
+                )
+
+
+class TestSSLHandling:
+    """Validate SSL context usage."""
+
+    def test_scripts_handle_ssl(self):
+        """Scripts that make HTTPS calls should handle SSL."""
+        for py_file in SCRIPTS_DIR.rglob("*.py"):
+            content = py_file.read_text()
+            if "urlopen" in content or "urllib.request" in content:
+                assert "ssl" in content, (
+                    f"{py_file.name} makes HTTP calls but doesn't import ssl"
+                )
+
+
+# Helper context manager for env patching
+import contextlib
+
+@contextlib.contextmanager
+def patch_env(env_vars):
+    """Temporarily replace all CONFLUENCE_* env vars."""
+    old_env = {}
+    keys_to_clear = [k for k in os.environ if k.startswith("CONFLUENCE_")]
+    for k in keys_to_clear:
+        old_env[k] = os.environ.pop(k)
+    os.environ.update(env_vars)
+    try:
+        yield
+    finally:
+        for k in env_vars:
+            os.environ.pop(k, None)
+        os.environ.update(old_env)

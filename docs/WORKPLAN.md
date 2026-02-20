@@ -1,29 +1,163 @@
 # WORKPLAN.md — План работ по системе FM Review Agents
 
 > **Цель:** Отслеживание прогресса, восстановление контекста при обрыве сессии
-> **Последнее обновление:** 28.01.2026, FM v2.5.5 создана
+> **Последнее обновление:** 18.02.2026, Блоки A+B+C завершены
 
 ---
 
 ## 🎯 ТЕКУЩИЙ СТАТУС
 
-| Компонент | Статус | Версия | Последнее обновление |
-|-----------|--------|--------|---------------------|
-| CLAUDE.md | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_0_CREATOR | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_1_ARCHITECT | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_2_ROLE_SIMULATOR | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_3_DEFENDER | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_4_QA_TESTER | 🟢 Готов | v4.3 | 27.01.2026 |
-| AGENT_5_TECH_ARCHITECT | 🟢 Готов | v4.3 | 27.01.2026 |
-| README.md | 🟢 Готов | v4.3 | 27.01.2026 |
-| PROMPTS.md | 🟢 Готов | v4.3 | 27.01.2026 |
-| CHANGELOG.md | 🟢 Готов | v4.3 | 27.01.2026 |
-| PROJECT_CONTEXT.md | 🟢 Готов | — | 27.01.2026 |
-| WORKPLAN.md | 🟢 Готов | v4.3 | 27.01.2026 |
-| **PROJECT_SHPMNT_PROFIT/** | 🟢 Готов | — | 27.01.2026 |
+| Компонент | Статус | Последнее обновление |
+|-----------|--------|---------------------|
+| CLAUDE.md | 🟢 Готов | 18.02.2026 |
+| Субагенты (.claude/agents/) | 🟢 Готовы (memory: project, 5 opus + 4 sonnet) | 18.02.2026 |
+| COMMON_RULES.md | 🟢 Готов (21 правило) | 18.02.2026 |
+| AGENT_PROTOCOL.md | 🟢 Готов | 18.02.2026 |
+| README.md | 🟢 Обновлен | 18.02.2026 |
+| Knowledge Graph (server-memory) | 🟢 Готов (11 сущностей) | 18.02.2026 |
+| Episodic Memory (plugin) | 🟢 Установлен (140 exchanges) | 18.02.2026 |
+| Hooks (9 шт + PreCompact) | 🟢 Готовы | 18.02.2026 |
+| Skills (3: evolve, quality-gate, fm-audit) | 🟢 Готовы | 18.02.2026 |
+| CONTEXT.md (progress file) | 🟢 Готов | 18.02.2026 |
+| CI/CD (claude.yml + security-review.yml + ci.yml) | 🟢 Готовы | 18.02.2026 |
+| **PROJECT_SHPMNT_PROFIT/** | 🟢 Готов | 17.02.2026 |
 
-**Легенда:** 🟢 Готов | 🟡 В работе | 🔴 Не начато | ⚪ Отменено
+**Легенда:** 🟢 Готов | 🟡 В работе | 🔴 Не начато / Устаревший | ⚪ Отменено
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — Память + контекст + skills (В РАБОТЕ 🟡)
+
+### Контекст
+Интеграция трех систем памяти + новые возможности Claude Code: PreCompact hook, skills, progress file, security review.
+
+### План работ
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| 1 | Установить Episodic Memory (plugin) | ~/.claude/plugins/ | ✅ |
+| 2 | Установить server-memory MCP | .mcp.json, .claude/settings.json | ✅ |
+| 3 | Засеять Knowledge Graph | scripts/seed_memory.py, .claude-memory/ | ✅ |
+| 4 | Обновить hooks (KG hints) | .claude/hooks/{inject,subagent}*.sh | ✅ |
+| 5 | Добавить memory: project во все 9 агентов | .claude/agents/agent-*.md | ✅ |
+| 6 | Правило 21 Knowledge Graph | agents/COMMON_RULES.md | ✅ |
+| 7 | Документация памяти в CLAUDE.md | CLAUDE.md | ✅ |
+| 8 | PreCompact hook | .claude/hooks/precompact-save-context.sh | ✅ |
+| 9 | MODEL_SELECTION.md | docs/MODEL_SELECTION.md | ✅ |
+| 10 | CONTEXT.md (progress file) | CONTEXT.md | ✅ |
+| 11 | Skill fm-audit | .claude/skills/fm-audit/SKILL.md | ✅ |
+| 12 | security-review.yml | .github/workflows/security-review.yml | ✅ |
+| 13 | MODEL_SELECTION.md | docs/MODEL_SELECTION.md | ✅ |
+| 14 | PreCompact hook | .claude/hooks/precompact-save-context.sh | ✅ |
+| 15 | Обновить CLAUDE.md (skills, hooks, progress) | CLAUDE.md | ✅ |
+| 16 | Обновить WORKPLAN.md | docs/WORKPLAN.md | ✅ |
+| 17 | Тесты + коммит | tests/, git | ✅ |
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — Testing Audit: покрытие 40% → 70%+ (ЗАВЕРШЕНА ✅)
+
+### Контекст
+Аудит тестирования (audit-fm-review.md) показал: 40% покрытия, нет CI workflow, нет integration tests, отсутствуют тесты для ключевых модулей.
+
+### План работ
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| 1 | CI workflow (pytest + coverage + bandit) | .github/workflows/ci.yml | ✅ |
+| 2 | Dependabot config | .github/dependabot.yml | ✅ |
+| 3 | Тесты seed_memory.py | tests/test_seed_memory.py | ✅ |
+| 4 | Тесты hooks | tests/test_hooks.py | ✅ |
+| 5 | Тесты run_agent.py | tests/test_pipeline.py (уже покрыт) | ✅ |
+| 6 | Тесты check_confluence_macros.py | tests/test_check_confluence_macros.py | ✅ |
+| 7 | Integration test stubs (pipeline, agent quality) | tests/test_integration.py | ✅ |
+| 8 | Прогон тестов (265 passed, 9 integration stubs) | tests/, git | ✅ |
+| 9 | Тесты export_from_confluence.py | tests/test_export_from_confluence.py | ✅ |
+| 10 | pip-audit (safety) в CI | .github/workflows/ci.yml | ✅ |
+| 11 | Тесты security (credentials, secrets, .env) | tests/test_security.py | ✅ |
+| 12 | Прогон тестов (301 passed) | tests/, git | ✅ |
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — Повторный аудит: блоки A, B, C (ЗАВЕРШЕНА ✅)
+
+### Контекст
+Повторный аудит системы выявил 15 верифицированных проблем + 14 рекомендаций из лучших практик 2026.
+Все сгруппированы в 3 блока: A (quick wins), B (средний effort), C (roadmap).
+
+---
+
+### БЛОК A: Quick Wins (~30 мин)
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| A-1 | Обновить README.md: заменить `experimental/run_agent.py` на `scripts/run_agent.py` | README.md | ✅ |
+| A-2 | Добавить `maxTurns` во все 9 субагентов (15-25 по роли) | .claude/agents/agent-*.md (9 файлов) | ✅ |
+| A-3 | Добавить `disallowedTools: Write, Edit` для Agent 1, 2, 3, 4 (только анализ) | .claude/agents/agent-{1,2,3,4}-*.md | ✅ |
+| A-4 | Исправить description для agent-2-simulator (добавить /business, /roi) | .claude/agents/agent-2-simulator.md | ✅ |
+| A-5 | Добавить `skills: [evolve]` в agent-1-architect | .claude/agents/agent-1-architect.md | ✅ |
+
+---
+
+### БЛОК B: Средний effort (~1-2ч)
+
+| # | Задача | Файлы | Статус |
+|---|--------|-------|--------|
+| B-1 | Добавить `mcpServers` для Confluence в agent-0 и agent-7 | .claude/agents/agent-{0,7}-*.md | ✅ |
+| B-2 | Добавить `permissionMode` по ролям агентов | .claude/agents/agent-*.md (9 файлов) | ✅ |
+| B-3 | Добавить SubagentStop hook для валидации _summary.json | .claude/hooks/, .claude/settings.json | ✅ |
+| B-4 | Создать шаблон PROJECT_CONTEXT.md | templates/PROJECT_CONTEXT.md | ✅ |
+| B-5 | Дифференцировать tools по ролям агентов | .claude/agents/agent-*.md (9 файлов) | ✅ (выполнено в A-3) |
+
+---
+
+### БЛОК C: Крупные улучшения (roadmap, отдельные сессии)
+
+| # | Задача | Effort | Статус |
+|---|--------|--------|--------|
+| C-1 | CLAUDE.md уже компактный (191 строка), обновлена таблица хуков | - | ✅ |
+| C-2 | Решение: субагенты архитектурно лучше Skills для нашего кейса | - | ⚪ (осознанный выбор) |
+| C-3 | Переписать pipeline на Claude Agent SDK (Python) | 4-6ч | ✅ |
+| C-4 | Тесты конфигурации агентов (75 тестов, pytest) | 1ч | ✅ |
+| C-5 | Настроить Langfuse для трейсинга pipeline | 2-3ч | ✅ |
+
+---
+
+## 📋 СЕССИЯ 18.02.2026 — C-3 + C-5: SDK + Langfuse (ЗАВЕРШЕНА ✅)
+
+### Контекст
+Переписка pipeline runner (`run_agent.py`) с subprocess на Claude Code SDK (claude-code-sdk v0.0.25).
+Интеграция Langfuse трейсинга прямо в pipeline (PipelineTracer).
+
+### Что сделано
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | Исследование Claude Code SDK API (query, ClaudeCodeOptions, ResultMessage) | ✅ |
+| 2 | Исследование текущего langfuse_tracer.py (уже реализован, 303 строки) | ✅ |
+| 3 | Переписать run_agent.py на claude-code-sdk (async, query()) | ✅ |
+| 4 | Добавить PipelineTracer (Langfuse) с per-agent spans | ✅ |
+| 5 | Async parallel execution (asyncio.gather вместо ThreadPoolExecutor) | ✅ |
+| 6 | Тесты для pipeline (44 теста, все прошли) | ✅ |
+| 7 | Обновить requirements.txt (claude-code-sdk>=0.0.25) | ✅ |
+| 8 | Обновить WORKPLAN (C-3 и C-5 завершены) | ✅ |
+
+### Ключевые изменения
+
+**run_agent.py (682 -> ~520 строк):**
+- `subprocess.run(["claude", "-p", ...])` → `async for msg in query(prompt, options)`
+- `ThreadPoolExecutor` → `asyncio.gather()` для параллельных стадий
+- `ResultMessage` дает cost, duration, session_id, num_turns нативно
+- `PipelineTracer` создает root trace + child spans в Langfuse
+- `_load_dotenv()` для Langfuse env vars
+- Unified stage builder: `_build_parallel_stages()` / `_build_sequential_stages()`
+
+**Langfuse интеграция (PipelineTracer):**
+- Pipeline run = root trace (name=`pipeline-{project}`)
+- Каждый агент = child span (name=`agent-{id}-{name}`)
+- Quality Gate = child span (name=`quality-gate`)
+- Метаданные: cost_usd, duration, status, num_turns, session_id
+- Отключается без ошибок если LANGFUSE_PUBLIC_KEY не задан
 
 ---
 

@@ -6,7 +6,12 @@ description: >
   опубликовать диаграмму в Confluence.
   Ключевые слова: "создай BPMN", "визуализируй процесс", "диаграмма процесса".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 15
+permissionMode: acceptEdits
 model: sonnet
+memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 8: BPMN Designer - Диаграммы процессов

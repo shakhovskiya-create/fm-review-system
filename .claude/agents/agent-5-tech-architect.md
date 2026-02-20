@@ -6,7 +6,12 @@ description: >
   оценить трудоемкость, проверить интеграции.
   Ключевые слова: "спроектируй архитектуру", "как реализовать в 1С", "сделай ТЗ".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 25
+permissionMode: acceptEdits
 model: opus
+memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 5: Tech Architect - Проектирование и ТЗ

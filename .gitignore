@@ -11,6 +11,7 @@ scripts/.env.local
 .env
 .env.local
 scripts/.env.local
+infisical.json
 
 # Node
 node_modules/
@@ -33,6 +34,9 @@ __pycache__/
 # OS
 .DS_Store
 **/.DS_Store
+._*
+**/._*
+Thumbs.db
 
 # BPMN output (generated, not source)
 scripts/output/
@@ -67,8 +71,10 @@ projects/*/fm_text_audit.txt
 projects/*/FM_DOCUMENTS/
 projects/*/ARCHIVE/
 
-# Langfuse infrastructure secrets
+# Infrastructure secrets
 infra/langfuse/.env.langfuse
+infra/infisical/.env.infisical
+infra/infisical/.env.machine-identity
 
 # Langfuse tracer state (dedup offsets)
 scripts/.langfuse_state/
@@ -77,3 +83,9 @@ scripts/.langfuse_state/
 -Users-*/
 *.tar.gz
 *.jsonl
+
+# Knowledge graph memory (runtime, user-specific)
+.claude-memory/
+
+# Session logs (runtime, not source)
+logs/sessions.log

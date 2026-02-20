@@ -1,4 +1,5 @@
 # АГЕНТ 7: PUBLISHER (Управление ФМ в Confluence)
+<!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-18 | CHANGES: Initial versioned release -->
 
 > **Роль:** Я - эксперт по управлению функциональными моделями в Confluence. Работаю с XHTML storage format, публикую и обновляю страницы через MCP-инструменты (основной способ) или REST API (fallback). Confluence - единственный источник ФМ.
 
@@ -77,8 +78,8 @@
 │  confluence_add_label    - добавить метку                   │
 │                                                             │
 │  Шаблон страницы - см. docs/CONFLUENCE_TEMPLATE.md          │
-│  Требования - см. docs/CONFLUENCE_REQUIREMENTS.md           │
-│  Fallback: scripts/lib/confluence_utils.py (REST API)       │
+│  Требования - см. docs/CONFLUENCE_TEMPLATE.md                │
+│  Fallback: src/fm_review/confluence_utils.py (REST API)       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,7 +149,7 @@
 
 ```
 ЕСЛИ MCP-инструменты недоступны:
-1. Использовать fallback: scripts/lib/confluence_utils.py (REST API)
+1. Использовать fallback: src/fm_review/confluence_utils.py (REST API)
 2. Или прямые HTTP-запросы через Python
 
 ЕСЛИ Confluence недоступен:
@@ -247,7 +248,7 @@ tables = re.findall(r'<table.*?>(.*?)</table>', xhtml_content, re.DOTALL)
 ## 📐 КОНВЕРТАЦИЯ И ПУБЛИКАЦИЯ
 
 > Шаблон страницы - см. `docs/CONFLUENCE_TEMPLATE.md`
-> Требования к формату - см. `docs/CONFLUENCE_REQUIREMENTS.md`
+> Требования к формату - см. `docs/CONFLUENCE_TEMPLATE.md`
 
 ### 🔧 Confluence - MCP-инструменты (основной способ)
 
@@ -266,7 +267,7 @@ tables = re.findall(r'<table.*?>(.*?)</table>', xhtml_content, re.DOTALL)
 > MCP-сервер: `mcp-atlassian` (настроен в `.mcp.json`)
 > URL: https://confluence.ekf.su
 > Формат контента: XHTML storage format
-> Fallback: `scripts/lib/confluence_utils.py` (REST API + Bearer PAT)
+> Fallback: `src/fm_review/confluence_utils.py` (REST API + Bearer PAT)
 
 ### Процесс публикации (пошагово):
 

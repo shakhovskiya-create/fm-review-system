@@ -24,7 +24,7 @@ PROJECT_[NAME]/
 └── REPORTS/               ← Итоговые отчёты
 
 ТЕКУЩИЕ ПРОЕКТЫ:
-- PROJECT_SHPMNT_PROFIT/   ← Контроль рентабельности (FM v2.5.3)
+- PROJECT_SHPMNT_PROFIT/   ← Контроль рентабельности (FM v1.0.3)
 - PROJECT_SALES_PIPELINE/  ← Проектные продажи
 ```
 
@@ -389,5 +389,10 @@ Agent 6: /auto → презентация + экспорт
 ./scripts/fm_version.sh     — Управление версиями ФМ
 python3 scripts/export_from_confluence.py  — Экспорт ФМ из Confluence (PDF/Word)
 ./scripts/agent[0-5]_*.sh   — Интервью для агентов 0-5
-# Agent 7 запускается через orchestrate.sh или Claude Code напрямую
+
+# Автономный запуск (Claude Code SDK):
+python3 scripts/run_agent.py --pipeline --project PROJECT_NAME   — Последовательный конвейер
+python3 scripts/run_agent.py --parallel --project PROJECT_NAME   — Параллельные этапы
+python3 scripts/run_agent.py --agent 1 --project PROJECT_NAME    — Один агент
+python3 scripts/run_agent.py --dry-run --pipeline --project ...  — Без выполнения
 ```

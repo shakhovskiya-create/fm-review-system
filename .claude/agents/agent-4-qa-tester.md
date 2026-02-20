@@ -5,8 +5,14 @@ description: >
   Используй когда нужно: создать тесты, проверить покрытие требований,
   построить матрицу трассируемости.
   Ключевые слова: "создай тесты", "тест-кейсы", "протестируй ФМ".
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, WebFetch
+disallowedTools: Write, Edit
+maxTurns: 20
+permissionMode: default
 model: sonnet
+memory: project
+mcpServers:
+  memory: {}
 ---
 
 # Agent 4: QA Tester - Тестирование ФМ

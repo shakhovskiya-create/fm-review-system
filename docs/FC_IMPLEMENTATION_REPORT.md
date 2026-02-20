@@ -30,7 +30,7 @@
 
 **Затронутые файлы:**
 - `scripts/publish_to_confluence.py` - модифицирован (v2.0 → v3.0)
-- `scripts/lib/contract_validator.py` → `scripts/experimental/contract_validator.py`
+- `scripts/experimental/contract_validator.py` → `scripts/experimental/contract_validator.py`
 - `scripts/experimental/README.md` - создан
 
 ---

@@ -8,7 +8,7 @@ Confluence Utilities Library v1.1 (FC-12B: audit log)
 - Audit log for write operations (FC-12B)
 
 Usage:
-    from lib.confluence_utils import ConfluenceClient
+    from fm_review.confluence_utils import ConfluenceClient
 
     client = ConfluenceClient(url, token, page_id)
     with client.lock():
@@ -27,7 +27,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
-ssl._create_default_https_context = ssl._create_unverified_context
+from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
+
+def _make_ssl_context():
+    """Create a per-request SSL context that skips certificate verification.
+
+    Corporate Confluence uses self-signed certificates.
+    This is scoped to our requests only — does not affect other modules.
+    """
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 # Lock settings
 LOCK_DIR = Path(__file__).parent.parent / ".locks"
@@ -113,14 +124,14 @@ class ConfluenceLock:
             try:
                 fcntl.flock(self.lock_fd.fileno(), fcntl.LOCK_UN)
                 self.lock_fd.close()
-            except:
+            except OSError:
                 pass
             finally:
                 self.lock_fd = None
                 # Clean up lock file
                 try:
                     self.lock_file.unlink()
-                except:
+                except Exception:
                     pass
 
     def __enter__(self):
@@ -138,8 +149,13 @@ class ConfluenceLock:
 
 class ConfluenceBackup:
     """
-    Backup manager for Confluence pages.
-    Saves page state before updates for rollback capability.
+    Local backup before Confluence PUT — safety net for rollback.
+
+    Why not rely on Confluence version history alone:
+    - Admin can purge history; local copy is under our control
+    - MCP server does raw PUT with no rollback; this catches partial writes
+    - Enables offline diff/audit even when Confluence is unreachable
+    Max 10 backups per page (auto-rotated).
     """
 
     def __init__(self, page_id: str):
@@ -180,7 +196,7 @@ class ConfluenceBackup:
         for old_backup in backups[MAX_BACKUPS:]:
             try:
                 old_backup.unlink()
-            except:
+            except OSError:
                 pass
 
 
@@ -204,51 +220,49 @@ class ConfluenceClient:
         """Return a lock context manager for this page."""
         return ConfluenceLock(self.page_id, timeout)
 
-    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
-        """
-        Make HTTP request with retry logic.
-        Retries on transient errors with exponential backoff.
-        """
-        url = f"{self.url}{endpoint}"
-
-        for attempt in range(MAX_RETRIES + 1):
-            try:
-                req = urllib.request.Request(url, method=method)
-                req.add_header("Authorization", f"Bearer {self.token}")
-                req.add_header("Content-Type", "application/json")
-
-                if data:
-                    req.data = json.dumps(data).encode('utf-8')
-
-                with urllib.request.urlopen(req, timeout=30) as resp:
-                    return json.loads(resp.read().decode('utf-8'))
-
-            except urllib.error.HTTPError as e:
+    @retry(
+        stop=stop_after_attempt(MAX_RETRIES + 1),
+        wait=wait_random_exponential(multiplier=RETRY_BACKOFF_BASE, max=60),
+        retry=retry_if_exception_type(urllib.error.URLError),
+        reraise=True
+    )
+    def _do_request(self, req: urllib.request.Request) -> Dict:
+        try:
+            with urllib.request.urlopen(req, timeout=30, context=_make_ssl_context()) as resp:
+                return json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            if e.code not in RETRYABLE_CODES:
                 error_body = e.read().decode('utf-8', errors='replace')[:500]
-
-                # Check if retryable
-                if e.code in RETRYABLE_CODES and attempt < MAX_RETRIES:
-                    wait_time = RETRY_BACKOFF_BASE * (2 ** attempt)
-                    print(f"  Retry {attempt + 1}/{MAX_RETRIES} after {wait_time}s (HTTP {e.code})")
-                    time.sleep(wait_time)
-                    continue
-
                 raise ConfluenceAPIError(
                     f"HTTP {e.code}: {error_body}",
                     code=e.code,
                     response=error_body
-                )
+                ) from e
+            print(f"  Transient HTTP error {e.code}, scheduling retry with tenacity...")
+            raise
+        except urllib.error.URLError as e:
+            print(f"  Network error: {e.reason}, scheduling retry with tenacity...")
+            raise
 
-            except urllib.error.URLError as e:
-                if attempt < MAX_RETRIES:
-                    wait_time = RETRY_BACKOFF_BASE * (2 ** attempt)
-                    print(f"  Retry {attempt + 1}/{MAX_RETRIES} after {wait_time}s (Network error)")
-                    time.sleep(wait_time)
-                    continue
+    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
+        """
+        Make HTTP request with retry logic.
+        Retries on transient errors with exponential backoff and jitter via tenacity.
+        """
+        url = f"{self.url}{endpoint}"
+        req = urllib.request.Request(url, method=method)
+        req.add_header("Authorization", f"Bearer {self.token}")
+        req.add_header("Content-Type", "application/json")
 
-                raise ConfluenceAPIError(f"Network error: {e.reason}")
+        if data:
+            req.data = json.dumps(data).encode('utf-8')
 
-        raise ConfluenceAPIError("Max retries exceeded")
+        try:
+            return self._do_request(req)
+        except Exception as e:
+            if isinstance(e, ConfluenceAPIError):
+                raise
+            raise ConfluenceAPIError(f"Max retries exceeded or fatal error: {str(e)}") from e
 
     def get_page(self, expand: str = "body.storage,version") -> Dict:
         """Get page content and metadata."""
@@ -399,10 +413,10 @@ class ConfluenceClient:
 def create_client_from_env(page_id: Optional[str] = None) -> ConfluenceClient:
     """Create client using environment variables."""
     url = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-    token = os.environ.get("CONFLUENCE_TOKEN", "")
+    token = os.environ.get("CONFLUENCE_TOKEN", "") or os.environ.get("CONFLUENCE_PERSONAL_TOKEN", "")
 
     if not token:
-        raise ValueError("CONFLUENCE_TOKEN environment variable not set")
+        raise ValueError("CONFLUENCE_TOKEN (or CONFLUENCE_PERSONAL_TOKEN) environment variable not set")
 
     if page_id is None:
         page_id = os.environ.get("CONFLUENCE_PAGE_ID")

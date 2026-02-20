@@ -127,7 +127,8 @@ cat > "${PROJECT_DIR}/CHANGELOG.md" <<EOF
 EOF
 
 # CONFLUENCE_PAGE_ID — заполняется при первой публикации (Agent 7) (AG-08)
-echo "# ID страницы Confluence (заполнить при первой публикации)" > "${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
+# CONFLUENCE_PAGE_ID пуст до первой публикации; скрипты проверяют через strip()/[ -z ]
+: > "${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
 
 success "Проект создан: PROJECT_${NAME}"
 echo ""

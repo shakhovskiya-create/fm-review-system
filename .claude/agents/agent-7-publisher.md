@@ -6,7 +6,15 @@ description: >
   Используй когда нужно: опубликовать ФМ, обновить страницу, проверить версию.
   Ключевые слова: "опубликуй в Confluence", "опубликуй ФМ", "залей в конф".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 15
+permissionMode: acceptEdits
 model: sonnet
+memory: project
+skills:
+  - quality-gate
+mcpServers:
+  confluence: {}
+  memory: {}
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence
@@ -45,7 +53,7 @@ model: sonnet
 - API: /rest/api/content/{PAGE_ID}
 - Auth: Bearer token (PAT)
 - Формат: XHTML storage format
-- Библиотека: `scripts/lib/confluence_utils.py`
+- Библиотека: `src/fm_review/confluence_utils.py`
 
 ## Критические правила
 

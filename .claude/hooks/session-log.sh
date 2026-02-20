@@ -2,10 +2,10 @@
 # Hook: Stop
 # Логирует завершение сессии агента в logs/sessions.log
 
-set -e
+set -euo pipefail
 INPUT=$(cat)
 
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null || echo "unknown")
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
 
 LOG_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/logs"

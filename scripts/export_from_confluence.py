@@ -8,19 +8,9 @@ FM Exporter from Confluence v1.0
 import json, urllib.request, ssl, re, sys, os
 from datetime import datetime
 from bs4 import BeautifulSoup
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
-# WeasyPrint needs library paths on macOS (set before import)
-# Run with: DYLD_LIBRARY_PATH=/opt/homebrew/lib python3 export_from_confluence.py
-if sys.platform == "darwin" and "DYLD_LIBRARY_PATH" not in os.environ:
-    homebrew_lib = "/opt/homebrew/lib"
-    if os.path.isdir(homebrew_lib):
-        os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
-        # Re-exec with the env var set (DYLD_* must be set before process start)
-        os.execve(sys.executable, [sys.executable] + sys.argv, os.environ)
-
-# Config - set CONFLUENCE_TOKEN environment variable before running
+# Config - safe module-level defaults (no side effects; validation in main())
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
 TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
 
@@ -39,24 +29,51 @@ def _get_page_id(project_name=None):
     return os.environ.get("CONFLUENCE_PAGE_ID") or "83951683"
 
 
-PAGE_ID = _get_page_id(os.environ.get("PROJECT"))
+def _make_ssl_context():
+    """Create a per-request SSL context (corporate self-signed certs)."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
-if not TOKEN:
-    print("ERROR: CONFLUENCE_TOKEN environment variable not set")
-    sys.exit(1)
 
-# Output directory
+def setup_weasyprint_env():
+    """Set DYLD_LIBRARY_PATH on macOS for WeasyPrint and re-exec if needed."""
+    if sys.platform == "darwin" and "DYLD_LIBRARY_PATH" not in os.environ:
+        homebrew_lib = "/opt/homebrew/lib"
+        if os.path.isdir(homebrew_lib):
+            os.environ["DYLD_LIBRARY_PATH"] = homebrew_lib
+            # Re-exec with the env var set (DYLD_* must be set before process start)
+            os.execve(sys.executable, [sys.executable] + sys.argv, os.environ)
+
+
+# Module-level defaults — set lazily via main() or direct assignment for testing.
+# No side effects (no sys.exit, no os.execve) at import time.
+PAGE_ID = None
+
+# Output directory (default; can be overridden before calling main)
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "exports")
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(urllib.error.URLError),
+    reraise=True,
+)
+def _urlopen_with_retry(req):
+    """urllib.urlopen with tenacity retry on transient errors."""
+    return urllib.request.urlopen(req, timeout=30, context=_make_ssl_context())
+
+
 def api_request(method, endpoint):
-    """Confluence REST API request"""
+    """Confluence REST API request with retry on transient errors."""
     url = f"{CONFLUENCE_URL}/rest/api/{endpoint}"
     req = urllib.request.Request(url, method=method)
     req.add_header("Authorization", f"Bearer {TOKEN}")
     req.add_header("Content-Type", "application/json")
     try:
-        with urllib.request.urlopen(req) as resp:
+        with _urlopen_with_retry(req) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception as e:
         print(f"API error: {e}")
@@ -492,6 +509,22 @@ def export_docx(raw_html, title, output_path):
 
 
 def main():
+    global PAGE_ID, TOKEN, CONFLUENCE_URL
+
+    # --- Side effects: only run when executed as a script ---
+    # SSL is now per-request via _make_ssl_context() — no global override needed
+    setup_weasyprint_env()
+
+    # Re-read env vars (may have changed after re-exec)
+    CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
+    TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+
+    if not TOKEN:
+        print("ERROR: CONFLUENCE_TOKEN environment variable not set")
+        sys.exit(1)
+
+    PAGE_ID = _get_page_id(os.environ.get("PROJECT"))
+
     # Parse arguments
     fmt = "both"  # pdf, docx, both
     page_id = PAGE_ID

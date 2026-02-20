@@ -1,0 +1,75 @@
+name: Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "scripts/**"
+      - ".claude/**"
+      - ".mcp.json"
+      - ".env.example"
+      - "**.py"
+      - "**.sh"
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Claude Security Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            Ты security-ревьюер для FM Review System.
+            Система использует: Confluence API (PAT tokens), Claude Code SDK,
+            MCP серверы, bash hooks, Python скрипты.
+
+            Проверь изменения в этом PR на безопасность:
+
+            1. СЕКРЕТЫ И ТОКЕНЫ:
+               - Нет захардкоженных API ключей, токенов, паролей
+               - Токены читаются из env vars или .env
+               - .env не коммитится (есть в .gitignore)
+
+            2. COMMAND INJECTION:
+               - Bash hooks: нет небезопасной подстановки переменных
+               - Python скрипты: нет os.system() с пользовательским вводом
+               - Все переменные в кавычках в shell-скриптах
+
+            3. CONFLUENCE API:
+               - SSL верификация (ssl._create_unverified_context только для dev)
+               - Авторизация через Bearer token (не Basic)
+               - PAGE_ID не захардкожен
+
+            4. MCP СЕРВЕРЫ:
+               - Нет лишних разрешений в mcpServers
+               - Аргументы команд безопасны
+
+            5. ФАЙЛОВЫЕ ОПЕРАЦИИ:
+               - Нет записи за пределы рабочей директории
+               - Нет чтения чувствительных файлов (/etc/passwd и т.д.)
+               - Права на файлы корректны (hooks executable)
+
+            6. HOOKS:
+               - Нет eval/exec с динамическими данными
+               - stdin обрабатывается безопасно (jq, не eval)
+               - Таймауты установлены
+
+            Для каждой находки: [CRITICAL|HIGH|MEDIUM|LOW], файл:строка, описание, исправление.
+
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 8
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*)"

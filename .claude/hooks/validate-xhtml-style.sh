@@ -5,16 +5,16 @@
 # - Нет упоминаний AI/Agent/Claude/Bot в тексте
 # - Автор = "Шаховский А.С."
 
-set -e
+set -euo pipefail
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 
 # Только для команд, работающих с Confluence (python3 скрипты публикации)
 [ -z "$COMMAND" ] && exit 0
 echo "$COMMAND" | grep -qiE 'publish_to_confluence|confluence_utils|update_page' || exit 0
 
 # Проверяем вывод команды на проблемы
-STDOUT=$(echo "$INPUT" | jq -r '.stdout // empty' 2>/dev/null)
+STDOUT=$(echo "$INPUT" | jq -r '.stdout // empty' 2>/dev/null || echo "")
 [ -z "$STDOUT" ] && exit 0
 
 WARNINGS=""

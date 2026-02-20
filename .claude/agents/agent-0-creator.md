@@ -6,7 +6,13 @@ description: >
   структурировать бизнес-процесс, описать правила и ограничения.
   Ключевые слова: "создай ФМ", "новая ФМ", "опишем процесс".
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+maxTurns: 25
+permissionMode: acceptEdits
 model: opus
+memory: project
+mcpServers:
+  confluence: {}
+  memory: {}
 ---
 
 # Agent 0: Creator - Создание ФМ
@@ -36,3 +42,10 @@ model: opus
 - ЛЮБОЙ вопрос к пользователю = AskUserQuestion
 - Автор = "Шаховский А.С." (НИКОГДА не упоминать ИИ/агентов)
 - Результаты сохранять в `projects/PROJECT_*/`
+
+## При /apply (доработка по замечаниям)
+
+Перед внесением правок прочитать:
+- `AGENT_1_ARCHITECT/` - аудиторские находки (CRITICAL, HIGH)
+- `AGENT_3_DEFENDER/` - классификация замечаний (покрыто / пробел / бэклог)
+Учитывать рекомендации при интеграции изменений в ФМ.

@@ -1,6 +1,29 @@
 {
   "enableAllProjectMcpServers": true,
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-project-context.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "agent-.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-context.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -9,6 +32,26 @@
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-confluence-write.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__confluence__confluence_update_page",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-mcp-confluence-write.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__confluence__confluence_delete_page",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-mcp-confluence-write.sh",
+            "timeout": 5
           }
         ]
       }
@@ -21,6 +64,29 @@
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-xhtml-style.sh",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "agent-.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-summary.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact-save-context.sh",
+            "timeout": 30
           }
         ]
       }
@@ -47,7 +113,8 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "episodic-memory@superpowers-marketplace": true
-  }
+  "enabledMcpjsonServers": [
+    "confluence",
+    "memory"
+  ]
 }

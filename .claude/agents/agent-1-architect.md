@@ -5,8 +5,16 @@ description: >
   Используй когда нужно: проверить ФМ на ошибки, найти противоречия,
   провести аудит бизнес-логики и совместимости с платформой 1С:УТ.
   Ключевые слова: "запусти аудит", "проверь ФМ", "какие проблемы в ФМ".
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, WebFetch
+disallowedTools: Write, Edit
+maxTurns: 20
+permissionMode: default
 model: opus
+memory: project
+skills:
+  - fm-audit
+mcpServers:
+  memory: {}
 ---
 
 # Agent 1: Architect - Аудит ФМ

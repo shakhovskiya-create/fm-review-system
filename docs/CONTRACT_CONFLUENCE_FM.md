@@ -1,6 +1,7 @@
 # Закрепление: контракт Confluence как единственного источника ФМ
 
 > Единый чеклист для проверки: все ли правила соблюдены в коде и документации.
+> Детальные правила: см. CLAUDE.md
 
 ---
 
@@ -71,7 +72,7 @@
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
-| confluence_utils.py v1.1: интегрирован в publish_to_confluence.py v3.0 (lock, backup, retry, audit log) | scripts/publish_to_confluence.py, scripts/lib/confluence_utils.py | ✅ |
+| confluence_utils.py v1.1: интегрирован в publish_to_confluence.py v3.0 (lock, backup, retry, audit log) | scripts/publish_to_confluence.py, src/fm_review/confluence_utils.py | ✅ |
 | contract_validator.py — в experimental/, вне текущего контура | scripts/experimental/ | ✅ |
 | Журнал аудита (FC-12B): каждый PUT логируется в .audit_log/confluence_{PAGE_ID}.jsonl | confluence_utils.py (_audit_log), quality_gate.sh секция 7 | ✅ |
 
@@ -97,8 +98,8 @@
 
 | Проверка | Где зафиксировано | Статус |
 |----------|-------------------|--------|
-| При AUTONOMOUS=1 и ANTHROPIC_API_KEY оркестратор вызывает run_agent.py вместо копирования промпта в буфер | scripts/orchestrate.sh (полный цикл) | ✅ |
-| run_agent.py: --project, --agent 0-8, --command; сохраняет результат в projects/PROJECT/AGENT_X_*/ | scripts/experimental/run_agent.py (FC-03: перенесен в experimental/) | ✅ |
+| При AUTONOMOUS=1 оркестратор вызывает run_agent.py вместо копирования промпта в буфер | scripts/orchestrate.sh (полный цикл) | ✅ |
+| run_agent.py: --project, --agent 0-8, --pipeline, --parallel; сохраняет результат в projects/PROJECT/AGENT_X_*/ | scripts/run_agent.py (Claude Code SDK + Langfuse) | ✅ |
 
 ---
 

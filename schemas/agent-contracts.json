@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FM Review System Agent Contracts v2.1 (FC-10A: traceability, FC-09C: context schema)",
+  "title": "FM Review System Agent Contracts v2.2 (multi-platform: domainObjects, platform context)",
   "description": "JSON Schema for inter-agent communication. v2.0: added agentSummary sidecar, Agent6_Presenter",
 
   "definitions": {
@@ -226,6 +226,12 @@
           "enum": ["auto", "interactive"],
           "default": "interactive",
           "description": "OPTIONAL. Apply mode (default: interactive)"
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["1c", "go", "python", "hybrid"],
+          "default": "1c",
+          "description": "OPTIONAL. Target platform (default: 1c). Affects Agent 5 template selection."
         }
       }
     },
@@ -340,6 +346,52 @@
       }
     },
 
+    "findingsRegistry": {
+      "type": "object",
+      "required": ["project", "fmVersion", "timestamp", "findings"],
+      "description": "Central findings registry aggregating findings from Agent 1, 2, 4, 5. Enables cross-agent deduplication.",
+      "properties": {
+        "project": { "type": "string" },
+        "fmVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "severity", "category", "description", "status"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^(CRITICAL|HIGH|MEDIUM|LOW|UX-CRITICAL|UX-HIGH|UX-MEDIUM|UX-LOW)-[0-9]{3}$" },
+              "source": { "type": "string", "enum": ["Agent1_Architect", "Agent2_Simulator", "Agent4_QA", "Agent5_TechArchitect"] },
+              "severity": { "type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"] },
+              "category": { "type": "string" },
+              "description": { "type": "string", "minLength": 10 },
+              "location": { "type": "string" },
+              "status": { "type": "string", "enum": ["Open", "Resolved", "Wontfix", "Deferred"] },
+              "defenseType": { "type": "string", "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"], "description": "Agent 3 classification (if defended)" },
+              "tests": { "type": "array", "items": { "type": "string" }, "description": "TC-XXX IDs covering this finding" }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "total": { "type": "integer" },
+            "bySeverity": {
+              "type": "object",
+              "properties": {
+                "critical": { "type": "integer" },
+                "high": { "type": "integer" },
+                "medium": { "type": "integer" },
+                "low": { "type": "integer" }
+              }
+            },
+            "bySource": { "type": "object", "additionalProperties": { "type": "integer" } },
+            "byStatus": { "type": "object", "additionalProperties": { "type": "integer" } }
+          }
+        }
+      }
+    },
+
     "agentOutput_Agent0_Creator": {
       "type": "object",
       "description": "Output schema for Agent 0 (Creator)",
@@ -422,9 +474,28 @@
 
     "agentOutput_Agent5_TechArchitect": {
       "type": "object",
-      "description": "Output schema for Agent 5 (Tech Architect)",
+      "description": "Output schema for Agent 5 (Tech Architect). Platform-aware: 1C or Go/microservices.",
       "properties": {
-        "objects1C": { "type": "array", "items": { "type": "string" } },
+        "platform": {
+          "type": "string",
+          "enum": ["1c", "go", "python", "hybrid"],
+          "description": "Target platform for this architecture"
+        },
+        "domainObjects": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Platform-agnostic domain objects (aggregates, value objects, services)"
+        },
+        "objects1C": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "1C-specific objects (deprecated alias for domainObjects when platform=1c)"
+        },
+        "goServices": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Go microservices (when platform=go or hybrid)"
+        },
         "integrations": { "type": "array", "items": { "type": "string" } },
         "estimate": { "type": "string" }
       }

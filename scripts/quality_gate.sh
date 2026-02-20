@@ -20,7 +20,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
-PROJECT="${1:-}"
+PROJECT=""
 SKIP_REASON=""
 
 # FC-08C: Обработка --reason для пропуска предупреждений
@@ -205,6 +205,43 @@ subheader "8. Документация"
 
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
+# ─── 8.5 VERSION COHERENCE ─────────────────────────────────
+subheader "8.5. Когерентность версий"
+
+# Собираем FM-версию из разных источников
+VER_CONTEXT=""
+VER_SUMMARY=""
+CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
+if [[ -f "$CONTEXT_FILE" ]]; then
+    VER_CONTEXT=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$CONTEXT_FILE" 2>/dev/null | head -1) || true
+fi
+# Ищем версию в _summary.json файлах
+for summary in "${PROJECT_DIR}"/AGENT_*/*_summary.json; do
+    [[ -f "$summary" ]] || continue
+    if command -v jq &>/dev/null; then
+        s_ver=$(jq -r '.fmVersion // empty' "$summary" 2>/dev/null) || true
+        if [[ -n "$s_ver" && -z "$VER_SUMMARY" ]]; then
+            VER_SUMMARY="$s_ver"
+        elif [[ -n "$s_ver" && "$s_ver" != "$VER_SUMMARY" ]]; then
+            check_warn "Версия в $(basename "$summary") ($s_ver) отличается от других summary ($VER_SUMMARY)"
+        fi
+    fi
+done
+# Сравниваем
+if [[ -n "$VER_CONTEXT" && -n "$VER_SUMMARY" ]]; then
+    if [[ "$VER_CONTEXT" == "$VER_SUMMARY" ]]; then
+        check_pass "Версия когерентна: ${VER_CONTEXT} (context == summaries)"
+    else
+        check_warn "Версия рассинхронизирована: PROJECT_CONTEXT=${VER_CONTEXT}, summaries=${VER_SUMMARY}"
+    fi
+elif [[ -n "$VER_CONTEXT" ]]; then
+    check_pass "Версия из PROJECT_CONTEXT: ${VER_CONTEXT} (summaries для сравнения нет)"
+elif [[ -n "$VER_SUMMARY" ]]; then
+    check_pass "Версия из summaries: ${VER_SUMMARY} (PROJECT_CONTEXT не содержит версию)"
+else
+    check_warn "FM-версия не определена ни в PROJECT_CONTEXT.md, ни в _summary.json"
+fi
+
 # ─── 9. CONFLUENCE & BPMN ──────────────────────────────────
 subheader "9. Confluence & BPMN/диаграммы"
 
@@ -252,6 +289,14 @@ elif [[ $FAIL -eq 0 ]]; then
             echo "**Причина:** ${SKIP_REASON}" >> "$CONTEXT_FILE"
             echo "**Предупреждений:** ${WARN}" >> "$CONTEXT_FILE"
         fi
+        # Структурированный audit trail (JSONL)
+        QG_AUDIT_DIR="${SCRIPT_DIR}/.audit_log"
+        mkdir -p "$QG_AUDIT_DIR"
+        QG_AUDIT_FILE="${QG_AUDIT_DIR}/quality_gate_overrides.jsonl"
+        QG_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
+        printf '{"timestamp":"%s","project":"%s","warnings":%d,"failed":%d,"reason":"%s","pid":%d}\n' \
+            "$QG_TIMESTAMP" "$PROJECT" "$WARN" "$FAIL" "$(echo "$SKIP_REASON" | sed 's/"/\\"/g')" "$$" \
+            >> "$QG_AUDIT_FILE"
         EXIT_CODE=0
     else
         EXIT_CODE=2

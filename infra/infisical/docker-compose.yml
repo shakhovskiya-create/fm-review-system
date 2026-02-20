@@ -1,0 +1,84 @@
+# Infisical Self-Hosted — FM Review System
+# Требования: Docker, Docker Compose, 2 vCPU, 4 GB RAM, 20 GB storage
+#
+# Запуск:
+#   cp .env.infisical.example .env.infisical
+#   # Заполнить секреты в .env.infisical (обязательно: ENCRYPTION_KEY, AUTH_SECRET)
+#   docker compose --env-file .env.infisical up -d
+#
+# UI: http://localhost:8080 (или $SITE_URL)
+# После запуска: создать org, project, environment "dev", импортировать секреты.
+#
+# Подключение CLI:
+#   infisical login --domain="http://localhost:8080"
+
+services:
+  infisical:
+    image: infisical/infisical:latest-postgres
+    container_name: infisical-backend
+    restart: unless-stopped
+    depends_on:
+      infisical-postgres:
+        condition: service_healthy
+      infisical-redis:
+        condition: service_healthy
+    ports:
+      - "${INFISICAL_PORT:-8080}:8080"
+    environment:
+      NODE_ENV: production
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DB_CONNECTION_URI: postgres://${POSTGRES_USER:-infisical}:${POSTGRES_PASSWORD}@infisical-postgres:5432/${POSTGRES_DB:-infisical}
+      REDIS_URL: redis://infisical-redis:6379
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Infisical}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  infisical-postgres:
+    image: postgres:14-alpine
+    container_name: infisical-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-infisical}
+      POSTGRES_USER: ${POSTGRES_USER:-infisical}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - infisical_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-infisical}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  infisical-redis:
+    image: redis:7-alpine
+    container_name: infisical-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy noeviction
+    volumes:
+      - infisical_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  infisical_postgres_data:
+  infisical_redis_data:
