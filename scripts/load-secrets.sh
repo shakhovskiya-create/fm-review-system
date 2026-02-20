@@ -27,10 +27,9 @@ if command -v infisical &>/dev/null; then
 
     if [[ -n "$INFISICAL_CLIENT_ID" && -n "$INFISICAL_CLIENT_SECRET" ]]; then
         # Universal Auth: get token and export secrets
-        _token=$(INFISICAL_API_URL="${INFISICAL_API_URL}" infisical login \
+        # Pass secrets via environment variables instead of command line arguments
+        _token=$(INFISICAL_API_URL="${INFISICAL_API_URL}" INFISICAL_CLIENT_ID="${INFISICAL_CLIENT_ID}" INFISICAL_CLIENT_SECRET="${INFISICAL_CLIENT_SECRET}" infisical login \
             --method=universal-auth \
-            --client-id="$INFISICAL_CLIENT_ID" \
-            --client-secret="$INFISICAL_CLIENT_SECRET" \
             --silent 2>/dev/null | grep -oP 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+')
         if [[ -n "$_token" ]]; then
             _loaded=0

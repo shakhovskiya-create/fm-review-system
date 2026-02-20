@@ -4,6 +4,7 @@ Tests for check_confluence_macros.py — Confluence macro checker.
 Now imports the module directly (after refactoring to __name__ guard).
 """
 import sys
+import urllib.error
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -81,7 +82,7 @@ class TestApiGet:
         assert result == {"title": "Test Page"}
         mock_urlopen.assert_called_once()
 
-    @patch("check_confluence_macros.urllib.request.urlopen", side_effect=Exception("Network error"))
+    @patch("check_confluence_macros.urllib.request.urlopen", side_effect=urllib.error.URLError("Network error"))
     def test_returns_none_on_error(self, mock_urlopen):
         result = api_get("content/123", "https://conf.example.com", "token123")
         assert result is None

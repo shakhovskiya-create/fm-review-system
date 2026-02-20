@@ -24,10 +24,10 @@ jobs:
           pip install pytest pytest-cov bandit pip-audit
 
       - name: Run tests with coverage
-        run: pytest --cov=scripts --cov-report=xml --cov-report=term-missing --cov-fail-under=45
+        run: pytest --cov=scripts --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=40
 
       - name: Security scan (bandit)
-        run: bandit -r scripts/ -c pyproject.toml -ll --format json --output bandit-report.json
+        run: bandit -r scripts/ src/ -c pyproject.toml -ll --format json --output bandit-report.json
 
       - name: Dependency audit (pip-audit)
         run: pip-audit --strict --desc

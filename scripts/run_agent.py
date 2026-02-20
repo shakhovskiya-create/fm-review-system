@@ -1029,10 +1029,13 @@ def _load_dotenv():
                     env = dict(os.environ)
                     if api_url:
                         env["INFISICAL_API_URL"] = api_url
+                    
+                    # Pass credentials via environment variables instead of process args
+                    env["INFISICAL_CLIENT_ID"] = client_id
+                    env["INFISICAL_CLIENT_SECRET"] = client_secret
+                    
                     login_result = subprocess.run(
-                        ["infisical", "login", "--method=universal-auth",
-                         f"--client-id={client_id}", f"--client-secret={client_secret}",
-                         "--silent"],
+                        ["infisical", "login", "--method=universal-auth", "--silent"],
                         capture_output=True, text=True, timeout=15, env=env,
                     )
                     # Extract token from output

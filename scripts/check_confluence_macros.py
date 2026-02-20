@@ -46,7 +46,7 @@ def api_get(endpoint, confluence_url, token):
     try:
         with urllib.request.urlopen(req, context=_make_ssl_context()) as resp:
             return json.loads(resp.read())
-    except Exception as e:
+    except urllib.error.URLError as e:
         print(f"Error: {e}")
         return None
 
@@ -89,10 +89,10 @@ def main():
         req = urllib.request.Request(url)
         req.add_header("Authorization", f"Bearer {token}")
         req.add_header("Accept", "application/json")
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, context=_make_ssl_context()) as resp:
             history = json.loads(resp.read())
             print(f"Page history accessible: {bool(history)}")
-    except Exception as e:
+    except urllib.error.URLError as e:
         print(f"History error: {e}")
 
     # Try plugins API
@@ -102,7 +102,7 @@ def main():
         req = urllib.request.Request(url)
         req.add_header("Authorization", f"Bearer {token}")
         req.add_header("Accept", "application/json")
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, context=_make_ssl_context()) as resp:
             plugins = json.loads(resp.read())
             if isinstance(plugins, dict) and 'plugins' in plugins:
                 for p in plugins.get('plugins', []):
@@ -112,7 +112,7 @@ def main():
                         print(f"  - {p.get('name')} ({p.get('key')})")
     except urllib.error.HTTPError as e:
         print(f"Plugins API not accessible (need admin): {e.code}")
-    except Exception as e:
+    except urllib.error.URLError as e:
         print(f"Plugins error: {e}")
 
     print("\n=== Testing Scroll Documents macro ===")
