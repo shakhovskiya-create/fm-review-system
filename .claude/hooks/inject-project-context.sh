@@ -4,7 +4,7 @@
 # Выводит в stdout: имя проекта, версия ФМ, PAGE_ID.
 # Также подсказывает про Knowledge Graph (server-memory MCP).
 
-set -e
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
@@ -24,7 +24,7 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
   # FM version from PROJECT_CONTEXT.md
   fm_version=""
   if [ -f "$project_dir/PROJECT_CONTEXT.md" ]; then
-    fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1 || true)
   fi
 
   echo "- $project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}"

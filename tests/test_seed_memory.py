@@ -27,13 +27,13 @@ from scripts.seed_memory import (
 class TestAgentDefinitions:
     """Validate AGENTS list structure."""
 
-    def test_nine_agents_defined(self):
-        assert len(AGENTS) == 9
+    def test_agents_defined(self):
+        """10 agents: 9 FM agents (Agent0-8) + Orchestrator_Helper."""
+        assert len(AGENTS) == 10
 
     def test_each_agent_has_name(self):
         for agent in AGENTS:
             assert "name" in agent
-            assert agent["name"].startswith("Agent")
 
     def test_each_agent_has_entity_type(self):
         for agent in AGENTS:
@@ -48,10 +48,17 @@ class TestAgentDefinitions:
         names = [a["name"] for a in AGENTS]
         assert len(names) == len(set(names))
 
-    def test_agent_names_match_ids(self):
-        """Agent names follow Agent{N}_{Name} convention."""
-        for i, agent in enumerate(AGENTS):
+    def test_fm_agent_names_match_ids(self):
+        """FM agents (first 9) follow Agent{N}_{Name} convention."""
+        fm_agents = [a for a in AGENTS if a["name"].startswith("Agent")]
+        assert len(fm_agents) == 9
+        for i, agent in enumerate(fm_agents):
             assert agent["name"].startswith(f"Agent{i}_")
+
+    def test_orchestrator_exists(self):
+        """Orchestrator_Helper is defined."""
+        names = [a["name"] for a in AGENTS]
+        assert "Orchestrator_Helper" in names
 
 
 class TestPipelineDefinition:
@@ -88,7 +95,7 @@ class TestRelations:
     def test_relation_types_are_strings(self):
         for _, _, rel_type in RELATIONS:
             assert isinstance(rel_type, str)
-            assert "_" in rel_type  # snake_case convention
+            assert rel_type.replace("_", "").isalpha()  # alphanumeric, optional snake_case
 
     def test_no_self_relations(self):
         for from_name, to_name, _ in RELATIONS:

@@ -96,7 +96,7 @@
 - **ID:** AG-13  
 - **Severity:** L (Low)  
 - **Evidence:**  
-  - `scripts/lib/confluence_utils.py` и `scripts/lib/contract_validator.py` присутствуют.  
+  - `src/fm_review/confluence_utils.py` и `scripts/experimental/contract_validator.py` присутствуют.  
   - По всему репозиторию (в т.ч. все `.py` в `scripts/`) нет ни одного `import confluence_utils` или `import contract_validator` (или эквивалента через `lib.`).  
   - Упоминания только в самих файлах (docstring/примеры) и в `todos.md`.  
 - **Risk:** Неясный контракт: код либо мёртвый, либо «на будущее». Изменения в этих модулях не влияют на наблюдаемое поведение; возможна ложная уверенность, что retry/lock/валидация используются.  

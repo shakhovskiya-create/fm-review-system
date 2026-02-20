@@ -29,9 +29,12 @@ def _get_page_id(project_name=None):
     return os.environ.get("CONFLUENCE_PAGE_ID") or "83951683"
 
 
-def configure_ssl():
-    """Disable SSL certificate verification (Confluence with self-signed certs)."""
-    ssl._create_default_https_context = ssl._create_unverified_context
+def _make_ssl_context():
+    """Create a per-request SSL context (corporate self-signed certs)."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 
 def setup_weasyprint_env():
@@ -60,7 +63,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "exp
 )
 def _urlopen_with_retry(req):
     """urllib.urlopen with tenacity retry on transient errors."""
-    return urllib.request.urlopen(req, timeout=30)
+    return urllib.request.urlopen(req, timeout=30, context=_make_ssl_context())
 
 
 def api_request(method, endpoint):
@@ -509,7 +512,7 @@ def main():
     global PAGE_ID, TOKEN, CONFLUENCE_URL
 
     # --- Side effects: only run when executed as a script ---
-    configure_ssl()
+    # SSL is now per-request via _make_ssl_context() — no global override needed
     setup_weasyprint_env()
 
     # Re-read env vars (may have changed after re-exec)

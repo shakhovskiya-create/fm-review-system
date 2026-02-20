@@ -64,7 +64,7 @@ Agent 3 (Defender) вызывается по запросу при получе�
 | `publish_to_confluence.py` | Обновление Confluence (v3.0, lock+backup+retry) |
 | `import_docx.py` | Одноразовый импорт DOCX в Confluence (symlink) |
 | `export_from_confluence.py` | Экспорт ФМ из Confluence (PDF/Word) |
-| `lib/confluence_utils.py` | Confluence API клиент (блокировки, бекапы, retry) |
+| `src/fm_review/confluence_utils.py` | Confluence API клиент (блокировки, бекапы, retry) |
 | `run_agent.py` | Автономный запуск агентов через Claude Code SDK (`--pipeline`, `--parallel`) |
 
 ## Структура проекта
@@ -81,10 +81,13 @@ fm-review-system/
 ├── schemas/               ← JSON-схемы (agent-contracts.json v2.1)
 ├── templates/             ← Шаблоны Confluence-страниц
 ├── workflows/             ← Сквозные сценарии
+├── src/fm_review/         ← Основные Python-библиотеки
+│   ├── confluence_utils.py ← Confluence API клиент
+│   ├── langfuse_tracer.py  ← Интеграция с Langfuse
+│   └── xhtml_sanitizer.py  ← Санитайзер разметки
 ├── scripts/               ← Скрипты и утилиты
 │   ├── publish_to_confluence.py ← Обновление Confluence (v3.0)
 │   ├── import_docx.py     ← Импорт DOCX (symlink)
-│   ├── lib/confluence_utils.py ← Confluence API клиент
 │   ├── lib/common.sh      ← Общие bash-функции
 │   └── experimental/      ← Неактивные модули
 ├── projects/PROJECT_[NAME]/ ← Проекты с ФМ

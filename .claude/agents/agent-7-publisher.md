@@ -53,7 +53,7 @@ mcpServers:
 - API: /rest/api/content/{PAGE_ID}
 - Auth: Bearer token (PAT)
 - Формат: XHTML storage format
-- Библиотека: `scripts/lib/confluence_utils.py`
+- Библиотека: `src/fm_review/confluence_utils.py`
 
 ## Критические правила
 

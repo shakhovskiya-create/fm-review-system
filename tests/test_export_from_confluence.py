@@ -20,7 +20,7 @@ from export_from_confluence import (
     confluence_to_clean_html,
     api_request,
     _urlopen_with_retry,
-    configure_ssl,
+    _make_ssl_context,
     setup_weasyprint_env,
 )
 
@@ -139,11 +139,14 @@ class TestApiRequest:
         assert result is None
 
 
-# ── configure_ssl / setup_weasyprint_env ─────────────
+# ── _make_ssl_context / setup_weasyprint_env ─────────
 
 class TestSetupFunctions:
-    def test_configure_ssl_is_callable(self):
-        assert callable(configure_ssl)
+    def test_make_ssl_context_returns_context(self):
+        ctx = _make_ssl_context()
+        import ssl
+        assert isinstance(ctx, ssl.SSLContext)
+        assert ctx.check_hostname is False
 
     def test_setup_weasyprint_env_is_callable(self):
         assert callable(setup_weasyprint_env)

@@ -199,7 +199,7 @@ jobs:
 ```
 Claude Code сессия завершается
   -> Stop hook (.claude/hooks/langfuse-trace.sh)
-    -> Python tracer (scripts/lib/langfuse_tracer.py)
+    -> Python tracer (src/fm_review/langfuse_tracer.py)
       -> Langfuse API (Cloud или self-hosted)
 ```
 
@@ -222,7 +222,7 @@ Claude Code сессия завершается
 - Создай `.env.langfuse` с секретами (ENCRYPTION_KEY, NEXTAUTH_SECRET, SALT, пароли)
 - `docker compose up -d`
 
-#### 4.2. Создай tracer скрипт `scripts/lib/langfuse_tracer.py`:
+#### 4.2. Создай tracer скрипт `src/fm_review/langfuse_tracer.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -432,7 +432,7 @@ if __name__ == "__main__":
 INPUT=$(cat)
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 PYTHON="${PROJECT_DIR}/.venv/bin/python3"
-TRACER="${PROJECT_DIR}/scripts/lib/langfuse_tracer.py"
+TRACER="${PROJECT_DIR}/src/fm_review/langfuse_tracer.py"
 
 [ -f "$TRACER" ] || exit 0
 [ -f "${PROJECT_DIR}/.env" ] && set -a && source "${PROJECT_DIR}/.env" && set +a

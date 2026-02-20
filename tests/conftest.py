@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Add scripts/lib to path so we can import confluence_utils
+# Add src to path so we can import fm_review
+SRC_DIR = Path(__file__).parent.parent / "src"
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
-SCRIPTS_LIB_DIR = SCRIPTS_DIR / "lib"
-sys.path.insert(0, str(SCRIPTS_LIB_DIR))
+sys.path.insert(0, str(SRC_DIR))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 

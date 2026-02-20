@@ -99,7 +99,7 @@ class TestCredentialHandling:
         """create_client_from_env raises ValueError without token."""
         import sys
         sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
 
         with patch_env({}):
             with pytest.raises(ValueError, match="CONFLUENCE_TOKEN"):
@@ -109,7 +109,7 @@ class TestCredentialHandling:
         """create_client_from_env accepts CONFLUENCE_PERSONAL_TOKEN as fallback."""
         import sys
         sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
 
         with patch_env({"CONFLUENCE_PERSONAL_TOKEN": "test-pat-token"}):
             client = create_client_from_env("12345")
@@ -119,7 +119,7 @@ class TestCredentialHandling:
         """create_client_from_env raises ValueError without page_id."""
         import sys
         sys.path.insert(0, str(SCRIPTS_DIR / "lib"))
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
 
         with patch_env({"CONFLUENCE_TOKEN": "test-token"}):
             with pytest.raises(ValueError, match="page_id"):
@@ -141,8 +141,26 @@ class TestCredentialHandling:
         for hook_file in hooks_dir.glob("*.sh"):
             content = hook_file.read_text()
             # Hooks should use env vars, not source .env files
-            assert "source .env" not in content, (
+            assert not re.search(r'source\s+.*\.env', content), (
                 f"Hook {hook_file.name} sources .env file directly"
+            )
+
+
+class TestSSLSafety:
+    """Ensure no global SSL context override in production code."""
+
+    def test_no_global_ssl_override(self):
+        """Production scripts must not set ssl._create_default_https_context globally."""
+        for py_file in SCRIPTS_DIR.rglob("*.py"):
+            content = py_file.read_text()
+            code_lines = [
+                line for line in content.split("\n")
+                if "ssl._create_default_https_context" in line
+                and not line.strip().startswith("#")
+                and "=" in line
+            ]
+            assert not code_lines, (
+                f"{py_file.name} has global SSL override: {code_lines[0].strip()}"
             )
 
 

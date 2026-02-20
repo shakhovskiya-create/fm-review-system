@@ -2,7 +2,7 @@
 paths:
   - "agents/AGENT_7_PUBLISHER.md"
   - "scripts/publish_to_confluence.py"
-  - "scripts/lib/confluence_utils.py"
+  - "src/fm_review/confluence_utils.py"
   - "docs/CONFLUENCE_TEMPLATE.md"
 ---
 
@@ -40,3 +40,22 @@ paths:
 ## Agent 7 = единственный писатель
 - ТОЛЬКО Agent 7 выполняет PUT/POST в Confluence
 - Другие агенты готовят контент, Agent 7 публикует
+
+## Confluence API
+
+- URL: https://confluence.ekf.su
+- Auth: Bearer token (PAT)
+- API: /rest/api/content/{PAGE_ID}?expand=body.storage,version
+- Формат: XHTML storage
+- Безопасность: lock + backup + retry (lib/confluence_utils.py)
+- **MCP-сервер:** `mcp-atlassian` (`.mcp.json`) — нативный доступ из Claude Code (11 инструментов: search, get/update/create page, comments, labels)
+
+## Типы документов
+
+| Тип | Префикс | Агент |
+|-----|---------|-------|
+| Функциональная модель | FM- | Agent 0/1 -> Agent 7 |
+| Техзадание | TS- | Agent 5 |
+| Архитектура | ARC- | Agent 5 |
+| Тест-план | TC- | Agent 4 |
+| Отчет | RPT- | Agent 6 |

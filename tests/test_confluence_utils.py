@@ -1,5 +1,5 @@
 """
-Tests for scripts/lib/confluence_utils.py
+Tests for src/fm_review/confluence_utils.py
 
 Covers: locking, backup, retry, audit log, client operations.
 """
@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
-from confluence_utils import (
+from fm_review.confluence_utils import (
     ConfluenceClient,
     ConfluenceBackup,
     ConfluenceLock,
@@ -28,7 +28,7 @@ from confluence_utils import (
 class TestConfluenceLock:
     def test_acquire_and_release(self, tmp_path):
         """Lock can be acquired and released."""
-        with patch("confluence_utils.LOCK_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
             lock = ConfluenceLock("test_page", timeout=5)
             assert lock.acquire() is True
             lock.release()
@@ -37,7 +37,7 @@ class TestConfluenceLock:
 
     def test_context_manager(self, tmp_path):
         """Lock works as context manager."""
-        with patch("confluence_utils.LOCK_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
             with ConfluenceLock("test_page", timeout=5) as lock:
                 lock_file = tmp_path / "confluence_test_page.lock"
                 assert lock_file.exists()
@@ -46,7 +46,7 @@ class TestConfluenceLock:
 
     def test_lock_writes_info(self, tmp_path):
         """Lock file contains JSON with page_id and pid."""
-        with patch("confluence_utils.LOCK_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
             lock = ConfluenceLock("page123", timeout=5)
             lock.acquire()
             lock_file = tmp_path / "confluence_page123.lock"
@@ -58,14 +58,14 @@ class TestConfluenceLock:
 
     def test_lock_timeout_raises(self, tmp_path):
         """ConfluenceLockError raised when lock cannot be acquired within timeout."""
-        with patch("confluence_utils.LOCK_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
             # Acquire first lock
             lock1 = ConfluenceLock("blocked_page", timeout=5)
             lock1.acquire()
 
             # Second lock should fail (same process can re-acquire with fcntl,
             # so we simulate by holding the fd open and patching)
-            with patch("confluence_utils.LOCK_TIMEOUT", 0):
+            with patch("fm_review.confluence_utils.LOCK_TIMEOUT", 0):
                 with pytest.raises(ConfluenceLockError, match="Could not acquire lock"):
                     with ConfluenceLock("blocked_page", timeout=0):
                         pass
@@ -79,7 +79,7 @@ class TestConfluenceLock:
 class TestConfluenceBackup:
     def test_save_creates_file(self, tmp_path, confluence_response):
         """Backup.save creates a JSON file."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
             backup = ConfluenceBackup("test_page")
             page_data = confluence_response()
             path = backup.save(page_data)
@@ -90,7 +90,7 @@ class TestConfluenceBackup:
 
     def test_get_latest(self, tmp_path, confluence_response):
         """get_latest returns most recent backup."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
             backup = ConfluenceBackup("test_page")
             page_v1 = confluence_response(version=1)
             page_v2 = confluence_response(version=2)
@@ -102,14 +102,14 @@ class TestConfluenceBackup:
 
     def test_get_latest_empty(self, tmp_path):
         """get_latest returns None when no backups exist."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
             backup = ConfluenceBackup("empty_page")
             assert backup.get_latest() is None
 
     def test_cleanup_old_backups(self, tmp_path, confluence_response):
         """Only MAX_BACKUPS most recent backups are kept."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
-            with patch("confluence_utils.MAX_BACKUPS", 3):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
+            with patch("fm_review.confluence_utils.MAX_BACKUPS", 3):
                 backup = ConfluenceBackup("cleanup_page")
                 for i in range(5):
                     backup.save(confluence_response(version=i))
@@ -119,7 +119,7 @@ class TestConfluenceBackup:
 
     def test_list_backups_sorted(self, tmp_path, confluence_response):
         """list_backups returns files sorted newest first."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
             backup = ConfluenceBackup("sorted_page")
             for i in range(3):
                 backup.save(confluence_response(version=i + 1))
@@ -161,9 +161,9 @@ class TestConfluenceClient:
 
     def test_update_page_creates_backup(self, tmp_path, mock_urllib, confluence_response):
         """update_page creates backup before PUT."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
             client = ConfluenceClient("https://test.example.com", "token", "12345")
-            with patch("confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+            with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
                 _, backup_path = client.update_page(
                     "<p>New content</p>", "test update",
                     agent_name="Agent7_Publisher"
@@ -173,8 +173,8 @@ class TestConfluenceClient:
 
     def test_update_page_increments_version(self, tmp_path, mock_urllib):
         """update_page sends version.number = current + 1."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
-            with patch("confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
+            with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
                 client = ConfluenceClient("https://test.example.com", "token", "12345")
                 client.update_page("<p>New</p>", "test", agent_name="test")
                 # The PUT call is the second urlopen call (first is GET)
@@ -185,8 +185,8 @@ class TestConfluenceClient:
 
     def test_update_page_fm_version_in_message(self, tmp_path, mock_urllib):
         """FM version is prepended to version.message."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path):
-            with patch("confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
+            with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
                 client = ConfluenceClient("https://test.example.com", "token", "12345")
                 client.update_page("<p>New</p>", "description",
                                    fm_version="1.0.3", agent_name="test")
@@ -198,8 +198,8 @@ class TestConfluenceClient:
     def test_update_page_audit_log(self, tmp_path, mock_urllib):
         """update_page writes entry to audit log."""
         audit_dir = tmp_path / "audit"
-        with patch("confluence_utils.BACKUP_DIR", tmp_path / "backups"):
-            with patch("confluence_utils.AUDIT_LOG_DIR", audit_dir):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "backups"):
+            with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", audit_dir):
                 client = ConfluenceClient("https://test.example.com", "token", "12345")
                 client.update_page("<p>New</p>", "test update",
                                    agent_name="Agent7_Publisher")
@@ -244,7 +244,7 @@ class TestRetryLogic:
             return resp
 
         with patch("urllib.request.urlopen", side_effect=side_effect):
-            with patch("confluence_utils.RETRY_BACKOFF_BASE", 0.01):
+            with patch("fm_review.confluence_utils.RETRY_BACKOFF_BASE", 0.01):
                 client = ConfluenceClient("https://test.example.com", "token", "12345")
                 result = client.get_page()
                 assert call_count == 3
@@ -280,7 +280,7 @@ class TestRetryLogic:
         error.read = MagicMock(return_value=b"Unavailable")
 
         with patch("urllib.request.urlopen", side_effect=error):
-            with patch("confluence_utils.RETRY_BACKOFF_BASE", 0.01):
+            with patch("fm_review.confluence_utils.RETRY_BACKOFF_BASE", 0.01):
                 client = ConfluenceClient("https://test.example.com", "token", "12345")
                 with pytest.raises(ConfluenceAPIError):
                     client.get_page()
@@ -313,8 +313,8 @@ class TestRollback:
             return resp
 
         with patch("urllib.request.urlopen", side_effect=side_effect):
-            with patch("confluence_utils.BACKUP_DIR", tmp_path / "backups"):
-                with patch("confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+            with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "backups"):
+                with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
                     client = ConfluenceClient("https://test.example.com", "token", "12345")
                     # Save backup manually
                     backup_path = client.backup.save(backup_data)
@@ -323,7 +323,7 @@ class TestRollback:
 
     def test_rollback_no_backup_raises(self, tmp_path):
         """rollback raises error when no backup available."""
-        with patch("confluence_utils.BACKUP_DIR", tmp_path / "empty"):
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "empty"):
             client = ConfluenceClient("https://test.example.com", "token", "12345")
             with pytest.raises(ConfluenceAPIError, match="No backup available"):
                 client.rollback()
@@ -335,14 +335,14 @@ class TestRollback:
 class TestCreateClientFromEnv:
     def test_missing_token_raises(self):
         """ValueError raised when neither CONFLUENCE_TOKEN nor CONFLUENCE_PERSONAL_TOKEN set."""
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError, match="CONFLUENCE_TOKEN"):
                 create_client_from_env("12345")
 
     def test_fallback_to_personal_token(self):
         """Client uses CONFLUENCE_PERSONAL_TOKEN when CONFLUENCE_TOKEN is not set."""
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
         env = {
             "CONFLUENCE_PERSONAL_TOKEN": "fallback-token",
             "CONFLUENCE_PAGE_ID": "12345"
@@ -353,7 +353,7 @@ class TestCreateClientFromEnv:
 
     def test_missing_page_id_raises(self):
         """ValueError raised when no page_id provided."""
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
         env = {"CONFLUENCE_TOKEN": "test-token"}
         with patch.dict(os.environ, env, clear=True):
             with pytest.raises(ValueError, match="page_id"):
@@ -361,7 +361,7 @@ class TestCreateClientFromEnv:
 
     def test_creates_client_with_env(self):
         """Client created successfully with env vars."""
-        from confluence_utils import create_client_from_env
+        from fm_review.confluence_utils import create_client_from_env
         env = {
             "CONFLUENCE_URL": "https://conf.example.com",
             "CONFLUENCE_TOKEN": "test-token",

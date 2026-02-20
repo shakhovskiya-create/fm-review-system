@@ -1,22 +1,49 @@
 {
-  "agent": "Agent1_Architect",
-  "command": "/auto (pipeline audit)",
-  "timestamp": "2026-02-13T14:00:00Z",
-  "fmVersion": "1.0.6",
-  "project": "PROJECT_SHPMNT_PROFIT",
+  "agent": "AGENT_1_ARCHITECT",
+  "command": "audit",
+  "fm_code": "FM-LS-PROFIT",
+  "fm_version": "1.0.3",
+  "confluence_page_id": 83951683,
+  "confluence_version": 78,
+  "date": "2026-02-20",
+  "timestamp": "2026-02-20T10:00:00Z",
   "status": "completed",
-  "counts": {
-    "critical": 4,
-    "high": 5,
-    "medium": 5,
-    "low": 3,
-    "total": 17,
-    "applied": 5,
-    "alreadyFixed": 12,
-    "businessDecisions": 9
+  "findings": {
+    "CRITICAL": 2,
+    "HIGH": 7,
+    "MEDIUM": 11,
+    "LOW": 5,
+    "total": 25
   },
-  "appliedChanges": 5,
-  "confluenceVersion": 49,
-  "outputFiles": ["AUDIT-REPORT-v1.0.6-2026-02-13.md"],
-  "notes": "Re-audit v1.0.5->1.0.6: 5 fixes (cross-refs, glossary, KPI dedup, date). 12 of 18 findings already fixed in v1.0.5. 9 business decisions flagged (4 CRITICAL, 5 HIGH) - require stakeholder input."
+  "previous_audit": {
+    "version": "1.0.2",
+    "total_findings": 39,
+    "fixed": 32,
+    "partially_fixed": 5,
+    "remaining": 2
+  },
+  "checklist_1c": {
+    "sequence": "OK",
+    "states": "OK",
+    "posting": "OK",
+    "locks": "WARN",
+    "access": "OK",
+    "rollback": "OK",
+    "integrations": "OK",
+    "background": "OK",
+    "audit": "OK",
+    "data": "WARN"
+  },
+  "critical_findings": [
+    "CRIT-001: Противоречие блокировки 5 мин (п. 3.15) vs 15 мин (п. 3.16)",
+    "CRIT-002: Вектор обхода через разные шкалы Заказов (1/15/25) и ЛС (0/3/10)"
+  ],
+  "report_path": "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/AUDIT-REPORT-v1.0.3-2026-02-20.md",
+  "next_actions": [
+    "Fix CRIT-001: update p.3.16 lock timeout 15->5 min",
+    "Fix CRIT-002: add cross-control rule for LS plan reduction",
+    "Fix HIGH-002/003: section numbering 7.1 and reference in p.3.1",
+    "Add requirement codes for p.3.19 features (HIGH-005)",
+    "Update prioritization text for LS-RPT-068 (HIGH-004)"
+  ]
 }

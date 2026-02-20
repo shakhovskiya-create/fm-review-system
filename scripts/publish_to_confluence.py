@@ -39,7 +39,7 @@ except ImportError:
     Table = None
     Paragraph = None
 
-ssl._create_default_https_context = ssl._create_unverified_context
+# Note: SSL context is handled per-request in confluence_utils.py (_make_ssl_context)
 
 # Config - set CONFLUENCE_TOKEN environment variable before running
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
@@ -114,7 +114,7 @@ def hex_to_confluence_color(hex_color):
             return '#ffebe6'  # Red/Orange
         if b > 200 and r < 200:
             return '#deebff'  # Blue
-    except:
+    except ValueError:
         pass
 
     return None
@@ -550,8 +550,16 @@ def main():
     print("\n=== ОБНОВЛЕНИЕ CONFLUENCE (safe_publish) ===")
 
     # Import safe Confluence client (FC-01: activated confluence_utils)
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib"))
-    from confluence_utils import ConfluenceClient, ConfluenceAPIError, ConfluenceLockError
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+    from fm_review.confluence_utils import ConfluenceClient, ConfluenceAPIError, ConfluenceLockError
+    from fm_review.xhtml_sanitizer import sanitize_xhtml
+
+    # Sanitize XHTML before publishing
+    content, sanitizer_warnings = sanitize_xhtml(content)
+    if sanitizer_warnings:
+        print("  XHTML Sanitizer warnings:")
+        for w in sanitizer_warnings:
+            print(f"    ⚠ {w}")
 
     client = ConfluenceClient(CONFLUENCE_URL, TOKEN, PAGE_ID)
 

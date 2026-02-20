@@ -33,7 +33,7 @@
 | `confluence_add_label` | Добавить метку | Agent 7 |
 | `confluence_get_page_children` | Дочерние страницы | Agent 7 |
 
-**Fallback:** REST API `https://confluence.ekf.su/rest/api/content/{PAGE_ID}`, Bearer token, `scripts/lib/confluence_utils.py`
+**Fallback:** REST API `https://confluence.ekf.su/rest/api/content/{PAGE_ID}`, Bearer token, `src/fm_review/confluence_utils.py`
 
 ## 4. Версия ФМ
 ВСЕГДА проверять через `confluence_get_page`. Формат X.Y.Z. Одна дата = одна версия.

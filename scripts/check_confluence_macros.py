@@ -29,6 +29,14 @@ def load_env(env_file=None):
     return config
 
 
+def _make_ssl_context():
+    """Per-request SSL context for corporate self-signed certs."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
 def api_get(endpoint, confluence_url, token):
     """Confluence REST API GET request."""
     url = f"{confluence_url}/rest/api/{endpoint}"
@@ -36,7 +44,7 @@ def api_get(endpoint, confluence_url, token):
     req.add_header("Authorization", f"Bearer {token}")
     req.add_header("Accept", "application/json")
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, context=_make_ssl_context()) as resp:
             return json.loads(resp.read())
     except Exception as e:
         print(f"Error: {e}")
@@ -50,7 +58,7 @@ def find_macros(html_body):
 
 
 def main():
-    ssl._create_default_https_context = ssl._create_unverified_context
+    # SSL is handled per-request via _make_ssl_context()
 
     config = load_env()
     confluence_url = config.get("CONFLUENCE_URL", "https://confluence.ekf.su")

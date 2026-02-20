@@ -29,6 +29,8 @@ Requirements:
 import asyncio
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
@@ -48,33 +50,19 @@ from claude_code_sdk import (
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
 
-# --- Agent registry ---
+# --- Configuration ---
 
-AGENT_REGISTRY = {
-    0: {"name": "Creator",       "file": "AGENT_0_CREATOR.md",        "dir": "AGENT_0_CREATOR"},
-    1: {"name": "Architect",     "file": "AGENT_1_ARCHITECT.md",      "dir": "AGENT_1_ARCHITECT"},
-    2: {"name": "RoleSimulator", "file": "AGENT_2_ROLE_SIMULATOR.md", "dir": "AGENT_2_ROLE_SIMULATOR"},
-    3: {"name": "Defender",      "file": "AGENT_3_DEFENDER.md",       "dir": "AGENT_3_DEFENDER"},
-    4: {"name": "QATester",      "file": "AGENT_4_QA_TESTER.md",     "dir": "AGENT_4_QA_TESTER"},
-    5: {"name": "TechArchitect", "file": "AGENT_5_TECH_ARCHITECT.md", "dir": "AGENT_5_TECH_ARCHITECT"},
-    6: {"name": "Presenter",     "file": "AGENT_6_PRESENTER.md",     "dir": "AGENT_6_PRESENTER"},
-    7: {"name": "Publisher",     "file": "AGENT_7_PUBLISHER.md",     "dir": "AGENT_7_PUBLISHER"},
-    8: {"name": "BPMNDesigner",  "file": "AGENT_8_BPMN_DESIGNER.md", "dir": "AGENT_8_BPMN_DESIGNER"},
-}
+CONFIG_PATH = ROOT_DIR / "config" / "pipeline.json"
+try:
+    _CONFIG = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+except (OSError, ValueError) as e:
+    print(f"Error loading pipeline config: {e}", file=sys.stderr)
+    sys.exit(1)
 
-# Pipeline order: Agent 1 -> 2 -> 4 -> 5 -> 3 -> QualityGate -> 7 -> 8 -> 6
-PIPELINE_ORDER = [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6]
-
-# Parallel stages (for --parallel)
-PARALLEL_STAGES = [
-    [1],                    # Stage 1: Architect (base for all)
-    [2, 4],                 # Stage 2: Simulator + QA (parallel)
-    [5],                    # Stage 3: TechArchitect (reads 1+2+4)
-    [3],                    # Stage 4: Defender (analyzes findings 1+2+4+5)
-    ["quality_gate"],       # Stage 5: Quality Gate
-    [7],                    # Stage 6: Publisher
-    [8, 6],                 # Stage 7: BPMN + Presenter (parallel)
-]
+AGENT_REGISTRY = {int(k): v for k, v in _CONFIG["AGENT_REGISTRY"].items()}
+PIPELINE_BUDGET_USD = _CONFIG.get("PIPELINE_BUDGET_USD", 60.0)
+PIPELINE_ORDER = _CONFIG.get("PIPELINE_ORDER", [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6])
+PARALLEL_STAGES = _CONFIG.get("PARALLEL_STAGES", [])
 
 
 @dataclass
@@ -118,7 +106,7 @@ class PipelineTracer:
             from langfuse import get_client
             self.langfuse = get_client()
             self.enabled = True
-        except Exception:
+        except ImportError:
             pass
 
     def start_pipeline(self) -> None:
@@ -213,6 +201,81 @@ class PipelineTracer:
             self.langfuse.flush()
         except Exception:
             pass
+
+
+# --- Prompt Injection Protection ---
+
+# Patterns that indicate prompt injection attempts in FM content or user input
+_INJECTION_PATTERNS = [
+    # Direct instruction overrides
+    r"(?i)ignore\s+(all\s+)?previous\s+instructions",
+    r"(?i)disregard\s+(all\s+)?above",
+    r"(?i)forget\s+(everything|all|your)\s+(above|instructions|rules)",
+    r"(?i)you\s+are\s+now\s+(?:a\s+)?(?:different|new|free)",
+    r"(?i)system\s*prompt\s*[:=]",
+    r"(?i)assistant\s*prompt\s*[:=]",
+    # Delimiter injection (trying to close/open system blocks)
+    r"</?system>",
+    r"</?assistant>",
+    r"</?user>",
+    r"\[SYSTEM\]",
+    r"\[INST\]",
+    r"<<SYS>>",
+    # Tool/action manipulation
+    r"(?i)execute\s+(?:this\s+)?(?:bash|shell)\s+(?:command\s*)?:",
+    r"(?i)run\s+(?:the\s+)?following\s+(?:bash|shell)\s+command",
+    r"(?i)use\s+(?:the\s+)?(?:bash|write)\s+tool\s+to",
+    # Secret extraction
+    r"(?i)(?:print|show|reveal|output|display)\s+(?:all\s+)?(?:env|environment|secret|token|key|password)",
+    r"(?i)(?:cat|echo|read)\s+\.env",
+]
+
+_INJECTION_RE = [re.compile(p) for p in _INJECTION_PATTERNS]
+
+
+def check_prompt_injection(text: str, source: str = "input") -> list[str]:
+    """Check text for prompt injection patterns. Returns list of warnings."""
+    warnings = []
+    for i, pattern in enumerate(_INJECTION_RE):
+        match = pattern.search(text)
+        if match:
+            # Truncate match context for logging (no secrets)
+            ctx = text[max(0, match.start() - 20):match.end() + 20].replace("\n", " ")
+            warnings.append(
+                f"[INJECTION] Pattern #{i} matched in {source}: ...{ctx}..."
+            )
+    return warnings
+
+
+def validate_pipeline_input(project: str, command: str) -> list[str]:
+    """Validate pipeline inputs for injection. Returns warnings."""
+    warnings = []
+
+    # Check command
+    warnings.extend(check_prompt_injection(command, "command"))
+
+    # Check project FM content (if exists on disk)
+    project_dir = ROOT_DIR / "projects" / project
+    if project_dir.is_dir():
+        # Scan FM documents for injection
+        for fm_file in project_dir.glob("FM_DOCUMENTS/*.md"):
+            try:
+                content = fm_file.read_text(encoding="utf-8")[:50000]  # limit scan
+                file_warnings = check_prompt_injection(content, f"FM:{fm_file.name}")
+                warnings.extend(file_warnings)
+            except OSError:
+                pass
+
+        # Scan CHANGES for injection
+        for change_file in project_dir.glob("CHANGES/*.md"):
+            try:
+                content = change_file.read_text(encoding="utf-8")[:20000]
+                file_warnings = check_prompt_injection(content, f"CHANGES:{change_file.name}")
+                warnings.extend(file_warnings)
+            except OSError:
+                pass
+
+    return warnings
 
 
 # --- Utilities ---
@@ -367,7 +430,7 @@ async def run_single_agent(
             duration_seconds=duration,
             error="Timeout",
         )
-    except Exception as e:
+    except (asyncio.CancelledError, OSError, RuntimeError) as e:
         duration = time.time() - start_time
         log(f"Agent {agent_id} ({config['name']}): ОШИБКА: {e}")
         return AgentResult(
@@ -431,7 +494,7 @@ def run_quality_gate(project: str) -> tuple[int, str]:
         return result.returncode, result.stdout + result.stderr
     except subprocess.TimeoutExpired:
         return 1, "Quality Gate: timeout"
-    except Exception as e:
+    except OSError as e:
         return 1, f"Quality Gate: error: {e}"
 
 
@@ -445,8 +508,46 @@ def run_quality_gate_with_reason(project: str, reason: str) -> int:
             cwd=str(ROOT_DIR),
         )
         return result.returncode
-    except Exception:
+    except OSError:
         return 1
+
+
+# --- Checkpoint ---
+
+def save_checkpoint(project: str, results: dict, total_cost: float, model: str, parallel: bool):
+    """Save pipeline checkpoint after each completed step."""
+    state_file = ROOT_DIR / "projects" / project / ".pipeline_state.json"
+    state = {
+        "project": project,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_cost_usd": round(total_cost, 2),
+        "model": model,
+        "mode": "parallel" if parallel else "sequential",
+        "completed_steps": [
+            k for k, v in results.items()
+            if v.get("status") in ("completed", "passed", "warnings_skipped", "dry_run")
+        ],
+        "failed_steps": [
+            k for k, v in results.items()
+            if v.get("status") == "failed"
+        ],
+        "results": results,
+    }
+    state_file.write_text(
+        json.dumps(state, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+    )
+    return state_file
+
+
+def load_checkpoint(project: str) -> dict | None:
+    """Load pipeline checkpoint. Returns None if no checkpoint exists."""
+    state_file = ROOT_DIR / "projects" / project / ".pipeline_state.json"
+    if not state_file.exists():
+        return None
+    try:
+        return json.loads(state_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
 
 
 # --- Pipeline ---
@@ -460,6 +561,7 @@ async def run_pipeline(
     timeout_per_agent: int = 600,
     skip_qg_warnings: bool = False,
     parallel: bool = False,
+    resume: bool = False,
 ) -> dict:
     """Run the full agent pipeline with optional Langfuse tracing.
 
@@ -470,6 +572,26 @@ async def run_pipeline(
     total_start = time.time()
     total_cost = 0.0
     pipeline_stopped = False
+
+    # Resume: load checkpoint and skip completed steps
+    skip_steps: set = set()
+    if resume:
+        checkpoint = load_checkpoint(project)
+        if checkpoint and checkpoint.get("completed_steps"):
+            skip_steps = set(checkpoint["completed_steps"])
+            # Restore cost from previous run
+            total_cost = checkpoint.get("total_cost_usd", 0.0)
+            # Restore completed results
+            for step_key in skip_steps:
+                if step_key in checkpoint.get("results", {}):
+                    results[step_key] = checkpoint["results"][step_key]
+            log(f"RESUME: пропуск {len(skip_steps)} завершённых шагов: {sorted(skip_steps, key=str)}")
+            # If there were failed steps, report them
+            failed = checkpoint.get("failed_steps", [])
+            if failed:
+                log(f"RESUME: повторный запуск неудавшихся шагов: {failed}")
+        else:
+            log("RESUME: чекпоинт не найден или пуст, запуск с начала")
 
     # Initialize Langfuse tracer (no-op if LANGFUSE_PUBLIC_KEY not set)
     tracer = PipelineTracer(project, model, parallel)
@@ -486,11 +608,27 @@ async def run_pipeline(
         stages = _build_sequential_stages(agents_filter)
         mode_label = "ПОСЛЕДОВАТЕЛЬНЫЙ"
 
+    # Calculate total pipeline budget
+    pipeline_budget = PIPELINE_BUDGET_USD
+
     log(f"{'=' * 60}")
     log(f"  КОНВЕЙЕР ({mode_label}): {project}")
     log(f"  Стадии: {stages}")
-    log(f"  Модель: {model}")
+    log(f"  Модель: {model}, Бюджет: ${pipeline_budget:.0f}")
     log(f"{'=' * 60}")
+
+    # Prompt injection scan
+    if not dry_run:
+        injection_warnings = validate_pipeline_input(project, "/auto")
+        if injection_warnings:
+            log("")
+            log(f"  ВНИМАНИЕ: обнаружено {len(injection_warnings)} подозрительных паттернов:")
+            for w in injection_warnings[:5]:
+                log(f"    {w}")
+            if len(injection_warnings) > 5:
+                log(f"    ...и ещё {len(injection_warnings) - 5}")
+            log("  Конвейер продолжает работу с предупреждением.")
+            log("")
 
     for stage_idx, stage in enumerate(stages, 1):
         if pipeline_stopped:
@@ -498,6 +636,10 @@ async def run_pipeline(
 
         # Quality Gate
         if stage == ["quality_gate"]:
+            if "quality_gate" in skip_steps:
+                log(f"\n--- Стадия {stage_idx}: QUALITY GATE [ПРОПУСК — resume] ---")
+                continue
+
             log("")
             log(f"--- Стадия {stage_idx}: QUALITY GATE ---")
 
@@ -535,12 +677,25 @@ async def run_pipeline(
                 log("Quality Gate: все проверки пройдены.")
                 results["quality_gate"] = {"status": "passed"}
                 tracer.end_quality_gate(qg_span, exit_code, "passed")
+            # Save checkpoint after QG
+            if not dry_run:
+                save_checkpoint(project, results, total_cost, model, parallel)
             continue
 
         # Agent stage
         agent_ids = [s for s in stage if isinstance(s, int)]
         if not agent_ids:
             continue
+
+        # Skip agents completed in previous run (resume mode)
+        remaining_ids = [aid for aid in agent_ids if aid not in skip_steps]
+        if not remaining_ids:
+            skipped_names = ", ".join(
+                f"{aid} ({AGENT_REGISTRY[aid]['name']})" for aid in agent_ids
+            )
+            log(f"\n--- Стадия {stage_idx}: Agent {skipped_names} [ПРОПУСК — resume] ---")
+            continue
+        agent_ids = remaining_ids
 
         names = ", ".join(
             f"{aid} ({AGENT_REGISTRY[aid]['name']})" for aid in agent_ids
@@ -554,18 +709,31 @@ async def run_pipeline(
         for aid in agent_ids:
             agent_spans[aid] = tracer.start_agent(aid, AGENT_REGISTRY[aid]["name"])
 
-        # Execute agents
+        # Check total pipeline budget before executing
+        if total_cost >= pipeline_budget and not dry_run:
+            log(f"КОНВЕЙЕР ОСТАНОВЛЕН: превышен бюджет ${total_cost:.2f} >= ${pipeline_budget:.0f}")
+            pipeline_stopped = True
+            break
+
+        # Execute agents (use per-agent model and budget from registry).
+        # Model override: --model opus forces opus for ALL agents.
+        # Default (--model sonnet) uses per-agent models from AGENT_REGISTRY.
+        # Budget override: --max-budget N overrides per-agent budgets.
+        # Default (5.0) uses per-agent budget_usd from AGENT_REGISTRY.
         if len(agent_ids) == 1:
+            aid = agent_ids[0]
+            agent_model = model if model != "sonnet" else AGENT_REGISTRY[aid].get("model", model)
+            agent_budget = max_budget_per_agent if max_budget_per_agent != 5.0 else AGENT_REGISTRY[aid].get("budget_usd", 5.0)
             agent_result = await run_single_agent(
-                agent_id=agent_ids[0],
+                agent_id=aid,
                 project=project,
                 command="/auto",
-                model=model,
+                model=agent_model,
                 dry_run=dry_run,
-                max_budget=max_budget_per_agent,
+                max_budget=agent_budget,
                 timeout=timeout_per_agent,
             )
-            stage_results = {agent_ids[0]: agent_result}
+            stage_results = {aid: agent_result}
         else:
             # Parallel execution with asyncio.gather
             tasks = [
@@ -573,9 +741,9 @@ async def run_pipeline(
                     agent_id=aid,
                     project=project,
                     command="/auto",
-                    model=model,
+                    model=model if model != "sonnet" else AGENT_REGISTRY[aid].get("model", model),
                     dry_run=dry_run,
-                    max_budget=max_budget_per_agent,
+                    max_budget=max_budget_per_agent if max_budget_per_agent != 5.0 else AGENT_REGISTRY[aid].get("budget_usd", 5.0),
                     timeout=timeout_per_agent,
                 )
                 for aid in agent_ids
@@ -619,11 +787,16 @@ async def run_pipeline(
             if not agent_result.summary_path and agent_result.status != "dry_run":
                 log(f"  ВНИМАНИЕ: _summary.json не найден для Agent {aid}.")
 
+        # Save checkpoint after each stage (for --resume)
+        if not dry_run:
+            save_checkpoint(project, results, total_cost, model, parallel)
+
     # Summary
     total_duration = time.time() - total_start
     log("")
+    budget_pct = (total_cost / pipeline_budget * 100) if pipeline_budget > 0 else 0
     log(f"{'=' * 60}")
-    log(f"  КОНВЕЙЕР ЗАВЕРШЕН ({total_duration:.0f}с, ${total_cost:.2f})")
+    log(f"  КОНВЕЙЕР ЗАВЕРШЕН ({total_duration:.0f}с, ${total_cost:.2f} / ${pipeline_budget:.0f} [{budget_pct:.0f}%])")
     log(f"{'=' * 60}")
 
     status_icons = {
@@ -647,22 +820,9 @@ async def run_pipeline(
     # Finish Langfuse trace
     tracer.finish(total_cost, total_duration, results)
 
-    # Save pipeline state
+    # Save final pipeline state
     if not dry_run:
-        state_file = ROOT_DIR / "projects" / project / ".pipeline_state.json"
-        state = {
-            "project": project,
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "duration_seconds": round(total_duration, 1),
-            "total_cost_usd": round(total_cost, 2),
-            "model": model,
-            "mode": "parallel" if parallel else "sequential",
-            "langfuse_enabled": tracer.enabled,
-            "results": results,
-        }
-        state_file.write_text(
-            json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        state_file = save_checkpoint(project, results, total_cost, model, parallel)
         log(f"  Состояние: {state_file}")
 
     return results
@@ -709,6 +869,7 @@ async def async_main():
   %(prog)s --pipeline --project PROJECT_SHPMNT_PROFIT
   %(prog)s --pipeline --project PROJECT_SHPMNT_PROFIT --parallel
   %(prog)s --pipeline --project PROJECT_SHPMNT_PROFIT --agents 1,2,4
+  %(prog)s --pipeline --project PROJECT_SHPMNT_PROFIT --resume
   %(prog)s --agent 1 --project PROJECT_SHPMNT_PROFIT --command /audit
   %(prog)s --pipeline --project PROJECT_SHPMNT_PROFIT --dry-run
 """,
@@ -757,6 +918,10 @@ async def async_main():
         "--skip-qg-warnings", action="store_true",
         help="Skip Quality Gate warnings (non-critical)",
     )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Resume pipeline from last checkpoint (.pipeline_state.json)",
+    )
     args = parser.parse_args()
 
     if not args.project:
@@ -785,6 +950,7 @@ async def async_main():
             timeout_per_agent=args.timeout,
             skip_qg_warnings=args.skip_qg_warnings,
             parallel=args.parallel,
+            resume=args.resume,
         )
         any_failed = any(
             r.get("status") == "failed" for r in results.values()
@@ -792,6 +958,12 @@ async def async_main():
         sys.exit(1 if any_failed else 0)
 
     elif args.agent is not None:
+        # Prompt injection check for single agent
+        injection_warnings = validate_pipeline_input(args.project, args.command)
+        if injection_warnings:
+            for w in injection_warnings:
+                log(w)
+
         # Single agent with optional Langfuse trace
         tracer = PipelineTracer(args.project, args.model)
         tracer.start_pipeline()
@@ -832,7 +1004,70 @@ async def async_main():
 
 
 def _load_dotenv():
-    """Load .env file if it exists (simple parser, no dependency)."""
+    """Load secrets: Infisical (Universal Auth) -> Infisical (user) -> .env file."""
+    if shutil.which("infisical"):
+        # Priority 1: Infisical Universal Auth (Machine Identity)
+        mi_env = ROOT_DIR / "infra" / "infisical" / ".env.machine-identity"
+        if mi_env.exists():
+            mi_vars = {}
+            for line in mi_env.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    k, _, v = line.partition("=")
+                    mi_vars[k.strip()] = v.strip()
+
+            client_id = mi_vars.get("INFISICAL_CLIENT_ID", "")
+            client_secret = mi_vars.get("INFISICAL_CLIENT_SECRET", "")
+            api_url = mi_vars.get("INFISICAL_API_URL", "")
+            project_id = mi_vars.get("INFISICAL_PROJECT_ID", "")
+
+            if client_id and client_secret:
+                try:
+                    # Get token via Universal Auth
+                    env = dict(os.environ)
+                    if api_url:
+                        env["INFISICAL_API_URL"] = api_url
+                    login_result = subprocess.run(
+                        ["infisical", "login", "--method=universal-auth",
+                         f"--client-id={client_id}", f"--client-secret={client_secret}",
+                         "--silent"],
+                        capture_output=True, text=True, timeout=15, env=env,
+                    )
+                    # Extract token from output
+                    token_match = re.search(r'(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)', login_result.stdout)
+                    if token_match:
+                        token = token_match.group(1)
+                        env["INFISICAL_TOKEN"] = token
+                        export_cmd = ["infisical", "export", "--format=dotenv-export", "--env=dev"]
+                        if project_id:
+                            export_cmd.append(f"--projectId={project_id}")
+                        result = subprocess.run(
+                            export_cmd,
+                            capture_output=True, text=True, timeout=10,
+                            cwd=str(ROOT_DIR), env=env,
+                        )
+                        if result.returncode == 0 and result.stdout.strip():
+                            _parse_dotenv_export(result.stdout)
+                            return
+                except (subprocess.TimeoutExpired, OSError):
+                    pass
+
+        # Priority 2: Infisical user auth (if logged in previously)
+        try:
+            result = subprocess.run(
+                ["infisical", "export", "--format=dotenv-export"],
+                capture_output=True, text=True, timeout=10,
+                cwd=str(ROOT_DIR),
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                _parse_dotenv_export(result.stdout)
+                return
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+    # Priority 3: .env file
     env_file = ROOT_DIR / ".env"
     if not env_file.exists():
         return
@@ -841,6 +1076,19 @@ def _load_dotenv():
         if not line or line.startswith("#"):
             continue
         if "=" in line:
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip("'\"")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+def _parse_dotenv_export(output: str):
+    """Parse 'export KEY=VALUE' lines into os.environ."""
+    for line in output.splitlines():
+        line = line.strip()
+        if line.startswith("export ") and "=" in line:
+            line = line[len("export "):]
             key, _, value = line.partition("=")
             key = key.strip()
             value = value.strip().strip("'\"")

@@ -3,7 +3,7 @@
 # Инжектирует краткий контекст проекта при запуске кастомного субагента (agent-0..8).
 # Matcher: agent-.* (только наши агенты, не системные).
 
-set -e
+set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
@@ -21,7 +21,7 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
 
   fm_version=""
   if [ -f "$project_dir/PROJECT_CONTEXT.md" ]; then
-    fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1)
+    fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1 || true)
   fi
 
   context="${context}Project: $project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}\n"

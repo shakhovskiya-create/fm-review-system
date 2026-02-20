@@ -81,7 +81,7 @@ Pipeline Trace
 
 ### 2. Stop Hook Tracer (per-session)
 
-Скрипт `scripts/lib/langfuse_tracer.py`, вызывается из `.claude/hooks/langfuse-trace.sh` при завершении каждой Claude Code сессии. Парсит JSONL-транскрипт, считает токены и стоимость, отправляет в Langfuse.
+Скрипт `src/fm_review/langfuse_tracer.py`, вызывается из `.claude/hooks/langfuse-trace.sh` при завершении каждой Claude Code сессии. Парсит JSONL-транскрипт, считает токены и стоимость, отправляет в Langfuse.
 
 ### Что видно в Langfuse Dashboard
 

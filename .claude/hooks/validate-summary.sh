@@ -32,7 +32,7 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
                 valid=$(python3 -c "
 import json, sys
 try:
-    with open('$recent') as f:
+    with open(sys.argv[1]) as f:
         data = json.load(f)
     required = ['agent', 'command', 'timestamp', 'status']
     missing = [k for k in required if k not in data]
@@ -43,7 +43,7 @@ try:
 except Exception as e:
     print(f'WARN: Invalid _summary.json: {e}')
     sys.exit(1)
-" 2>&1)
+" "$recent" 2>&1)
                 if [ $? -ne 0 ]; then
                     echo "$valid"
                     found_warning=true

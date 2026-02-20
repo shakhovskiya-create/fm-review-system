@@ -1,0 +1,24 @@
+{
+  "PIPELINE_BUDGET_USD": 60.0,
+  "PIPELINE_ORDER": [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6],
+  "PARALLEL_STAGES": [
+    [1],
+    [2, 4],
+    [5],
+    [3],
+    ["quality_gate"],
+    [7],
+    [8, 6]
+  ],
+  "AGENT_REGISTRY": {
+    "0": {"name": "Creator",       "file": "AGENT_0_CREATOR.md",        "dir": "AGENT_0_CREATOR",        "model": "opus",   "budget_usd": 8.0},
+    "1": {"name": "Architect",     "file": "AGENT_1_ARCHITECT.md",      "dir": "AGENT_1_ARCHITECT",      "model": "opus",   "budget_usd": 10.0},
+    "2": {"name": "RoleSimulator", "file": "AGENT_2_ROLE_SIMULATOR.md", "dir": "AGENT_2_ROLE_SIMULATOR", "model": "opus",   "budget_usd": 8.0},
+    "3": {"name": "Defender",      "file": "AGENT_3_DEFENDER.md",       "dir": "AGENT_3_DEFENDER",       "model": "opus",   "budget_usd": 6.0},
+    "4": {"name": "QATester",      "file": "AGENT_4_QA_TESTER.md",      "dir": "AGENT_4_QA_TESTER",      "model": "sonnet", "budget_usd": 3.0},
+    "5": {"name": "TechArchitect", "file": "AGENT_5_TECH_ARCHITECT.md", "dir": "AGENT_5_TECH_ARCHITECT", "model": "opus",   "budget_usd": 10.0},
+    "6": {"name": "Presenter",     "file": "AGENT_6_PRESENTER.md",      "dir": "AGENT_6_PRESENTER",      "model": "sonnet", "budget_usd": 3.0},
+    "7": {"name": "Publisher",     "file": "AGENT_7_PUBLISHER.md",      "dir": "AGENT_7_PUBLISHER",      "model": "sonnet", "budget_usd": 3.0},
+    "8": {"name": "BPMNDesigner",  "file": "AGENT_8_BPMN_DESIGNER.md",  "dir": "AGENT_8_BPMN_DESIGNER",  "model": "sonnet", "budget_usd": 3.0}
+  }
+}

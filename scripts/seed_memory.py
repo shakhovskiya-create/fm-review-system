@@ -121,6 +121,19 @@ AGENTS = [
             "Output: AGENT_8_BPMN_DESIGNER/",
         ],
     },
+    {
+        "name": "Orchestrator_Helper",
+        "entityType": "agent",
+        "observations": [
+            "Main Claude Code session role - NOT a subagent",
+            "Dual role: FM agent router + project infrastructure architect",
+            "Protocol: agents/ORCHESTRATOR_HELPER.md",
+            "Subagent file: .claude/agents/helper-architect.md",
+            "Manages: hooks, scripts, MCP servers, CI/CD, tests, agent protocols",
+            "Delegates FM content work to agents 0-8",
+            "Has Episodic Memory access (subagents do not)",
+        ],
+    },
 ]
 
 # ── Pipeline stages ────────────────────────────────────────────
@@ -150,6 +163,9 @@ RELATIONS = [
     ("Agent0_Creator", "Agent7_Publisher", "sends_content_to"),
     ("Agent5_TechArchitect", "Agent7_Publisher", "sends_docs_to"),
     ("Agent6_Presenter", "FM_Pipeline", "finalizes_for"),
+    ("Orchestrator_Helper", "FM_Pipeline", "orchestrates"),
+    ("Orchestrator_Helper", "Agent0_Creator", "delegates_fm_to"),
+    ("Orchestrator_Helper", "Agent1_Architect", "delegates_fm_to"),
 ]
 
 
