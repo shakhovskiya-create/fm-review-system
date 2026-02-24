@@ -48,10 +48,10 @@ class TestGetPageId:
             assert _get_page_id(None) == "99887766"
 
     def test_default_fallback(self):
-        env = os.environ.copy()
-        env.pop("CONFLUENCE_PAGE_ID", None)
+        env = {k: v for k, v in os.environ.items() if k != "CONFLUENCE_PAGE_ID"}
         with patch.dict(os.environ, env, clear=True):
-            assert _get_page_id(None) == "83951683"
+            with pytest.raises(ValueError, match="PAGE_ID not found"):
+                _get_page_id(None)
 
 
 # ── confluence_to_clean_html ─────────────────────────

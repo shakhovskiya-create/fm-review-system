@@ -12,11 +12,12 @@
       }
     },
     "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
-      }
+      "command": "scripts/mcp-github.sh",
+      "args": []
+    },
+    "langfuse": {
+      "command": "scripts/mcp-langfuse.sh",
+      "args": []
     }
   }
 }
