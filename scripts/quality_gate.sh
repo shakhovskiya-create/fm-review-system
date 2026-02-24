@@ -211,6 +211,7 @@ subheader "8.5. Когерентность версий"
 # Собираем FM-версию из разных источников
 VER_CONTEXT=""
 VER_SUMMARY=""
+VER_CONFLUENCE=""
 CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
 if [[ -f "$CONTEXT_FILE" ]]; then
     VER_CONTEXT=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$CONTEXT_FILE" 2>/dev/null | head -1) || true
@@ -227,15 +228,45 @@ for summary in "${PROJECT_DIR}"/AGENT_*/*_summary.json; do
         fi
     fi
 done
-# Сравниваем
-if [[ -n "$VER_CONTEXT" && -n "$VER_SUMMARY" ]]; then
+
+# CRITICAL-A2: проверка версии из Confluence (если доступен)
+_QG_PAGE_ID=""
+_QG_PAGE_ID_FILE="${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
+[[ -f "$_QG_PAGE_ID_FILE" ]] && _QG_PAGE_ID=$(tr -d '[:space:]' < "$_QG_PAGE_ID_FILE") || true
+_QG_CONFLUENCE_URL="${CONFLUENCE_URL:-}"
+_QG_CONFLUENCE_TOKEN="${CONFLUENCE_TOKEN:-}"
+
+if [[ -n "$_QG_PAGE_ID" && -n "$_QG_CONFLUENCE_URL" && -n "$_QG_CONFLUENCE_TOKEN" ]] && command -v curl &>/dev/null; then
+    _page_body=$(curl -sf -m 10 \
+        -H "Authorization: Bearer ${_QG_CONFLUENCE_TOKEN}" \
+        -H "Accept: application/json" \
+        "${_QG_CONFLUENCE_URL}/rest/api/content/${_QG_PAGE_ID}?expand=body.storage" 2>/dev/null) || true
+    if [[ -n "$_page_body" ]] && command -v jq &>/dev/null; then
+        _body_html=$(jq -r '.body.storage.value // empty' <<< "$_page_body" 2>/dev/null) || true
+        if [[ -n "$_body_html" ]]; then
+            VER_CONFLUENCE=$(echo "$_body_html" | grep -oP 'Версия ФМ[^0-9]*\K[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true
+        fi
+    fi
+fi
+
+# Сравниваем все три источника
+_local_ver="${VER_CONTEXT:-${VER_SUMMARY:-}}"
+if [[ -n "$VER_CONFLUENCE" && -n "$_local_ver" ]]; then
+    if [[ "$VER_CONFLUENCE" == "$_local_ver" ]]; then
+        check_pass "Версия когерентна: ${_local_ver} (Confluence == local)"
+    else
+        check_fail "Версия рассинхронизирована: Confluence=${VER_CONFLUENCE}, local=${_local_ver}"
+    fi
+elif [[ -n "$VER_CONFLUENCE" ]]; then
+    check_pass "Версия из Confluence: ${VER_CONFLUENCE}"
+elif [[ -n "$VER_CONTEXT" && -n "$VER_SUMMARY" ]]; then
     if [[ "$VER_CONTEXT" == "$VER_SUMMARY" ]]; then
-        check_pass "Версия когерентна: ${VER_CONTEXT} (context == summaries)"
+        check_pass "Версия когерентна: ${VER_CONTEXT} (context == summaries, Confluence недоступен)"
     else
         check_warn "Версия рассинхронизирована: PROJECT_CONTEXT=${VER_CONTEXT}, summaries=${VER_SUMMARY}"
     fi
 elif [[ -n "$VER_CONTEXT" ]]; then
-    check_pass "Версия из PROJECT_CONTEXT: ${VER_CONTEXT} (summaries для сравнения нет)"
+    check_pass "Версия из PROJECT_CONTEXT: ${VER_CONTEXT} (Confluence и summaries для сравнения нет)"
 elif [[ -n "$VER_SUMMARY" ]]; then
     check_pass "Версия из summaries: ${VER_SUMMARY} (PROJECT_CONTEXT не содержит версию)"
 else
