@@ -267,7 +267,20 @@ open_issues=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
 
 if [ "$open_issues" -gt 0 ] 2>/dev/null; then
   echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues (status:in-progress)."
-  echo "Закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат'"
+  echo "Закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+  echo ""
+  echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD):"
+  echo "  ## Результат"
+  echo "  [Что сделано]"
+  echo "  ## Было -> Стало"
+  echo "  - [Изменение]"
+  echo "  ## DoD"
+  echo "  - [x] Tests pass"
+  echo "  - [x] No regression"
+  echo "  - [x] AC met"
+  echo "  - [x] Artifacts: [файлы]"
+  echo "  - [x] Docs updated (N/A)"
+  echo "  - [x] No hidden debt"
 fi
 
 exit 0
@@ -328,9 +341,9 @@ fi
 ```
 
 Команды которые ОБЯЗАН поддерживать gh-tasks.sh:
-- `create --title "..." --agent <name> --sprint <N> [--priority P] [--type T] [--body "..."]`
+- `create --title "..." --agent <name> --sprint <N> --body "..." [--priority P] [--type T]` — **--body ОБЯЗАТЕЛЕН** (образ результата + AC)
 - `start <issue_number>` — status:planned -> status:in-progress + Kanban "In Progress"
-- `done <issue_number> [--comment "..."]` — закрыть + Kanban "Done"
+- `done <issue_number> --comment "..."` — **--comment ОБЯЗАТЕЛЕН** (результат + DoD checklist). Закрыть + Kanban "Done"
 - `block <issue_number> --reason "..."` — status:blocked
 - `list [--agent X] [--sprint N] [--status S]`
 - `my-tasks --agent <name>` — открытые задачи агента
@@ -338,9 +351,14 @@ fi
 
 Каждая команда create/start/done синхронизирует статус на Kanban-доске (GitHub Project).
 
+Enforcement (ЖЁСТКО):
+- `create` без `--body` → exit 1, показать шаблон: `## Образ результата\n## Acceptance Criteria\n- [ ] AC1`
+- `done` без `--comment` → exit 1, показать шаблон: `## Результат\n## DoD\n- [x] Tests pass\n- [x] AC met`
+
 Внутренние функции:
 - `_remove_status_labels` — убирает все status:* метки
 - `_sync_project_status` — обновляет колонку на Kanban через `gh project item-edit`
+- `_validate_artifacts` — cross-check: сверяет `git diff HEAD~1 --name-only` с текстом `--comment`, выводит WARNING для файлов не упомянутых в Artifacts (не блокирует, но ловит checkbox-ticking)
 
 При `create` — автоматически `gh project item-add` в Project board.
 
@@ -377,10 +395,51 @@ fi
 5. Встретил блокер → пометить: `bash scripts/gh-tasks.sh block <N> --reason "..."`
 
 **Последнее действие агента:**
-6. Закрыть выполненные issues: `bash scripts/gh-tasks.sh done <N> --comment "Результат"`
+6. Закрыть выполненные issues: `bash scripts/gh-tasks.sh done <N> --comment "Результат + DoD"`
 7. Если задача не завершена — оставить status:in-progress, добавить комментарий с прогрессом
 
 **Железное правило:** ни один агент не завершает работу без обновления своих GitHub Issues.
+
+### Definition of Done (DoD) — обязательный чеклист
+
+**При закрытии ЛЮБОГО issue** агент ОБЯЗАН включить DoD-чеклист в `--comment`:
+
+```
+## DoD
+- [x] Tests pass
+- [x] No regression
+- [x] AC met
+- [x] Artifacts: [список файлов/страниц]
+- [x] Docs updated (или N/A)
+- [x] No hidden debt
+```
+
+Скрипт `gh-tasks.sh done` НЕ закроет issue без `--comment`. Это enforcement.
+Artifact cross-check: скрипт сверяет git diff с комментарием, выводит WARNING если файлы не упомянуты.
+
+### Обязательные комментарии к GitHub Issues
+
+**При создании (`--body` обязателен):**
+```
+## Образ результата
+[Что должно появиться/измениться]
+
+## Acceptance Criteria
+- [ ] AC1
+- [ ] AC2
+```
+
+**При закрытии (`--comment` обязателен):**
+```
+## Результат
+[Кратко что сделано]
+
+## Было -> Стало
+- [Изменение]
+
+## DoD
+[Чеклист выше]
+```
 
 ### Context pollution prevention
 НЕ читай файлы с отчётами/артефактами агентов напрямую — делегируй субагенту. Большие отчёты забивают контекстное окно.
@@ -424,11 +483,14 @@ fi
 [ ] .claude/hooks/ — 6 скриптов, все chmod +x, все exit 0 на safe input
 [ ] block-secrets.sh — БЛОКИРУЕТ реальные API-ключи и private keys
 [ ] scripts/gh-tasks.sh — create/start/done/block/list/sprint работают
+[ ] gh-tasks.sh create без --body → exit 1 (enforcement работает)
+[ ] gh-tasks.sh done без --comment → exit 1 (enforcement работает)
+[ ] gh-tasks.sh done с --comment → artifact cross-check WARNING если файлы не упомянуты
 [ ] scripts/setup-orchestrator.sh — labels + Kanban созданы на GitHub
-[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, GitHub Issues, context prevention
+[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, GitHub Issues, DoD, context prevention
 [ ] Тесты проекта — 0 failures
 [ ] git push + CI зелёный
-[ ] Первая задача создана на Kanban
+[ ] Первая задача создана на Kanban (с --body!)
 ```
 ```
 
@@ -442,3 +504,4 @@ fi
 2. **Тестовый фреймворк** — укажи что запускать (pytest / jest / go test / etc.)
 3. **Доменные guard-хуки** — добавь специфичные ограничения по аналогии с block-secrets.sh
 4. **MCP серверы** — добавь `enabledMcpjsonServers` в settings.json если используешь
+5. **DoD** — адаптируй чеклист под проект (например: "Docker image built" для микросервисов, "Migrations tested" для БД-проектов)
