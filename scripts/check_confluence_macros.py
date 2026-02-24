@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Check available macros on Confluence Server."""
+"""Check available macros on Confluence Server.
+
+DEPRECATED: Use MCP confluence tools instead (mcp__confluence__confluence_get_page).
+This script is kept for offline/CI usage only.
+"""
 
 import json
 import os
@@ -62,6 +66,7 @@ def main():
     # SSL is handled per-request via _make_ssl_context()
 
     # MEDIUM-S6: prefer env vars (12-Factor), fallback to .env.local
+    config = {}
     confluence_url = os.environ.get("CONFLUENCE_URL", "")
     token = os.environ.get("CONFLUENCE_TOKEN", "")
     if not token and ENV_FILE.exists():
@@ -73,7 +78,7 @@ def main():
     # Check content macros
     print("=== Checking Confluence Macros ===\n")
 
-    page_id = config.get("CONFLUENCE_PAGE_ID") or os.environ.get("CONFLUENCE_PAGE_ID")
+    page_id = os.environ.get("CONFLUENCE_PAGE_ID") or config.get("CONFLUENCE_PAGE_ID", "")
     if not page_id:
         print("ERROR: CONFLUENCE_PAGE_ID not set in env or .env.local")
         sys.exit(1)

@@ -392,20 +392,26 @@ class ConfluenceClient:
         return result
 
     def _audit_log(self, action: str, agent_name: str, version_message: str, version_number: int):
-        """Write audit entry for every Confluence write operation (FC-12B)."""
-        AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
-        log_file = AUDIT_LOG_DIR / f"confluence_{self.page_id}.jsonl"
-        entry = {
-            "timestamp": datetime.now().isoformat(),
-            "page_id": self.page_id,
-            "action": action,
-            "agent": agent_name,
-            "version_message": version_message,
-            "version_number": version_number,
-            "pid": os.getpid()
-        }
-        with open(log_file, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        """Write audit entry for every Confluence write operation (FC-12B).
+
+        Never raises — audit log failure must not block the primary operation.
+        """
+        try:
+            AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            log_file = AUDIT_LOG_DIR / f"confluence_{self.page_id}.jsonl"
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "page_id": self.page_id,
+                "action": action,
+                "agent": agent_name,
+                "version_message": version_message,
+                "version_number": version_number,
+                "pid": os.getpid()
+            }
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except OSError:
+            pass
 
 
 # Convenience functions for scripts
@@ -413,10 +419,14 @@ class ConfluenceClient:
 def create_client_from_env(page_id: Optional[str] = None) -> ConfluenceClient:
     """Create client using environment variables."""
     url = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-    token = os.environ.get("CONFLUENCE_TOKEN", "") or os.environ.get("CONFLUENCE_PERSONAL_TOKEN", "")
+    token = os.environ.get("CONFLUENCE_TOKEN", "")
+    if not token and os.environ.get("CONFLUENCE_PERSONAL_TOKEN"):
+        import warnings
+        warnings.warn("CONFLUENCE_PERSONAL_TOKEN is deprecated, use CONFLUENCE_TOKEN", DeprecationWarning, stacklevel=2)
+        token = os.environ["CONFLUENCE_PERSONAL_TOKEN"]
 
     if not token:
-        raise ValueError("CONFLUENCE_TOKEN (or CONFLUENCE_PERSONAL_TOKEN) environment variable not set")
+        raise ValueError("CONFLUENCE_TOKEN environment variable not set")
 
     if page_id is None:
         page_id = os.environ.get("CONFLUENCE_PAGE_ID")
