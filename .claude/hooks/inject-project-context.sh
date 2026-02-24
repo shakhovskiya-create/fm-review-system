@@ -30,8 +30,13 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
   echo "- $project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}"
 done
 
-# Knowledge Graph hint
+# Knowledge Graph: auto-seed if empty (LOW-P4)
 MEMORY_FILE="$PROJECT_DIR/.claude-memory/memory.jsonl"
+if [ ! -f "$MEMORY_FILE" ] || [ ! -s "$MEMORY_FILE" ]; then
+  if [ -f "$PROJECT_DIR/scripts/seed_memory.py" ]; then
+    python3 "$PROJECT_DIR/scripts/seed_memory.py" 2>/dev/null || true
+  fi
+fi
 if [ -f "$MEMORY_FILE" ]; then
   entity_count=$(grep -c '"name"' "$MEMORY_FILE" 2>/dev/null || echo 0)
   echo "- Knowledge Graph: ${entity_count} entities (use mcp__memory__search_nodes)"

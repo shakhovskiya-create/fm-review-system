@@ -38,6 +38,7 @@ description: "Карта всех файлов системы fm-review-system �
 ## Observability
 - `src/fm_review/langfuse_tracer.py` — Stop hook трейсер
 - `infra/langfuse/` — self-hosted Langfuse v3
+- `scripts/notify.sh` — alert system: Slack webhook + email + JSONL log (levels: INFO/WARN/ERROR/CRITICAL)
 
 ## Secrets
 - **Infisical** (hosted): `https://infisical.shakhoff.com`, проект `fm-review-system`, Machine Identity `fm-review-pipeline` (Universal Auth, TTL 10 лет)

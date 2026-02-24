@@ -87,5 +87,6 @@ scripts/.langfuse_state/
 # Knowledge graph memory (runtime, user-specific)
 .claude-memory/
 
-# Session logs (runtime, not source)
+# Session logs and notifications (runtime, not source)
 logs/sessions.log
+logs/notifications.jsonl

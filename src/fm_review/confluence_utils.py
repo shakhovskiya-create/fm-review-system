@@ -32,8 +32,16 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_i
 def _make_ssl_context():
     """Create a per-request SSL context that skips certificate verification.
 
-    Corporate Confluence uses self-signed certificates.
-    This is scoped to our requests only — does not affect other modules.
+    Rationale (HIGH-S4): Corporate Confluence (confluence.ekf.su) uses a
+    self-signed certificate. Full CA verification is not possible until the
+    corporate CA root is installed on the host (see infra/README.md).
+
+    Scope: per-request only — does NOT set ssl._create_default_https_context,
+    so Anthropic API, Langfuse, GitHub and all other HTTPS connections remain
+    fully verified. Only Confluence REST API calls use this context.
+
+    TODO: Install corporate CA cert and switch to full verification:
+        ctx.load_verify_locations("/etc/ssl/certs/ekf-confluence-ca.pem")
     """
     ctx = ssl.create_default_context()
     ctx.check_hostname = False

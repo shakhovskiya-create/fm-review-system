@@ -362,6 +362,8 @@ elif [[ $FAIL -eq 0 ]]; then
 else
     echo -e "  ${RED}${BOLD}НЕ ГОТОВО — ЕСТЬ КРИТИЧЕСКИЕ ПРОБЛЕМЫ (${FAIL}) ${ICO_FAIL}${NC}"
     echo -e "  ${RED}Критические ошибки нельзя пропустить. Исправьте и повторите.${NC}"
+    "${SCRIPT_DIR}/notify.sh" --level ERROR --event "quality_gate_blocked" \
+        --project "$PROJECT" --message "Quality Gate blocked: ${FAIL} critical failures, ${WARN} warnings" 2>/dev/null || true
     EXIT_CODE=1
 fi
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"

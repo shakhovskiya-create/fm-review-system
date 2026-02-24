@@ -35,7 +35,7 @@ def load_env(env_file=None):
 
 
 def _make_ssl_context():
-    """Per-request SSL context for corporate self-signed certs."""
+    """Per-request SSL context: corporate self-signed cert (HIGH-S4, see confluence_utils.py)."""
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE

@@ -36,7 +36,7 @@ def _get_page_id(project_name=None):
 
 
 def _make_ssl_context():
-    """Create a per-request SSL context (corporate self-signed certs)."""
+    """Per-request SSL context: corporate self-signed cert (HIGH-S4, see confluence_utils.py)."""
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE

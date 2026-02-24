@@ -4,6 +4,12 @@
   "description": "JSON Schema for inter-agent communication. v2.0: added agentSummary sidecar, Agent6_Presenter",
 
   "definitions": {
+    "defenseClassification": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+      "description": "Agent 3 defense classification: A=Accounted (already covered in FM), B=ConsciousChoice (trade-off documented), C=NeedsEdit (gap, fix required), D=NeedsClarification (backlog/unclear), E=OutOfScope (not applicable), F=DuplicateOrLater (duplicate or deferred), G=InvalidAssumption (incorrect premise), H=RoleConflict (agents disagree), I=SlowsDown (control hinders business speed)"
+    },
+
     "agentSummary": {
       "type": "object",
       "required": ["agent", "command", "timestamp", "fmVersion", "project", "status"],
@@ -91,9 +97,8 @@
           "type": "string"
         },
         "classificationType": {
-          "type": "string",
-          "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
-          "description": "Agent 3 classification: A=Accounted, B=ConsciousChoice, C=NeedsEdit, D=NeedsClarification, E=OutOfScope, F=DuplicateOrLater, G=InvalidAssumption, H=RoleConflict, I=SlowsDown"
+          "$ref": "#/definitions/defenseClassification",
+          "description": "Agent 3 defense classification (A-I)"
         },
         "status": {
           "type": "string",
@@ -276,7 +281,7 @@
 
     "defenseResponse": {
       "type": "object",
-      "required": ["commentId", "response", "action"],
+      "required": ["commentId", "response", "action", "classificationType"],
       "properties": {
         "commentId": {
           "type": "string"
@@ -290,6 +295,10 @@
         "action": {
           "type": "string",
           "enum": ["Accept", "Reject", "Partial", "Defer"]
+        },
+        "classificationType": {
+          "$ref": "#/definitions/defenseClassification",
+          "description": "Classification of the original finding/comment (A-I)"
         },
         "changes": {
           "type": "array",
@@ -377,7 +386,7 @@
               "description": { "type": "string", "minLength": 10 },
               "location": { "type": "string" },
               "status": { "type": "string", "enum": ["Open", "Resolved", "Wontfix", "Deferred"] },
-              "defenseType": { "type": "string", "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"], "description": "Agent 3 classification (if defended)" },
+              "defenseType": { "$ref": "#/definitions/defenseClassification", "description": "Agent 3 classification (if defended)" },
               "tests": { "type": "array", "items": { "type": "string" }, "description": "TC-XXX IDs covering this finding" }
             }
           }
