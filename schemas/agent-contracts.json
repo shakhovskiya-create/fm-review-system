@@ -63,7 +63,8 @@
 
     "finding": {
       "type": "object",
-      "required": ["id", "severity", "category", "description"],
+      "required": ["id", "severity", "category", "description", "fmSection"],
+      "description": "Machine-readable finding (CRITICAL-A1: JSON sidecar alongside Markdown)",
       "properties": {
         "id": {
           "type": "string",
@@ -82,8 +83,17 @@
           "type": "string",
           "minLength": 10
         },
+        "fmSection": {
+          "type": "string",
+          "description": "FM section reference, e.g. 3.4, 3.7.1"
+        },
         "recommendation": {
           "type": "string"
+        },
+        "classificationType": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+          "description": "Agent 3 classification: A=Accounted, B=ConsciousChoice, C=NeedsEdit, D=NeedsClarification, E=OutOfScope, F=DuplicateOrLater, G=InvalidAssumption, H=RoleConflict, I=SlowsDown"
         },
         "status": {
           "type": "string",
@@ -91,7 +101,7 @@
         },
         "location": {
           "type": "string",
-          "description": "Section or line reference in FM"
+          "description": "Section or line reference in FM (legacy, use fmSection)"
         }
       }
     },

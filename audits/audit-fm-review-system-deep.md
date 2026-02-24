@@ -82,7 +82,7 @@ options = ClaudeCodeOptions(
 
 ---
 
-### MEDIUM-S7. CONFLUENCE_TOKEN и CONFLUENCE_PERSONAL_TOKEN — одинаковый токен в двух переменных
+### ~~MEDIUM-S7. CONFLUENCE_TOKEN и CONFLUENCE_PERSONAL_TOKEN — одинаковый токен в двух переменных~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `.env:4-7`
 **Стандарт:** DRY for secrets — минимизировать surface exposure
@@ -103,7 +103,7 @@ options = ClaudeCodeOptions(
 
 **Веб-исследование:** Python project structure best practices 2025 (src-layout, pyproject.toml), multi-agent data flow patterns, DRY / Clean Code, bash patterns
 
-### CRITICAL-A1. Кросс-агентный поток данных: нет машиночитаемых findings
+### ~~CRITICAL-A1. Кросс-агентный поток данных: нет машиночитаемых findings~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** Архитектурный gap — `agents/AGENT_3_DEFENDER.md`, `schemas/agent-contracts.json`
 **Стандарт:** [Contract-First Design](https://swagger.io/resources/articles/contract-first-api-development/)
@@ -135,7 +135,7 @@ options = ClaudeCodeOptions(
 
 ---
 
-### HIGH-A4. XHTML публикуется в Confluence без валидации структуры
+### ~~HIGH-A4. XHTML публикуется в Confluence без валидации структуры~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `scripts/publish_to_confluence.py`
 **Стандарт:** [OWASP Stored XSS Prevention](https://owasp.org/www-community/attacks/xss/)
@@ -162,7 +162,7 @@ load_infisical_token() {
 
 ---
 
-### MEDIUM-A6. Audit log: AUDIT_LOG_DIR создаётся, записи не генерируются
+### ~~MEDIUM-A6. Audit log: AUDIT_LOG_DIR создаётся, записи не генерируются~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `scripts/lib/confluence_utils.py:387-399`
 **Стандарт:** [NIST SP 800-92 — Audit and Accountability](https://csrc.nist.gov/publications/detail/sp/800-92/final)
@@ -215,7 +215,7 @@ load_infisical_token() {
 
 ---
 
-### MEDIUM-P2. Нет Langfuse MCP и Infisical MCP серверов
+### ~~MEDIUM-P2. Нет Langfuse MCP и Infisical MCP серверов~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `.mcp.json`
 **Стандарт:** [MCP Servers — Anthropic best practices](https://docs.anthropic.com/en/docs/claude-code/mcp-servers)
@@ -249,7 +249,7 @@ load_infisical_token() {
 
 **Веб-исследование:** 1С:Предприятие архитектура расширений 2025, Vanessa Automation BDD framework, ГОСТ Р ИСО 9001, BPMN 2.0 стандарт
 
-### HIGH-D1. Agent 5: нет спецификации точек расширения типовой конфигурации
+### ~~HIGH-D1. Agent 5: нет спецификации точек расширения типовой конфигурации~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_5_TECH_ARCHITECT.md`
 **Стандарт:** 1С:Enterprise — разработка расширений конфигурации (Технологическая платформа 8.3.x)
@@ -262,7 +262,7 @@ load_infisical_token() {
 
 ---
 
-### HIGH-D2. Agent 5: нет инфраструктурных объектов 1С
+### ~~HIGH-D2. Agent 5: нет инфраструктурных объектов 1С~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_5_TECH_ARCHITECT.md`
 **Стандарт:** 1С:Enterprise Metadata — Подсистемы, ФункциональныеОпции, ОбщиеМодули
@@ -271,7 +271,7 @@ load_infisical_token() {
 
 ---
 
-### MEDIUM-D3. Agent 5: нет раздела "Миграция и развертывание"
+### ~~MEDIUM-D3. Agent 5: нет раздела "Миграция и развертывание"~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_5_TECH_ARCHITECT.md`
 **Стандарт:** [12-Factor App — Build/Release/Run](https://12factor.net/)
@@ -320,7 +320,7 @@ load_infisical_token() {
 
 ---
 
-### HIGH-X2. Нет rollback-механизма для Confluence
+### ~~HIGH-X2. Нет rollback-механизма для Confluence~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `scripts/lib/confluence_utils.py`
 **Стандарт:** [Saga Pattern — compensating transactions](https://microservices.io/patterns/data/saga.html)

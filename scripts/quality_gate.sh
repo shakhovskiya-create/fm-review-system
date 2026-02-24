@@ -175,6 +175,33 @@ else
     check_warn "Матрица трассируемости отсутствует (создается Agent 4)"
 fi
 
+# ─── 6.5 JSON FINDINGS COVERAGE (CRITICAL-A1) ────────────────
+subheader "6.5. JSON findings coverage (CRITICAL-A1)"
+
+FINDINGS_JSON=$(find "${PROJECT_DIR}/AGENT_1_ARCHITECT" -name '*_findings.json' 2>/dev/null | head -1) || true
+if [[ -n "$FINDINGS_JSON" ]] && command -v jq &>/dev/null; then
+    total_findings=$(jq '.findings | length' "$FINDINGS_JSON" 2>/dev/null) || total_findings=0
+    crit_findings=$(jq '[.findings[] | select(.severity == "CRITICAL")] | length' "$FINDINGS_JSON" 2>/dev/null) || crit_findings=0
+    check_pass "JSON findings: ${total_findings} (${crit_findings} CRITICAL)"
+
+    # Check if all CRITICAL findings from Agent 1 are covered by Agent 4 test cases
+    if [[ -n "$TRACE_MATRIX" && "$crit_findings" -gt 0 ]]; then
+        uncovered_crit=$(jq -r --slurpfile findings "$FINDINGS_JSON" '
+            [($findings[0].findings[] | select(.severity == "CRITICAL") | .id)] as $crit_ids |
+            [.entries[] | select(.status == "covered") | .findingId] as $covered |
+            [$crit_ids[] | select(. as $id | $covered | index($id) | not)]
+            | length
+        ' "$TRACE_MATRIX" 2>/dev/null) || uncovered_crit=""
+        if [[ -n "$uncovered_crit" && "$uncovered_crit" -gt 0 ]]; then
+            check_fail "${uncovered_crit} CRITICAL findings без покрытия тестами"
+        elif [[ -n "$uncovered_crit" ]]; then
+            check_pass "Все CRITICAL findings покрыты тестами"
+        fi
+    fi
+else
+    check_warn "JSON findings не найден (_findings.json от Agent 1)"
+fi
+
 # ─── 7. ЖУРНАЛ АУДИТА CONFLUENCE (FC-12B) ────────────────────
 subheader "7. Журнал аудита Confluence (FC-12B)"
 

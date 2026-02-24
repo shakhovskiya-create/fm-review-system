@@ -80,6 +80,14 @@
 
 > Подробнее: CLAUDE.md, раздел "JSON-сайдкар"
 
+## 12.5. JSON-сайдкар _findings.json (CRITICAL-A1)
+Агенты 1, 2, 4 при генерации findings **обязаны** создавать `_findings.json` рядом с Markdown-отчетом:
+```json
+{"findings": [{"id": "CRITICAL-001", "severity": "CRITICAL", "category": "LOGIC",
+  "fmSection": "3.4", "description": "...", "recommendation": "..."}]}
+```
+Схема: `schemas/agent-contracts.json` → `finding`. Quality Gate проверяет покрытие CRITICAL findings тестами Agent 4.
+
 ## 13. Структура проекта
 Результаты в `PROJECT_[NAME]/AGENT_X_[ROLE]/`. Не хранить в корне fm-review-system/.
 > Подробнее: CLAUDE.md, раздел "Проекты"

@@ -16,6 +16,8 @@ Usage:
 
 import re
 from typing import Tuple
+from xml.etree.ElementTree import ParseError as XMLParseError
+from xml.etree import ElementTree
 
 # Tags that are never allowed in Confluence storage format
 FORBIDDEN_TAGS = re.compile(
@@ -115,5 +117,16 @@ def sanitize_xhtml(body: str) -> Tuple[str, list]:
     unknown = [m for m in macros if m not in ALLOWED_MACROS]
     if unknown:
         warnings.append(f"Unknown Confluence macros: {', '.join(sorted(set(unknown)))}")
+
+    # 8. XML well-formedness check (HIGH-A4: unclosed tags break Confluence pages)
+    # Declare Confluence namespaces so ac:/ri: prefixes don't cause false positives
+    _xml_wrapper = (
+        '<root xmlns:ac="http://atlassian.com/content"'
+        ' xmlns:ri="http://atlassian.com/resource-identifier">'
+    )
+    try:
+        ElementTree.fromstring(f"{_xml_wrapper}{result}</root>")
+    except XMLParseError as e:
+        warnings.append(f"XHTML well-formedness error: {e}")
 
     return result, warnings
