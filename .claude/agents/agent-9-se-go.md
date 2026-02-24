@@ -1,10 +1,6 @@
 ---
 name: agent-9-se-go
-description: >
-  Senior Engineer для Go + React: architecture review, code review, test review, performance review.
-  Используй когда нужно: ревью кода Go/React, проверить план реализации, SE-ревью перед разработкой.
-  AUTO-TRIGGER: если выбрана платформа Go в Agent 0.
-  Ключевые слова: "ревью кода", "проверь план", "code review", "SE ревью", "Go review".
+description: "Senior Engineer для Go + React: architecture review, code review, test review, performance review. Используй когда нужно: ревью кода Go/React, проверить план реализации, SE-ревью перед разработкой. AUTO-TRIGGER: если выбрана платформа Go в Agent 0. Ключевые слова: ревью кода, проверь план, code review, SE ревью, Go review."
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 maxTurns: 30
 permissionMode: acceptEdits
