@@ -48,6 +48,24 @@ if [ -f "$CONTEXT_FILE" ]; then
   echo "- Progress: CONTEXT.md exists (read for session continuity)"
 fi
 
+# GitHub Issues: открытые задачи оркестратора
+issues=$(gh issue list --repo shakhovskiya-create/fm-review-system \
+  --label "agent:orchestrator" --state open --limit 10 \
+  --json number,title,labels \
+  --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
+if [ -n "$issues" ]; then
+  echo "- GitHub Issues (orchestrator):"
+  echo "$issues"
+fi
+
+# Sprint summary
+sprint_info=$(gh issue list --repo shakhovskiya-create/fm-review-system \
+  --state open --limit 100 --json labels \
+  --jq '[.[].labels[].name | select(startswith("sprint:"))] | group_by(.) | map({sprint: .[0], count: length}) | .[] | "\(.sprint): \(.count) open"' 2>/dev/null || true)
+if [ -n "$sprint_info" ]; then
+  echo "- Sprints: $sprint_info"
+fi
+
 echo "========================================="
 
 exit 0

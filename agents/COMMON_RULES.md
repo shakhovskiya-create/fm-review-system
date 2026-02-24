@@ -211,14 +211,26 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 
 Если нет явного плана — уровни 1-2 допустимы, уровень 3+ требует подтверждения.
 
-## 26. GitHub Issues — persistent task tracking
+## 26. GitHub Issues — persistent task tracking (ОБЯЗАТЕЛЬНО)
 
 Задачи ведутся в GitHub Issues (labels: `agent:*`, `sprint:*`, `status:*`, `priority:*`, `type:*`).
+Kanban-доска: GitHub Project #1.
 
-1. При старте агента — SubagentStart-хук инжектирует назначенные issues
-2. Перед началом работы — проверить свои issues: `bash scripts/gh-tasks.sh my-tasks --agent <name>`
-3. При начале задачи — пометить: `bash scripts/gh-tasks.sh start <N>`
-4. При завершении — закрыть: `bash scripts/gh-tasks.sh done <N> --comment "Результат"`
-5. При блокировке — пометить: `bash scripts/gh-tasks.sh block <N> --reason "Причина"`
-6. Оркестратор создаёт задачи при планировании спринта: `bash scripts/gh-tasks.sh create ...`
-7. Sprint dashboard: `bash scripts/gh-tasks.sh sprint [N]`
+### При старте (ПЕРВОЕ действие агента):
+1. SubagentStart-хук инжектирует назначенные issues — **прочитать их**
+2. Если есть issue со `status:in-progress` — **продолжить эту задачу**
+3. Если есть issues со `status:planned` — **взять приоритетную** и выполнить `bash scripts/gh-tasks.sh start <N>`
+
+### Во время работы:
+4. Обнаружил новую проблему/задачу → **создать issue**: `bash scripts/gh-tasks.sh create --title "..." --agent <name> --sprint <N> --priority <P>`
+5. Встретил блокер → **пометить**: `bash scripts/gh-tasks.sh block <N> --reason "Причина"`
+
+### При завершении (ПОСЛЕДНЕЕ действие агента):
+6. **Закрыть** выполненные issues: `bash scripts/gh-tasks.sh done <N> --comment "Результат: ..."`
+7. Если задача не завершена — оставить `status:in-progress`, добавить комментарий с прогрессом
+
+### Оркестратор:
+8. Создаёт задачи при планировании: `bash scripts/gh-tasks.sh create ...`
+9. Sprint dashboard: `bash scripts/gh-tasks.sh sprint [N]`
+
+**Железное правило:** Ни один агент не завершает работу без обновления своих GitHub Issues.

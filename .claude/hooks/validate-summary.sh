@@ -56,4 +56,24 @@ done
 # No recent summaries found is not an error - the agent may not have
 # produced output that requires a summary (e.g., simple queries).
 
+# GitHub Issues: напоминание обновить issues
+INPUT=$(cat <&0 2>/dev/null || echo "")
+AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
+if [ -n "$AGENT_NAME" ]; then
+    AGENT_LABEL=""
+    case "$AGENT_NAME" in
+        agent-*)  AGENT_LABEL=$(echo "$AGENT_NAME" | sed 's/^agent-//') ;;
+        helper-*) AGENT_LABEL="orchestrator" ;;
+    esac
+    if [ -n "$AGENT_LABEL" ]; then
+        open_issues=$(gh issue list --repo shakhovskiya-create/fm-review-system \
+            --label "agent:${AGENT_LABEL}" --label "status:in-progress" \
+            --state open --json number --jq 'length' 2>/dev/null || echo "0")
+        if [ "$open_issues" -gt 0 ] 2>/dev/null; then
+            echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues со status:in-progress."
+            echo "Закрой через: bash scripts/gh-tasks.sh done <N> --comment 'Результат'"
+        fi
+    fi
+fi
+
 exit 0
