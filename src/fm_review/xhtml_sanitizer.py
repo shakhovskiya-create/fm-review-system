@@ -125,7 +125,7 @@ def sanitize_xhtml(body: str) -> Tuple[str, list]:
         ' xmlns:ri="http://atlassian.com/resource-identifier">'
     )
     try:
-        ElementTree.fromstring(f"{_xml_wrapper}{result}</root>")
+        ElementTree.fromstring(f"{_xml_wrapper}{result}</root>")  # nosec B314 — input is our own sanitized XHTML, not untrusted
     except XMLParseError as e:
         warnings.append(f"XHTML well-formedness error: {e}")
 
