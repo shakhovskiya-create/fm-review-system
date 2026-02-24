@@ -67,6 +67,11 @@ description: "Карта всех файлов системы fm-review-system �
 - `.claude/skills/run-pipeline/` (/run-pipeline)
 - `.claude/skills/run-agent/` (/run-agent)
 
+## Task Tracking (GitHub Issues)
+- `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
+- Labels: `agent:*`, `sprint:*`, `status:*`, `priority:*`, `type:*`
+- SubagentStart-хук инжектирует назначенные issues при запуске агента
+
 ## Прочее
 - `CONTEXT.md` — эфемерный session state (в .gitignore, генерируется хуками)
 - `.github/workflows/claude.yml` (PR review), `.github/workflows/security-review.yml`

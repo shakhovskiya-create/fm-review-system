@@ -210,3 +210,15 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 4. **Противоречие плану/задаче** — **STOP**. Не продолжать. Спросить через AskUserQuestion
 
 Если нет явного плана — уровни 1-2 допустимы, уровень 3+ требует подтверждения.
+
+## 26. GitHub Issues — persistent task tracking
+
+Задачи ведутся в GitHub Issues (labels: `agent:*`, `sprint:*`, `status:*`, `priority:*`, `type:*`).
+
+1. При старте агента — SubagentStart-хук инжектирует назначенные issues
+2. Перед началом работы — проверить свои issues: `bash scripts/gh-tasks.sh my-tasks --agent <name>`
+3. При начале задачи — пометить: `bash scripts/gh-tasks.sh start <N>`
+4. При завершении — закрыть: `bash scripts/gh-tasks.sh done <N> --comment "Результат"`
+5. При блокировке — пометить: `bash scripts/gh-tasks.sh block <N> --reason "Причина"`
+6. Оркестратор создаёт задачи при планировании спринта: `bash scripts/gh-tasks.sh create ...`
+7. Sprint dashboard: `bash scripts/gh-tasks.sh sprint [N]`
