@@ -68,7 +68,7 @@ PARALLEL_STAGES = _CONFIG.get("PARALLEL_STAGES", [])
 @dataclass
 class AgentResult:
     agent_id: int
-    status: str  # completed | partial | failed | dry_run
+    status: str  # completed | partial | failed | dry_run | timeout | budget_exceeded | injection_detected
     summary_path: Path | None = None
     duration_seconds: float = 0.0
     exit_code: int = 0
@@ -140,7 +140,7 @@ class PipelineTracer:
         """End an agent span with result metadata."""
         if not span:
             return
-        status_level = "ERROR" if result.status == "failed" else "DEFAULT"
+        status_level = "ERROR" if result.status in ("failed", "timeout", "budget_exceeded") else "DEFAULT"
         span.update(
             metadata={
                 "status": result.status,
@@ -430,9 +430,10 @@ async def run_single_agent(
         log(f"Agent {agent_id} ({config['name']}): ТАЙМАУТ ({duration:.1f}с)")
         return AgentResult(
             agent_id=agent_id,
-            status="failed",
+            status="timeout",
             duration_seconds=duration,
-            error="Timeout",
+            exit_code=1,
+            error=f"Timeout after {timeout}s",
         )
     except (asyncio.CancelledError, OSError, RuntimeError) as e:
         duration = time.time() - start_time
@@ -456,6 +457,20 @@ async def run_single_agent(
         num_turns = result_msg.num_turns
         session_id = result_msg.session_id
         duration = result_msg.duration_ms / 1000 if result_msg.duration_ms else duration
+
+    # Check budget exceeded (agent cost > allocated budget)
+    if cost > max_budget and max_budget > 0:
+        log(f"Agent {agent_id} ({config['name']}): BUDGET EXCEEDED (${cost:.2f} > ${max_budget:.2f})")
+        return AgentResult(
+            agent_id=agent_id,
+            status="budget_exceeded",
+            duration_seconds=duration,
+            exit_code=1,
+            cost_usd=cost,
+            num_turns=num_turns,
+            session_id=session_id,
+            error=f"Budget exceeded: ${cost:.2f} > ${max_budget:.2f}",
+        )
 
     # Check _summary.json
     summary_path = find_summary_json(project, agent_id)
@@ -546,11 +561,11 @@ def save_checkpoint(project: str, results: dict, total_cost: float, model: str, 
         "mode": "parallel" if parallel else "sequential",
         "completed_steps": [
             k for k, v in results.items()
-            if v.get("status") in ("completed", "passed", "warnings_skipped", "dry_run")
+            if v.get("status") in ("completed", "passed", "passed_after_retry", "warnings_skipped", "dry_run")
         ],
         "failed_steps": [
             k for k, v in results.items()
-            if v.get("status") == "failed"
+            if v.get("status") in ("failed", "timeout", "budget_exceeded", "injection_detected")
         ],
         "results": results,
     }
@@ -649,6 +664,17 @@ async def run_pipeline(
                 log(f"    {w}")
             if len(injection_warnings) > 5:
                 log(f"    ...и ещё {len(injection_warnings) - 5}")
+            # Hard stop on 3+ patterns (likely deliberate injection attack)
+            if len(injection_warnings) >= 3:
+                log("  КОНВЕЙЕР ОСТАНОВЛЕН: слишком много injection-паттернов (>=3).")
+                results["injection_scan"] = {
+                    "status": "injection_detected",
+                    "warnings_count": len(injection_warnings),
+                }
+                if not dry_run:
+                    save_checkpoint(project, results, total_cost, model, parallel)
+                tracer.finish(total_cost, 0.0, results)
+                return results
             log("  Конвейер продолжает работу с предупреждением.")
             log("")
 
@@ -853,10 +879,10 @@ async def run_pipeline(
             # End Langfuse span
             tracer.end_agent(agent_spans.get(aid), agent_result)
 
-            if agent_result.status == "failed":
+            if agent_result.status in ("failed", "timeout", "budget_exceeded"):
                 log(
                     f"КОНВЕЙЕР ОСТАНОВЛЕН: Agent {aid} "
-                    f"({AGENT_REGISTRY[aid]['name']}) завершился с ошибкой."
+                    f"({AGENT_REGISTRY[aid]['name']}): {agent_result.status}."
                 )
                 if agent_result.error:
                     log(f"  {agent_result.error[:200]}")
@@ -879,9 +905,10 @@ async def run_pipeline(
     log(f"{'=' * 60}")
 
     status_icons = {
-        "completed": "OK", "passed": "OK", "partial": "!!",
-        "dry_run": "--", "failed": "XX", "warnings": "!!",
-        "warnings_skipped": "!!",
+        "completed": "OK", "passed": "OK", "passed_after_retry": "OK",
+        "partial": "!!", "dry_run": "--",
+        "failed": "XX", "timeout": "TO", "budget_exceeded": "B$",
+        "injection_detected": "!!", "warnings": "!!", "warnings_skipped": "!!",
     }
     for step_key, step_result in results.items():
         status = step_result.get("status", "?")

@@ -296,6 +296,7 @@ it('shows error when submitted empty', async () => {
 | Инструмент | Назначение | Когда использовать |
 |-----------|-----------|-------------------|
 | **Playwright MCP** | Runtime UI verification | При наличии dev-сервера — проверить рендеринг, консоль, сеть |
+| **Agentation MCP** | Visual React UI annotation | Когда пользователь оставил аннотации на UI — agentation_get_all_pending, agentation_resolve |
 | **vercel-react-best-practices** skill | 57 правил React/Next.js performance | При React code review — глубокие паттерны с примерами кода |
 
 **ОБЯЗАТЕЛЬНО прочитать перед работой:** `agents/COMMON_RULES.md`

@@ -30,6 +30,10 @@
         "--isolated",
         "--viewport-size", "1280x720"
       ]
+    },
+    "agentation": {
+      "command": "npx",
+      "args": ["-y", "agentation-mcp", "server", "--mcp-only"]
     }
   }
 }

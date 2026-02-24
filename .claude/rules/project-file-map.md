@@ -74,6 +74,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `github` — GitHub API (scripts/mcp-github.sh)
 - `langfuse` — Observability (scripts/mcp-langfuse.sh)
 - `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9)
+- `agentation` — Visual React UI annotation (agentation-mcp, 9 tools, Agent 9)
 
 ## Task Tracking (GitHub Issues)
 - `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
