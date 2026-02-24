@@ -1097,3 +1097,33 @@ class TestPipelineEdgeCases:
                     dry_run=False,
                 )
                 assert 1 in results
+
+
+# --- QG auto-retry detection ---
+
+class TestQGAutoRetry:
+    """Tests for _qg_failure_is_agent4_related detection."""
+
+    def test_detects_critical_findings_no_coverage(self):
+        from scripts.run_agent import _qg_failure_is_agent4_related
+        output = "  ❌ 3 CRITICAL findings без покрытия тестами\n  Passed: 5  Warnings: 2  Failed: 1"
+        assert _qg_failure_is_agent4_related(output) is True
+
+    def test_detects_traceability_missing(self):
+        from scripts.run_agent import _qg_failure_is_agent4_related
+        output = "  ⚠️  Матрица трассируемости отсутствует (создается Agent 4)"
+        assert _qg_failure_is_agent4_related(output) is True
+
+    def test_detects_agent4_not_executed(self):
+        from scripts.run_agent import _qg_failure_is_agent4_related
+        output = "  ⚠️  Тест-кейсы: не выполнен\n  ❌ AGENT_4_QA_TESTER: error"
+        assert _qg_failure_is_agent4_related(output) is True
+
+    def test_no_match_for_unrelated_failure(self):
+        from scripts.run_agent import _qg_failure_is_agent4_related
+        output = "  ❌ Нет открытых CRITICAL\n  Confluence PAGE_ID: пуст"
+        assert _qg_failure_is_agent4_related(output) is False
+
+    def test_empty_output(self):
+        from scripts.run_agent import _qg_failure_is_agent4_related
+        assert _qg_failure_is_agent4_related("") is False

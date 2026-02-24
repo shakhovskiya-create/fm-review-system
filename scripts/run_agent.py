@@ -502,6 +502,23 @@ def run_quality_gate(project: str) -> tuple[int, str]:
         return 1, f"Quality Gate: error: {e}"
 
 
+def _qg_failure_is_agent4_related(output: str) -> bool:
+    """Check if QG failure is caused by missing Agent 4 (QA) results."""
+    agent4_patterns = [
+        "CRITICAL findings без покрытия тестами",
+        "Матрица трассируемости отсутствует",
+        "Тест-кейсы: не выполнен",
+        "Тест-кейсы: папка есть, отчетов нет",
+        "_summary.json не найден",
+        "AGENT_4_QA_TESTER",
+    ]
+    output_lower = output.lower()
+    for pattern in agent4_patterns:
+        if pattern.lower() in output_lower:
+            return True
+    return False
+
+
 def run_quality_gate_with_reason(project: str, reason: str) -> int:
     """Run quality_gate.sh with --reason to skip warnings."""
     qg_script = SCRIPT_DIR / "quality_gate.sh"
@@ -576,6 +593,7 @@ async def run_pipeline(
     total_start = time.time()
     total_cost = 0.0
     pipeline_stopped = False
+    _qg_retried: set[int] = set()  # Track QG auto-retry (max 1 per agent)
 
     # Resume: load checkpoint and skip completed steps
     skip_steps: set = set()
@@ -658,7 +676,61 @@ async def run_pipeline(
             for line in output.strip().split("\n")[-10:]:
                 log(f"  {line}")
 
-            if exit_code == 1:
+            # AUTO-RETRY: if QG failed due to Agent 4 (QA) issues, retry Agent 4 once
+            if exit_code == 1 and _qg_failure_is_agent4_related(output) and 4 not in _qg_retried:
+                _qg_retried.add(4)
+                log("")
+                log("  AUTO-RETRY: QG failure related to Agent 4 (QA). Перезапуск Agent 4...")
+                tracer.end_quality_gate(qg_span, exit_code, "retry_agent4")
+
+                retry_span = tracer.start_agent(4, "QATester-retry")
+                agent4_model = model if model != "sonnet" else AGENT_REGISTRY[4].get("model", model)
+                agent4_budget = AGENT_REGISTRY[4].get("budget_usd", 3.0)
+                agent4_timeout = AGENT_REGISTRY[4].get("timeout_seconds", timeout_per_agent)
+                retry_result = await run_single_agent(
+                    agent_id=4,
+                    project=project,
+                    command="/auto --retry: покрой все CRITICAL findings тестами, обнови traceability-matrix.json",
+                    model=agent4_model,
+                    dry_run=dry_run,
+                    max_budget=agent4_budget,
+                    timeout=agent4_timeout,
+                )
+                total_cost += retry_result.cost_usd
+                results["agent4_retry"] = {
+                    "status": retry_result.status,
+                    "duration": round(retry_result.duration_seconds, 1),
+                    "cost_usd": round(retry_result.cost_usd, 2),
+                    "num_turns": retry_result.num_turns,
+                    "session_id": retry_result.session_id,
+                }
+                tracer.end_agent(retry_span, retry_result)
+
+                if retry_result.status == "failed":
+                    log("  AUTO-RETRY Agent 4: FAILED. Останавливаем конвейер.")
+                    results["quality_gate"] = {"status": "failed", "exit_code": 1}
+                    pipeline_stopped = True
+                else:
+                    log("  AUTO-RETRY Agent 4: OK. Повторяем Quality Gate...")
+                    qg_span2 = tracer.start_quality_gate()
+                    exit_code, output = run_quality_gate(project)
+                    for line in output.strip().split("\n")[-10:]:
+                        log(f"  {line}")
+                    if exit_code == 0:
+                        log("Quality Gate (retry): все проверки пройдены.")
+                        results["quality_gate"] = {"status": "passed_after_retry"}
+                        tracer.end_quality_gate(qg_span2, exit_code, "passed_after_retry")
+                    elif exit_code == 2 and skip_qg_warnings:
+                        log("Quality Gate (retry): предупреждения пропущены.")
+                        run_quality_gate_with_reason(project, "Автопропуск после retry Agent 4")
+                        results["quality_gate"] = {"status": "warnings_skipped"}
+                        tracer.end_quality_gate(qg_span2, exit_code, "warnings_skipped")
+                    else:
+                        log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Quality Gate (retry) exit={exit_code}.")
+                        results["quality_gate"] = {"status": "failed", "exit_code": exit_code}
+                        tracer.end_quality_gate(qg_span2, exit_code, "failed")
+                        pipeline_stopped = True
+            elif exit_code == 1:
                 log("КОНВЕЙЕР ОСТАНОВЛЕН: критические ошибки Quality Gate.")
                 results["quality_gate"] = {"status": "failed", "exit_code": 1}
                 tracer.end_quality_gate(qg_span, exit_code, "failed")
