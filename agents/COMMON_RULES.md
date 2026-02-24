@@ -194,7 +194,8 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 2. `pytest tests/ -x -q` — 0 failures
 3. `source scripts/load-secrets.sh` — секреты из Infisical (не .env fallback)
 4. `bash scripts/check-secrets.sh --verbose` — все ключи на месте
+5. После `git push` — дождаться CI: `gh run watch --exit-status`. **CI должен быть зелёный.**
 
-Реальный запуск, не "должно работать". При ошибке — исправить и повторить.
+Реальный запуск, не "должно работать". При ошибке — исправить и повторить. НЕ сообщать "готово" пока CI не зелёный.
 
 > Подробнее: `.claude/rules/smoke-testing.md`
