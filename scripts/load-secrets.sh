@@ -22,7 +22,7 @@ if _infisical_universal_auth "$PROJECT_DIR"; then
     while IFS= read -r _line; do
         [[ "$_line" =~ ^export\ ([A-Za-z_][A-Za-z0-9_]*)=(.*) ]] && {
             export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
-            ((_loaded++))
+            ((_loaded++)) || true
         }
     done < <(INFISICAL_API_URL="${INFISICAL_API_URL:-}" INFISICAL_TOKEN="$INFISICAL_TOKEN" \
         infisical export --format=dotenv-export \
@@ -39,7 +39,7 @@ if command -v infisical &>/dev/null; then
     while IFS= read -r _line; do
         [[ "$_line" =~ ^export\ ([A-Za-z_][A-Za-z0-9_]*)=(.*) ]] && {
             export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
-            ((_loaded++))
+            ((_loaded++)) || true
         }
     done < <(infisical export --format=dotenv-export 2>/dev/null)
     if [[ $_loaded -gt 0 ]]; then
@@ -64,7 +64,7 @@ for key in "${KEYS[@]}"; do
     val=$(_lookup "$key")
     if [[ -n "$val" ]]; then
         export "$key=$val"
-        ((loaded++))
+        ((loaded++)) || true
     fi
 done
 

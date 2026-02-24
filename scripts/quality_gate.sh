@@ -139,14 +139,14 @@ for agent_dir in "${PROJECT_DIR}"/AGENT_*/; do
             if [[ "$has_required" == "yes" ]]; then
                 status=$(jq -r '.status' "$summary_found")
                 check_pass "${agent_name}: _summary.json (status=${status})"
-                ((SUMMARY_COUNT++))
+                ((SUMMARY_COUNT++)) || true
             else
                 check_warn "${agent_name}: _summary.json невалидный (нет обязательных полей)"
-                ((SUMMARY_FAILED++))
+                ((SUMMARY_FAILED++)) || true
             fi
         else
             check_pass "${agent_name}: _summary.json найден"
-            ((SUMMARY_COUNT++))
+            ((SUMMARY_COUNT++)) || true
         fi
     else
         md_count=$(find "$agent_dir" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')

@@ -39,7 +39,6 @@ usage() {
     echo "  --backup FILE   Specific backup file to restore (default: latest)"
     echo "  --list          List available backups and exit"
     echo "  --dry-run       Show what would be restored without making changes"
-    exit 1
 }
 
 # Parse args
@@ -49,12 +48,12 @@ while [[ $# -gt 0 ]]; do
         --backup) BACKUP_FILE="$2"; shift 2 ;;
         --list) LIST_MODE=true; shift ;;
         --dry-run) DRY_RUN=true; shift ;;
-        -h|--help) usage ;;
-        *) echo "Unknown option: $1"; usage ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1"; usage; exit 1 ;;
     esac
 done
 
-[[ -z "$PAGE_ID" ]] && { echo -e "${RED}ERROR: --page-id is required${NC}"; usage; }
+[[ -z "$PAGE_ID" ]] && { echo -e "${RED}ERROR: --page-id is required${NC}"; usage; exit 1; }
 
 BACKUP_DIR="${PROJECT_DIR}/src/.confluence_backups/${PAGE_ID}"
 
@@ -164,7 +163,7 @@ fi
 # Execute restore via Python
 echo ""
 echo -e "  Restoring..."
-PYTHONPATH="${PROJECT_DIR}/src" python3 -c "
+if PYTHONPATH="${PROJECT_DIR}/src" python3 -c "
 import sys, json
 from fm_review.confluence_utils import ConfluenceClient
 
@@ -172,9 +171,7 @@ client = ConfluenceClient('${CONFLUENCE_URL}', '${CONFLUENCE_TOKEN}', '${PAGE_ID
 from pathlib import Path
 result = client.rollback(backup_path=Path('${BACKUP_FILE}'))
 print(f'  Restored to version: {result.get(\"version\", {}).get(\"number\", \"?\")}')
-" 2>&1
-
-if [[ $? -eq 0 ]]; then
+" 2>&1; then
     echo ""
     echo -e "${GREEN}${BOLD}  RESTORE COMPLETE${NC}"
 else

@@ -107,10 +107,10 @@ for key in "${REQUIRED_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${RED}XX${NC}  $key — ${RED}MISSING (pipeline will fail)${NC}"
-        ((missing_required++))
+        ((missing_required++)) || true
     fi
 done
 
@@ -120,10 +120,10 @@ for key in "${IMPORTANT_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${YELLOW}!!${NC}  $key — ${YELLOW}missing (Confluence features disabled)${NC}"
-        ((missing_important++))
+        ((missing_important++)) || true
     fi
 done
 
@@ -133,10 +133,10 @@ for key in "${OPTIONAL_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${CYAN}--${NC}  $key — not configured"
-        ((missing_optional++))
+        ((missing_optional++)) || true
     fi
 done
 
