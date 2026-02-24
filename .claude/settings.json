@@ -95,7 +95,7 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-summary.sh",
-            "timeout": 10
+            "timeout": 15
           }
         ]
       }
@@ -132,10 +132,5 @@
         ]
       }
     ]
-  },
-  "enabledMcpjsonServers": [
-    "confluence",
-    "memory",
-    "github"
-  ]
+  }
 }

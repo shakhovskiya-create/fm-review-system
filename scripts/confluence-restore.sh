@@ -110,12 +110,12 @@ echo -e "  Backup file: $(basename "$BACKUP_FILE")"
 # Extract backup info
 BACKUP_VERSION=$(python3 -c "
 import json, sys
-with open('${BACKUP_FILE}') as f:
+with open(sys.argv[1]) as f:
     data = json.load(f)
 v = data.get('version', {}).get('number', '?')
 t = data.get('title', 'unknown')
 print(f'{v}|{t}')
-" 2>/dev/null || echo "?|unknown")
+" "$BACKUP_FILE" 2>/dev/null || echo "?|unknown")
 
 BACKUP_VER=$(echo "$BACKUP_VERSION" | cut -d'|' -f1)
 BACKUP_TITLE=$(echo "$BACKUP_VERSION" | cut -d'|' -f2-)

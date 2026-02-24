@@ -6,7 +6,7 @@
     },
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "args": ["-y", "@modelcontextprotocol/server-memory@2026.1.26"],
       "env": {
         "MEMORY_FILE_PATH": "/home/dev/projects/claude-agents/fm-review-system/.claude-memory/memory.jsonl"
       }
@@ -23,7 +23,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@playwright/mcp@latest",
+        "@playwright/mcp@0.0.68",
         "--headless",
         "--no-sandbox",
         "--browser", "chromium",
@@ -33,7 +33,7 @@
     },
     "agentation": {
       "command": "npx",
-      "args": ["-y", "agentation-mcp", "server", "--mcp-only"]
+      "args": ["-y", "agentation-mcp@1.2.0", "server", "--mcp-only"]
     }
   }
 }

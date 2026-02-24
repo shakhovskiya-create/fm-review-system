@@ -18,16 +18,15 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write
       actions: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 2
 
       - name: Claude Security Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@dd634b5f365964c5a6f39bc0c6ffb0a9efb6b034 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: true
