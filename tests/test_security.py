@@ -140,8 +140,9 @@ class TestCredentialHandling:
         hooks_dir = PROJECT_ROOT / ".claude" / "hooks"
         for hook_file in hooks_dir.glob("*.sh"):
             content = hook_file.read_text()
-            # Hooks should use env vars, not source .env files
-            assert not re.search(r'source\s+.*\.env', content), (
+            # Hooks should use env vars, not source .env files directly.
+            # Match both 'source' and '.' (dot command); exclude comment lines.
+            assert not re.search(r'^\s*(?:source|\.)\s+.*\.env', content, re.MULTILINE), (
                 f"Hook {hook_file.name} sources .env file directly"
             )
 
@@ -215,3 +216,32 @@ def patch_env(env_vars):
         for k in env_vars:
             os.environ.pop(k, None)
         os.environ.update(old_env)
+
+
+class TestHardcodedUserIds:
+    """Ensure no hardcoded user_id values in source (M-A8)."""
+
+    FORBIDDEN_USER_IDS = ["shahovsky", "шаховский", "shakhovskiy"]
+
+    def test_no_hardcoded_user_id_in_scripts(self):
+        """run_agent.py and langfuse_tracer.py must not hardcode user_id."""
+        files_to_check = [
+            SCRIPTS_DIR / "run_agent.py",
+            PROJECT_ROOT / "src" / "fm_review" / "langfuse_tracer.py",
+        ]
+        for filepath in files_to_check:
+            if not filepath.exists():
+                continue
+            content = filepath.read_text()
+            for forbidden in self.FORBIDDEN_USER_IDS:
+                # Allow in comments, disallow in code
+                code_lines = [
+                    line for line in content.splitlines()
+                    if forbidden.lower() in line.lower()
+                    and not line.strip().startswith("#")
+                    and "user_id" in line
+                ]
+                assert not code_lines, (
+                    f"{filepath.name} has hardcoded user_id '{forbidden}': "
+                    f"{code_lines[0].strip()}"
+                )

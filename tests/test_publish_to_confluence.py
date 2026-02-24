@@ -156,12 +156,10 @@ class TestGetPageId:
             assert result == "77777"
 
     def test_default_fallback(self):
-        with patch.dict(os.environ, {}, clear=False):
-            env = os.environ.copy()
-            env.pop("CONFLUENCE_PAGE_ID", None)
-            with patch.dict(os.environ, env, clear=True):
-                result = _get_page_id("NONEXISTENT_PROJECT")
-                assert result == "83951683"
+        env = {k: v for k, v in os.environ.items() if k != "CONFLUENCE_PAGE_ID"}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValueError, match="PAGE_ID not found"):
+                _get_page_id("NONEXISTENT_PROJECT")
 
 
 # ── should_skip_paragraph ────────────────────────────

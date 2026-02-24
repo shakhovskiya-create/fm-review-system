@@ -4,6 +4,12 @@
   "description": "JSON Schema for inter-agent communication. v2.0: added agentSummary sidecar, Agent6_Presenter",
 
   "definitions": {
+    "defenseClassification": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+      "description": "Agent 3 defense classification: A=Accounted (already covered in FM), B=ConsciousChoice (trade-off documented), C=NeedsEdit (gap, fix required), D=NeedsClarification (backlog/unclear), E=OutOfScope (not applicable), F=DuplicateOrLater (duplicate or deferred), G=InvalidAssumption (incorrect premise), H=RoleConflict (agents disagree), I=SlowsDown (control hinders business speed)"
+    },
+
     "agentSummary": {
       "type": "object",
       "required": ["agent", "command", "timestamp", "fmVersion", "project", "status"],
@@ -63,7 +69,8 @@
 
     "finding": {
       "type": "object",
-      "required": ["id", "severity", "category", "description"],
+      "required": ["id", "severity", "category", "description", "fmSection"],
+      "description": "Machine-readable finding (CRITICAL-A1: JSON sidecar alongside Markdown)",
       "properties": {
         "id": {
           "type": "string",
@@ -82,8 +89,16 @@
           "type": "string",
           "minLength": 10
         },
+        "fmSection": {
+          "type": "string",
+          "description": "FM section reference, e.g. 3.4, 3.7.1"
+        },
         "recommendation": {
           "type": "string"
+        },
+        "classificationType": {
+          "$ref": "#/definitions/defenseClassification",
+          "description": "Agent 3 defense classification (A-I)"
         },
         "status": {
           "type": "string",
@@ -91,7 +106,28 @@
         },
         "location": {
           "type": "string",
-          "description": "Section or line reference in FM"
+          "description": "Section or line reference in FM (legacy, use fmSection)"
+        },
+        "technicalFeasibility": {
+          "type": "object",
+          "description": "Agent 5 technical assessment (X-L5 feedback loop: Agent 1→5→3)",
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": ["feasible", "feasible_with_caveats", "needs_alternative", "not_applicable"],
+              "description": "feasible=can implement as-is, feasible_with_caveats=possible but has constraints, needs_alternative=Agent 1 recommendation not viable"
+            },
+            "effort": {
+              "type": "string",
+              "enum": ["trivial", "low", "medium", "high"],
+              "description": "Implementation effort estimate"
+            },
+            "note": {
+              "type": "string",
+              "description": "Technical note: constraints, alternative approach, or why not applicable"
+            }
+          },
+          "required": ["verdict"]
         }
       }
     },
@@ -266,7 +302,7 @@
 
     "defenseResponse": {
       "type": "object",
-      "required": ["commentId", "response", "action"],
+      "required": ["commentId", "response", "action", "classificationType"],
       "properties": {
         "commentId": {
           "type": "string"
@@ -280,6 +316,10 @@
         "action": {
           "type": "string",
           "enum": ["Accept", "Reject", "Partial", "Defer"]
+        },
+        "classificationType": {
+          "$ref": "#/definitions/defenseClassification",
+          "description": "Classification of the original finding/comment (A-I)"
         },
         "changes": {
           "type": "array",
@@ -367,7 +407,7 @@
               "description": { "type": "string", "minLength": 10 },
               "location": { "type": "string" },
               "status": { "type": "string", "enum": ["Open", "Resolved", "Wontfix", "Deferred"] },
-              "defenseType": { "type": "string", "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"], "description": "Agent 3 classification (if defended)" },
+              "defenseType": { "$ref": "#/definitions/defenseClassification", "description": "Agent 3 classification (if defended)" },
               "tests": { "type": "array", "items": { "type": "string" }, "description": "TC-XXX IDs covering this finding" }
             }
           }

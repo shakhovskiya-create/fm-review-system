@@ -1,6 +1,6 @@
 # CLAUDE.md - FM Review System
 
-> Система из 10 AI-агентов для жизненного цикла Функциональных Моделей (ФМ) проектов 1С.
+> Система из 12 AI-агентов для жизненного цикла Функциональных Моделей (ФМ) проектов 1С и Go-сервисов.
 
 ## Роль главной сессии (оркестратор)
 
@@ -21,25 +21,7 @@
 
 ## Маршрутизация
 
-Пользователь говорит на естественном языке. Claude определяет агента автоматически:
-
-| Фраза | Агент | Команда |
-|-------|-------|---------|
-| "Создай ФМ", "Новая ФМ", "Опиши процесс" | Agent 0 (Creator) | /new |
-| "Запусти аудит", "Проверь ФМ", "Проблемы в ФМ" | Agent 1 (Architect) | /audit |
-| "Покажи UX", "Симулируй", "Как для пользователя" | Agent 2 (Simulator) | /simulate-all |
-| "Бизнес-критика", "ROI контролей", "Глазами владельца" | Agent 2 (Simulator) | /business |
-| "Замечания от бизнеса", "Проанализируй замечания" | Agent 3 (Defender) | /respond |
-| "Создай тесты", "Тест-кейсы", "Протестируй ФМ" | Agent 4 (QA) | /generate-all |
-| "Спроектируй архитектуру", "Сделай ТЗ" | Agent 5 (Tech Architect) | /full |
-| "Подготовь презентацию", "Отчет для руководства" | Agent 6 (Presenter) | /present |
-| "Опубликуй в Confluence", "Залей в конф" | Agent 7 (Publisher) | /publish |
-| "Создай BPMN", "Диаграмма процесса" | Agent 8 (BPMN Designer) | /bpmn |
-| "Почини", "Настрой MCP", "Добавь хук" | Оркестратор | agents/ORCHESTRATOR_HELPER.md |
-| "Полный цикл", "Конвейер", "Запусти все" | Pipeline | workflows/PIPELINE_AUTO.md |
-| "Эволюция", "/evolve" | Evolve | agents/EVOLVE.md |
-
-Если непонятно — спросить через AskUserQuestion: "Вы хотите [вариант 1] или [вариант 2]?"
+Пользователь говорит на естественном языке. Claude определяет агента по `.claude/rules/subagents-registry.md`.
 
 ## Pipeline
 
@@ -49,33 +31,11 @@ Agent 1 -> [2,4] -> 5 -> 3 -> QualityGate -> 7 -> [8,6]
 
 **Запуск:** `python3 scripts/run_agent.py --pipeline --project PROJECT_NAME`
 
-**Ключевые флаги:**
-- `--parallel` — параллельные стадии (2+4, 8+6)
-- `--resume` — продолжить с последнего чекпоинта (`.pipeline_state.json`)
-- `--dry-run` — показать промпты без выполнения
-- `--model opus` — форсировать opus для всех агентов
+Флаги, бюджеты, resume, параллельные стадии: `.claude/rules/pipeline.md`
 
-**Бюджеты:** per-agent (opus $6-10, sonnet $3), pipeline total $60. Детали: `docs/MODEL_SELECTION.md`
+## Secrets
 
-**Меню:** `./scripts/orchestrate.sh` (пункт 13 — resume, пункт 14 — проверка секретов)
-
-## Операции
-
-| Скрипт | Назначение |
-|--------|-----------|
-| `scripts/run_agent.py` | SDK runner: pipeline, single agent, Langfuse tracing |
-| `scripts/orchestrate.sh` | TUI-меню для всех операций |
-| `scripts/quality_gate.sh` | Проверка качества перед публикацией |
-| `scripts/check-secrets.sh` | Верификация секретов (Infisical/keyring/.env) |
-| `scripts/load-secrets.sh` | Загрузка секретов в окружение |
-
-## Secrets (Infisical)
-
-- **Hosted:** https://infisical.shakhoff.com (Machine Identity `fm-review-pipeline`, Universal Auth, TTL 10 лет)
-- **Credentials:** `infra/infisical/.env.machine-identity` (в .gitignore)
-- **Приоритет:** Infisical Universal Auth → keyring → .env
-- **Проверка:** `./scripts/check-secrets.sh --verbose`
-- **11 секретов:** ANTHROPIC_API_KEY, CONFLUENCE_TOKEN/URL, GITHUB_TOKEN, MIRO_*, LANGFUSE_*
+Infisical Universal Auth → keyring → .env. **Проверка:** `./scripts/check-secrets.sh --verbose`
 
 ## Бизнес-согласование
 

@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=6.0",
+    "pytest-asyncio>=0.23",
     "bandit>=1.9",
     "pip-audit>=2.10",
 ]

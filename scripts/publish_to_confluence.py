@@ -73,8 +73,10 @@ def _get_page_id(project_name=None):
     pid = os.environ.get("CONFLUENCE_PAGE_ID")
     if pid:
         return pid
-    # Fallback только для одного известного проекта (совместимость)
-    return "83951683"
+    raise ValueError(
+        "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
+        "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
+    )
 
 
 # === Color mapping ===
@@ -316,7 +318,11 @@ def should_skip_paragraph(text, skip_mode):
 
 
 def main():
-    TOKEN = os.environ.get("CONFLUENCE_TOKEN", "") or os.environ.get("CONFLUENCE_PERSONAL_TOKEN", "")
+    TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
+    if not TOKEN and os.environ.get("CONFLUENCE_PERSONAL_TOKEN"):
+        import warnings
+        warnings.warn("CONFLUENCE_PERSONAL_TOKEN is deprecated, use CONFLUENCE_TOKEN", DeprecationWarning, stacklevel=2)
+        TOKEN = os.environ["CONFLUENCE_PERSONAL_TOKEN"]
 
     # Парсинг аргументов: --from-file (Confluence-only) или путь к docx (legacy)
     parser = argparse.ArgumentParser(description="Публикация/обновление ФМ в Confluence")

@@ -211,7 +211,7 @@ def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
     root.update_trace(
         name=trace_name,
         session_id=session_id,
-        user_id="shahovsky",
+        user_id=os.environ.get("USER", "unknown"),
         metadata={
             "project": stats.project,
             "model": stats.model,

@@ -15,12 +15,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/secrets.sh"
 
 # Required secrets (pipeline won't work without these)
 REQUIRED_KEYS=(ANTHROPIC_API_KEY)
 
 # Important secrets (specific features need these)
-IMPORTANT_KEYS=(CONFLUENCE_TOKEN CONFLUENCE_PERSONAL_TOKEN)
+IMPORTANT_KEYS=(CONFLUENCE_TOKEN)
 
 # Optional secrets (nice to have)
 OPTIONAL_KEYS=(LANGFUSE_SECRET_KEY LANGFUSE_PUBLIC_KEY GITHUB_TOKEN MIRO_ACCESS_TOKEN)
@@ -105,10 +107,10 @@ for key in "${REQUIRED_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${RED}XX${NC}  $key — ${RED}MISSING (pipeline will fail)${NC}"
-        ((missing_required++))
+        ((missing_required++)) || true
     fi
 done
 
@@ -118,10 +120,10 @@ for key in "${IMPORTANT_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${YELLOW}!!${NC}  $key — ${YELLOW}missing (Confluence features disabled)${NC}"
-        ((missing_important++))
+        ((missing_important++)) || true
     fi
 done
 
@@ -131,10 +133,10 @@ for key in "${OPTIONAL_KEYS[@]}"; do
     src=$(detect_source "$key") || true
     if [[ "$src" != "missing" ]]; then
         echo -e "  ${GREEN}OK${NC}  $key ($src)"
-        ((found++))
+        ((found++)) || true
     else
         echo -e "  ${CYAN}--${NC}  $key — not configured"
-        ((missing_optional++))
+        ((missing_optional++)) || true
     fi
 done
 
