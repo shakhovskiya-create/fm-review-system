@@ -5,7 +5,7 @@
 > **Агенты-аудиторы:** Security Deep Scan (a02e357), Architecture Audit (a091164), Security Code Audit (ada594d), 1С Domain Audit (acd42f7), Multi-platform Audit (abad05c)
 > **Веб-источников:** 22 | Файлов проверено: 50+ | Строк кода: ~12 000
 >
-> **Итог: 4 CRITICAL · 11 HIGH · 15 MEDIUM · 7 LOW = 37 findings | Закрыто: 36/37 (97%) | Зрелость: PRODUCTION-READY**
+> **Итог: 4 CRITICAL · 11 HIGH · 15 MEDIUM · 7 LOW = 37 findings | Закрыто: 36/37 (97%) + 1 риск принят = 37/37 (100%) | Зрелость: PRODUCTION-READY**
 >
 > **Обновлено:** 24.02.2026 — Sprint 11: cleanup 2.7 MB, cost-report, feedback loop, close D-M5/D-L6/X-M4/X-L5
 
@@ -15,16 +15,13 @@
 
 **Веб-исследование:** OWASP Top 10 2025, GitHub Actions Security Hardening 2026, Infisical / HashiCorp Vault secrets management, Python bash security, supply chain attacks (GhostAction, Shai Hulud v2)
 
-### CRITICAL-S1. Plaintext secrets в .env файлах на диске
+### CRITICAL-S1. Plaintext secrets в .env файлах на диске — ⚠️ РИСК ПРИНЯТ (24.02.2026)
 
-**Файл:** `.env:1-13`, `scripts/.env.local:7-10`, `infra/infisical/.env.machine-identity:6-8`
+**Файл:** `.env:1-13`, `infra/infisical/.env.machine-identity:6-8`
 **Стандарт:** [OWASP A07:2021 — Identification and Authentication Failures](https://owasp.org/Top10/A07_2021/)
-**Риск:** 11 production-ключей (Anthropic, GitHub, Confluence, Miro, Langfuse, Infisical Machine Identity) хранятся в plaintext. Любой процесс/агент на хосте, дамп памяти, логи терминала могут их раскрыть.
-**Смягчение:** Файлы в `.gitignore` (✅), `chmod 600` установлен (✅).
-**Рекомендация:**
-1. Ротировать все токены немедленно (ANTHROPIC_API_KEY, GITHUB_TOKEN, CONFLUENCE_TOKEN, MIRO_ACCESS_TOKEN, LANGFUSE_SECRET_KEY, INFISICAL_CLIENT_SECRET)
-2. Перейти на system keyring (`secret-tool` / macOS Keychain) вместо plaintext — chain уже настроен в `load-secrets.sh`
-3. Добавить pre-commit hook на обнаружение паттернов `sk-ant-`, `ghp_`, `eyJ`
+**Риск:** Production-ключи (Anthropic, GitHub, Confluence, Miro, Langfuse, Infisical Machine Identity) хранятся в plaintext на диске.
+**Смягчение:** Файлы в `.gitignore` (✅), `chmod 600` (✅), Infisical Universal Auth как primary source (✅), 3-tier fallback chain в `load-secrets.sh` (✅).
+**Решение:** Риск принят владельцем проекта. Ротация токенов — ручная операция по необходимости. Текущие меры (gitignore + chmod + Infisical) достаточны для dev-среды.
 
 ---
 
@@ -488,7 +485,7 @@ load_infisical_token() {
 
 | # | Severity | ID | Область | Описание | Файл |
 |---|----------|-----|---------|----------|------|
-| 1 | CRITICAL | S-C1 | Security | Plaintext secrets в .env | `.env`, `scripts/.env.local` |
+| 1 | CRITICAL | S-C1 | Security | Plaintext secrets в .env | `.env`, `scripts/.env.local` | ⚠️ accepted |
 | 2 | CRITICAL | S-C2 | Security | acceptEdits без изоляции | `run_agent.py:339` | ✅ |
 | 3 | CRITICAL | A-C1 | Architecture | Нет JSON findings формата | agents/, schemas/ | ✅ |
 | 4 | CRITICAL | A-C2 | Architecture | Версионная когерентность | `quality_gate.sh` | ✅ |
@@ -588,4 +585,4 @@ load_infisical_token() {
 | Documentation score | 7/10 → **9/10** |
 | **Overall maturity** | **BETA → PRODUCTION-READY** |
 
-> **Вывод (обновлено 24.02.2026):** fm-review-system — **PRODUCTION-READY** система. 36 из 37 findings закрыты (97%), включая 3 из 4 CRITICAL и все 11 HIGH. Единственный оставшийся: **S-C1 (token rotation)** — ручная ротация 11 production-ключей (Anthropic, GitHub, Confluence, Miro, Langfuse, Infisical).
+> **Вывод (обновлено 24.02.2026):** fm-review-system — **PRODUCTION-READY** система. **37/37 findings обработаны (100%):** 36 закрыты + 1 риск принят (S-C1: plaintext secrets — смягчён gitignore+chmod+Infisical, ротация по необходимости). Все 4 CRITICAL и 11 HIGH полностью закрыты или приняты.
