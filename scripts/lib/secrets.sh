@@ -31,11 +31,11 @@ _infisical_universal_auth() {
     [[ -n "${INFISICAL_CLIENT_ID:-}" && -n "${INFISICAL_CLIENT_SECRET:-}" ]] || return 1
 
     local _token
-    _token=$(INFISICAL_API_URL="${INFISICAL_API_URL:-}" \
-        INFISICAL_CLIENT_ID="${INFISICAL_CLIENT_ID}" \
-        INFISICAL_CLIENT_SECRET="${INFISICAL_CLIENT_SECRET}" \
-        infisical login \
+    _token=$(infisical login \
             --method=universal-auth \
+            --client-id="${INFISICAL_CLIENT_ID}" \
+            --client-secret="${INFISICAL_CLIENT_SECRET}" \
+            --domain="${INFISICAL_API_URL:-https://app.infisical.com/api}" \
             --silent 2>/dev/null \
         | grep -oP 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+')
 

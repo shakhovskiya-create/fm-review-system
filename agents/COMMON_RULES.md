@@ -185,3 +185,16 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 - Числа: пересчитывай перед тем как утверждать
 
 > Skill: `.claude/skills/make-no-mistakes/SKILL.md`
+
+## 24. Smoke-тесты перед сдачей
+
+**НЕ сдавать результат без smoke-тестов.** После любых изменений в скриптах, хуках, конфигах, зависимостях:
+
+1. Запустить изменённые скрипты с реальными параметрами, проверить exit code
+2. `pytest tests/ -x -q` — 0 failures
+3. `source scripts/load-secrets.sh` — секреты из Infisical (не .env fallback)
+4. `bash scripts/check-secrets.sh --verbose` — все ключи на месте
+
+Реальный запуск, не "должно работать". При ошибке — исправить и повторить.
+
+> Подробнее: `.claude/rules/smoke-testing.md`

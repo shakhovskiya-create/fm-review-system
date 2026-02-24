@@ -21,12 +21,17 @@ if _infisical_universal_auth "$PROJECT_DIR"; then
     _loaded=0
     while IFS= read -r _line; do
         [[ "$_line" =~ ^export\ ([A-Za-z_][A-Za-z0-9_]*)=(.*) ]] && {
-            export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+            _val="${BASH_REMATCH[2]}"
+            # Strip wrapping quotes ('value' or "value" → value)
+            _val="${_val#\'}" ; _val="${_val%\'}"
+            _val="${_val#\"}" ; _val="${_val%\"}"
+            export "${BASH_REMATCH[1]}=${_val}"
             ((_loaded++)) || true
         }
-    done < <(INFISICAL_API_URL="${INFISICAL_API_URL:-}" INFISICAL_TOKEN="$INFISICAL_TOKEN" \
+    done < <(INFISICAL_TOKEN="$INFISICAL_TOKEN" \
         infisical export --format=dotenv-export \
-        --projectId="${INFISICAL_PROJECT_ID}" --env=dev 2>/dev/null)
+        --projectId="${INFISICAL_PROJECT_ID}" --env=dev \
+        --domain="${INFISICAL_API_URL:-https://app.infisical.com/api}" 2>/dev/null)
     if [[ $_loaded -gt 0 ]]; then
         echo "[load-secrets] Loaded $_loaded secrets from Infisical (Universal Auth)"
         return 0 2>/dev/null || exit 0

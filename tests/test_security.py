@@ -169,8 +169,16 @@ class TestAuthHeaders:
     """Validate correct authentication header usage."""
 
     def test_scripts_use_bearer_not_basic(self):
-        """All scripts should use Bearer token, not Basic auth."""
+        """All scripts should use Bearer token, not Basic auth.
+
+        Exception: Langfuse API requires Basic auth (public_key:secret_key).
+        """
+        # Scripts that legitimately use Basic auth for specific APIs
+        basic_auth_allowed = {"tg-report.py", "cost-report.py"}
+
         for py_file in SCRIPTS_DIR.rglob("*.py"):
+            if py_file.name in basic_auth_allowed:
+                continue
             content = py_file.read_text()
             if "Authorization" in content:
                 assert "Bearer" in content, (
@@ -190,8 +198,17 @@ class TestSSLHandling:
     """Validate SSL context usage."""
 
     def test_scripts_handle_ssl(self):
-        """Scripts that make HTTPS calls should handle SSL."""
+        """Scripts that make HTTPS calls should handle SSL.
+
+        Exception: scripts using only default urllib SSL (public APIs)
+        don't need explicit ssl import — default verification is correct.
+        """
+        # Scripts using default SSL (public HTTPS APIs, no custom context)
+        default_ssl_ok = {"tg-report.py", "tg-bot.py"}
+
         for py_file in SCRIPTS_DIR.rglob("*.py"):
+            if py_file.name in default_ssl_ok:
+                continue
             content = py_file.read_text()
             if "urlopen" in content or "urllib.request" in content:
                 assert "ssl" in content, (

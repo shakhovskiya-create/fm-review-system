@@ -1,0 +1,18 @@
+[Unit]
+Description=FM Review System - Telegram Report Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dev
+WorkingDirectory=/home/dev/projects/claude-agents/fm-review-system
+ExecStartPre=/bin/bash -c 'source scripts/load-secrets.sh'
+ExecStart=/bin/bash -c 'source scripts/load-secrets.sh && exec .venv/bin/python3 scripts/tg-bot.py'
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

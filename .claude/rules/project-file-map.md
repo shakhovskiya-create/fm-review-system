@@ -40,6 +40,10 @@ description: "Карта всех файлов системы fm-review-system �
 - `infra/langfuse/` — self-hosted Langfuse v3
 - `scripts/notify.sh` — alert system: Slack webhook + email + JSONL log (levels: INFO/WARN/ERROR/CRITICAL)
 - `scripts/cost-report.sh` — monthly cost breakdown по агентам (Langfuse API, budget alert)
+- `scripts/tg-report.py` — Telegram-отчёт по расходам (--yesterday, --today, --days N, --month)
+- `scripts/tg-bot.py` — Telegram-бот: отвечает на /report в чате (systemd: fm-tg-bot)
+- `scripts/cron-tg-report.sh` — cron wrapper (9:00 вчера, 18:00 сегодня)
+- `infra/fm-tg-bot.service` — systemd unit для Telegram-бота
 
 ## Secrets
 - **Infisical** (hosted): `https://infisical.shakhoff.com`, проект `fm-review-system`, Machine Identity `fm-review-pipeline` (Universal Auth, TTL 10 лет)
