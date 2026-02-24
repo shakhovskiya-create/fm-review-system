@@ -79,8 +79,12 @@ description: "Карта всех файлов системы fm-review-system �
 
 ## Task Tracking (GitHub Issues)
 - `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
+  - `create`: `--body` ОБЯЗАТЕЛЕН (образ результата + Acceptance Criteria)
+  - `done`: `--comment` ОБЯЗАТЕЛЕН (результат + DoD checklist, правила 27-28)
 - Labels: `agent:*`, `sprint:*`, `status:*`, `priority:*`, `type:*`
 - SubagentStart-хук инжектирует назначенные issues при запуске агента
+- SubagentStop-хук напоминает DoD-шаблон при незакрытых issues
+- `.claude/rules/dod.md` — Definition of Done: 8 пунктов, шаблоны комментариев
 
 ## Прочее
 - `CONTEXT.md` — эфемерный session state (в .gitignore, генерируется хуками)
