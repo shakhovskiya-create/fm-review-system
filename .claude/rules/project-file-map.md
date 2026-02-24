@@ -17,7 +17,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `src/fm_review/confluence_utils.py` — API клиент
 
 ## Документация
-- `docs/PROMPTS.md`, `docs/CHANGELOG.md`, `docs/CONTRACT_CONFLUENCE_FM.md`
+- `docs/CHANGELOG.md`, `docs/CONTRACT_CONFLUENCE_FM.md`
 - `docs/LEAD_AUDITOR_FULL_AUDIT.md`, `docs/FC_IMPLEMENTATION_REPORT.md`
 - **Артефакты Lead Architect (НЕ затирать!):** `docs/FINDINGS_LEDGER.md`, `docs/ARCHITECT_WORKPLAN.md`
 
@@ -63,7 +63,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `.claude/skills/run-agent/` (/run-agent)
 
 ## Прочее
-- `CONTEXT.md` — инкрементальный лог (SessionStart/PreCompact hooks)
+- `CONTEXT.md` — эфемерный session state (в .gitignore, генерируется хуками)
 - `.github/workflows/claude.yml` (PR review), `.github/workflows/security-review.yml`
 - `schemas/agent-contracts.json` (v2.2, multi-platform)
 - `docs/MODEL_SELECTION.md` — модели и бюджеты по агентам

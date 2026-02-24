@@ -90,3 +90,16 @@ scripts/.langfuse_state/
 # Session logs and notifications (runtime, not source)
 logs/sessions.log
 logs/notifications.jsonl
+
+# Ephemeral session state
+CONTEXT.md
+
+# pytest binary artifact
+.coverage
+
+# Langfuse runtime state
+src/.langfuse_state/
+
+# CSM/S3 auto-generated setup files
+.csm_setup_*
+.s3_setup_*
