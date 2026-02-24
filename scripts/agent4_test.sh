@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEPRECATED: use `python3 scripts/run_agent.py --agent 4 --project PROJECT --command /generate-all` instead.
 # Интервью для Agent 4 (QA Tester)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"

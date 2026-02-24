@@ -6,7 +6,8 @@
 set -euo pipefail
 
 # ─── ПУТИ ───────────────────────────────────────────────────
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# ROOT_DIR may be overridden by caller (e.g. tests); compute only if not set
+ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 TEMPLATES_DIR="${ROOT_DIR}/templates"
 # Контекст интервью: по проекту или общий (AG-04). Вычисляется при вызове.

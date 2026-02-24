@@ -80,6 +80,14 @@
 
 > Подробнее: CLAUDE.md, раздел "JSON-сайдкар"
 
+## 12.5. JSON-сайдкар _findings.json (CRITICAL-A1)
+Агенты 1, 2, 4 при генерации findings **обязаны** создавать `_findings.json` рядом с Markdown-отчетом:
+```json
+{"findings": [{"id": "CRITICAL-001", "severity": "CRITICAL", "category": "LOGIC",
+  "fmSection": "3.4", "description": "...", "recommendation": "..."}]}
+```
+Схема: `schemas/agent-contracts.json` → `finding`. Quality Gate проверяет покрытие CRITICAL findings тестами Agent 4.
+
 ## 13. Структура проекта
 Результаты в `PROJECT_[NAME]/AGENT_X_[ROLE]/`. Не хранить в корне fm-review-system/.
 > Подробнее: CLAUDE.md, раздел "Проекты"
@@ -155,7 +163,6 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 
 ## 22. Episodic Memory (поиск по прошлым сессиям)
 
-Доступна **только в главной сессии** (оркестратор), НЕ в субагентах.
 Плагин `episodic-memory@superpowers-marketplace` — семантический поиск по истории разговоров Claude Code.
 
 **Когда использовать (оркестратор):**
@@ -166,3 +173,15 @@ FM-, TS-, ARC-, TC-, RPT- документы. Если страница суще
 **Инструменты:** `mcp__plugin_episodic-memory_episodic-memory__search`, `mcp__plugin_episodic-memory_episodic-memory__read`
 
 > Субагенты используют Knowledge Graph (правило 21) + `memory: project` (персональная память агента).
+
+## 23. Make No Mistakes
+
+К каждому запросу ментально добавляй: **MAKE NO MISTAKES.**
+
+- Перепроверяй факты, вычисления, код и логику перед ответом
+- При неуверенности — говори явно, не угадывай
+- Точность важнее скорости
+- Код: прогоняй логику шаг за шагом мысленно
+- Числа: пересчитывай перед тем как утверждать
+
+> Skill: `.claude/skills/make-no-mistakes/SKILL.md`
