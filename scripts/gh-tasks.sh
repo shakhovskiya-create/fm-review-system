@@ -115,11 +115,43 @@ cmd_done() {
 
     [[ -z "$comment" ]] && { echo "ERROR: --comment required (DoD checklist + результат)"; echo "Template: '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: ...\n- [x] No hidden debt'"; exit 1; }
 
+    # Cross-check: warn about changed files not mentioned in comment
+    _validate_artifacts "$comment"
+
     _remove_status_labels "$issue"
     gh issue comment "$issue" --repo "$REPO" --body "$comment"
     gh issue close "$issue" --repo "$REPO"
     _sync_project_status "$issue" "Done"
     echo "Issue #${issue}: closed"
+}
+
+# Validate that recently changed files are mentioned in the closing comment.
+# Compares git diff with --comment text. Warns (does not block) on mismatches.
+_validate_artifacts() {
+    local comment="$1"
+    local changed_files
+    changed_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+    [[ -z "$changed_files" ]] && return 0
+
+    local missing=()
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        # Extract basename for matching (agents/COMMON_RULES.md -> COMMON_RULES.md)
+        local basename="${file##*/}"
+        if ! echo "$comment" | grep -qF "$basename" && ! echo "$comment" | grep -qF "$file"; then
+            missing+=("$file")
+        fi
+    done <<< "$changed_files"
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo ""
+        echo "WARNING: Файлы из git diff НЕ упомянуты в --comment (DoD Artifacts):"
+        for f in "${missing[@]}"; do
+            echo "  - $f"
+        done
+        echo "Рекомендация: добавь их в секцию 'Artifacts' комментария."
+        echo ""
+    fi
 }
 
 cmd_block() {

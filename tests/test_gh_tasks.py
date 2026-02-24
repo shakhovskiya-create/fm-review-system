@@ -4,10 +4,12 @@ Tests for gh-tasks.sh — GitHub Issues management script.
 Validates enforcement rules:
 - create: --body is required (DoD rule 28)
 - done: --comment is required (DoD rule 27)
+- done: cross-check changed files vs --comment (artifact validation)
 - Correct error messages and exit codes
 """
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -16,7 +18,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT = PROJECT_ROOT / "scripts" / "gh-tasks.sh"
 
 
-def run_gh_tasks(*args: str, check: bool = False) -> subprocess.CompletedProcess:
+def run_gh_tasks(*args: str, check: bool = False, cwd: str = None) -> subprocess.CompletedProcess:
     """Run gh-tasks.sh with given arguments, WITHOUT hitting GitHub API.
 
     We test argument validation only — no network calls.
@@ -30,6 +32,7 @@ def run_gh_tasks(*args: str, check: bool = False) -> subprocess.CompletedProcess
         text=True,
         timeout=10,
         env=env,
+        cwd=cwd,
     )
 
 
@@ -143,3 +146,62 @@ class TestGhTasksUsage:
         result = run_gh_tasks()
         assert "--comment" in result.stdout
         assert "REQUIRED" in result.stdout or "DoD" in result.stdout
+
+
+class TestArtifactCrossCheck:
+    """Tests for _validate_artifacts: cross-check git diff vs --comment."""
+
+    def _create_git_repo_with_diff(self, tmpdir: Path) -> Path:
+        """Create a temp git repo with a known diff for testing."""
+        repo = tmpdir / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=str(repo), capture_output=True)
+        # Initial commit
+        (repo / "README.md").write_text("init")
+        subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True)
+        # Second commit with known files
+        (repo / "scripts" / "gh-tasks.sh").parent.mkdir(parents=True, exist_ok=True)
+        (repo / "scripts" / "gh-tasks.sh").write_text("changed")
+        (repo / "agents" / "COMMON_RULES.md").parent.mkdir(parents=True, exist_ok=True)
+        (repo / "agents" / "COMMON_RULES.md").write_text("changed")
+        subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "commit", "-m", "changes"], cwd=str(repo), capture_output=True)
+        return repo
+
+    def test_warns_on_missing_files(self, tmp_path):
+        """Should warn when changed files are not mentioned in comment."""
+        repo = self._create_git_repo_with_diff(tmp_path)
+        # Comment mentions gh-tasks.sh but NOT COMMON_RULES.md
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nUpdated gh-tasks.sh\n## DoD\n- [x] Artifacts: gh-tasks.sh",
+            cwd=str(repo),
+        )
+        # Should contain warning about COMMON_RULES.md (not mentioned)
+        output = result.stdout + result.stderr
+        assert "COMMON_RULES.md" in output or "WARNING" in output
+
+    def test_no_warning_when_all_mentioned(self, tmp_path):
+        """No warning when all changed files are mentioned in comment."""
+        repo = self._create_git_repo_with_diff(tmp_path)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] Artifacts: gh-tasks.sh, COMMON_RULES.md",
+            cwd=str(repo),
+        )
+        output = result.stdout + result.stderr
+        assert "WARNING" not in output or "НЕ упомянуты" not in output
+
+    def test_works_with_full_paths_in_comment(self, tmp_path):
+        """Full paths like agents/COMMON_RULES.md should also match."""
+        repo = self._create_git_repo_with_diff(tmp_path)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "Artifacts: scripts/gh-tasks.sh, agents/COMMON_RULES.md",
+            cwd=str(repo),
+        )
+        output = result.stdout + result.stderr
+        assert "НЕ упомянуты" not in output
