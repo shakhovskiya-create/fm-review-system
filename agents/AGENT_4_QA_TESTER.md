@@ -345,6 +345,158 @@ _→ Доставь через AskUserQuestion_
 
 ---
 
+### ФАЗА 4б: Шаблоны автоматизированных тестов (по платформе)
+
+> Применять в зависимости от платформы проекта (из PROJECT_CONTEXT.md).
+
+#### Vanessa Automation — для платформы 1С
+
+Формат тест-кейса (Gherkin на русском, Given/When/Then):
+
+```gherkin
+# language: ru
+Функциональность: [Название бизнес-процесса]
+  Контекст: <описание>
+
+  Сценарий: [Позитивный сценарий — название]
+    Дано я вхожу в систему как "[Роль]"
+    И существует [объект] с параметрами "[параметр]"
+    Когда я [выполняю действие]
+    Тогда система [ожидаемый результат]
+    И [дополнительная проверка]
+
+  Сценарий: [Негативный сценарий — название]
+    Дано я вхожу в систему как "[Роль]"
+    Когда я пытаюсь [нарушить правило]
+    Тогда система блокирует операцию с сообщением "[текст ошибки]"
+
+  Структура сценария: [Граничные случаи]
+    Дано рентабельность заказа составляет <рентабельность>%
+    Когда менеджер пытается провести документ
+    Тогда система <результат>
+
+    Примеры:
+      | рентабельность | результат                                    |
+      | 3              | блокирует с сообщением "Ниже порога 5%"      |
+      | 5              | проводит документ успешно                    |
+      | 10             | проводит документ успешно                    |
+```
+
+Пример для ФМ рентабельности:
+
+```gherkin
+# language: ru
+Функциональность: Контроль рентабельности
+
+  Сценарий: Блокировка отгрузки ниже порога
+    Дано менеджер создает заказ с рентабельностью 3%
+    Когда он пытается провести документ
+    Тогда система блокирует проведение с сообщением "Рентабельность ниже порога 5%"
+
+  Сценарий: Успешное проведение выше порога
+    Дано менеджер создает заказ с рентабельностью 8%
+    Когда он проводит документ
+    Тогда документ получает статус "Проведен"
+    И записи в регистре накопления созданы корректно
+```
+
+#### Go testify — для платформы Go+React
+
+Формат тест-кейса (Table-driven tests с testify):
+
+```go
+package service_test
+
+import (
+    "context"
+    "testing"
+
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+    "github.com/stretchr/testify/suite"
+)
+
+// Suite для группировки тестов бизнес-правила
+type [ServiceName]TestSuite struct {
+    suite.Suite
+    svc *[ServiceName]
+}
+
+func (s *[ServiceName]TestSuite) SetupTest() {
+    // инициализация зависимостей
+}
+
+// Table-driven test для граничных случаев
+func (s *[ServiceName]TestSuite) Test[BusinessRule]() {
+    tests := []struct {
+        name    string
+        input   [InputType]
+        want    [OutputType]
+        wantErr bool
+    }{
+        {
+            name:    "блокировка ниже порога",
+            input:   [InputType]{Margin: 0.03},
+            wantErr: true,
+        },
+        {
+            name:  "успешно выше порога",
+            input: [InputType]{Margin: 0.08},
+            want:  [OutputType]{Status: "approved"},
+        },
+    }
+
+    for _, tt := range tests {
+        s.Run(tt.name, func() {
+            ctx := context.Background()
+            got, err := s.svc.[Method](ctx, tt.input)
+            if tt.wantErr {
+                require.Error(s.T(), err)
+                return
+            }
+            require.NoError(s.T(), err)
+            assert.Equal(s.T(), tt.want, got)
+        })
+    }
+}
+
+func TestOrderServiceSuite(t *testing.T) {
+    suite.Run(t, new([ServiceName]TestSuite))
+}
+```
+
+Пример для бизнес-правила рентабельности:
+
+```go
+func (s *OrderServiceTestSuite) TestBlockBelowMarginThreshold() {
+    tests := []struct {
+        name    string
+        margin  float64
+        wantErr bool
+        errMsg  string
+    }{
+        {"ниже порога 3%", 0.03, true, "рентабельность ниже порога 5%"},
+        {"на границе 5%", 0.05, false, ""},
+        {"выше порога 8%", 0.08, false, ""},
+    }
+
+    for _, tt := range tests {
+        s.Run(tt.name, func() {
+            order := &Order{Margin: tt.margin}
+            err := s.svc.ValidateAndProcess(context.Background(), order)
+            if tt.wantErr {
+                require.Error(s.T(), err)
+                assert.Contains(s.T(), err.Error(), tt.errMsg)
+                return
+            }
+            require.NoError(s.T(), err)
+        })
+    }
+}
+```
+
+---
+
 ### ФАЗА 5: Нефункциональное тестирование
 
 ```

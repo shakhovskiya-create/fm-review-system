@@ -2,7 +2,50 @@
 
 ---
 
-## 🔄 СИСТЕМА v2.3 — Claude Code SDK + Langfuse — 18.02.2026
+## СИСТЕМА v2.5 — Deep Audit + Best Practices — 24.02.2026
+
+### Аудит и исправления (20-24.02.2026)
+
+**Глубокий аудит** (`audits/audit-fm-review-system-deep.md`): 37 findings (4C+11H+14M+8L). Закрыто 17/37.
+
+| ID | Severity | Исправление |
+|----|----------|-------------|
+| CRITICAL-S2 | CRITICAL | `run_agent.py`: изоляция `cwd` по `project_dir` (не ROOT_DIR) |
+| CRITICAL-A2 | CRITICAL | `quality_gate.sh`: проверка версии из Confluence (секция 8.5) |
+| HIGH-S3/LOW-S8 | HIGH/LOW | CI: убран `id-token:write` из обоих jobs |
+| HIGH-S5 | HIGH | Убран hardcoded fallback PAGE_ID — `raise ValueError` |
+| HIGH-A3 | HIGH | `quality_gate.sh`: audit trail для `--reason` override |
+| HIGH-A5 | HIGH | DRY: `scripts/lib/secrets.sh` — единая Infisical auth |
+| HIGH-X1 | HIGH | Per-agent `timeout_seconds` в `pipeline.json` + `run_agent.py` |
+| HIGH-P1/MEDIUM-P3 | HIGH/MEDIUM | CLAUDE.md: 87 → 45 строк, Agents 6/7 → opus |
+| MEDIUM-A8 | MEDIUM | Де-хардкожен `user_id` (os.environ.get) |
+| MEDIUM-S6 | MEDIUM | `check_confluence_macros.py`: env vars вместо .env.local |
+| MEDIUM-DOC2 | MEDIUM | "12 AI-агентов" — корректный счет |
+| LOW-A9 | LOW | 6 legacy agent scripts помечены DEPRECATED |
+
+### Структура (Best Practices)
+
+- **CLAUDE.md**: 224 → 87 → **45 строк** (маршрутизация, Operations, Secrets вынесены в rules)
+- **8 `.claude/rules/`**: subagents-registry (с маршрутизацией), project-file-map, pipeline, confluence, hooks-inventory, project-structure, apply-process, fm-editing
+- **7 `.claude/skills/`**: test, run-pipeline, run-agent, evolve, fm-audit, quality-gate, make-no-mistakes
+- **Infisical**: self-hosted Universal Auth, Machine Identity, `check-secrets.sh --verbose`
+
+### Инфраструктура
+
+- Agent 9 (SE Go+React), Agent 10 (SE 1С) — senior engineer review agents
+- Agent 1: Go+React platform checklist (условный)
+- Agent 4: Vanessa Automation + Go test templates
+- `scripts/lib/secrets.sh` — DRY Infisical auth (3 скрипта → 1 lib)
+- `quality_gate.sh`: bugfixes (`((++COUNTER))`, `|| true` для find pipes)
+
+### Тесты
+
+- 620 passed, 9 skipped
+- Новые: test_secrets_lib, test_quality_gate, test_security, test_run_agent_full, test_langfuse_tracer
+
+---
+
+## СИСТЕМА v2.3 — Claude Code SDK + Langfuse — 18.02.2026
 
 ### Pipeline на Claude Code SDK (C-3)
 - **Было**: `subprocess.run(["claude", "-p", ...])` + ручной JSON-парсинг вывода

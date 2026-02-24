@@ -42,13 +42,12 @@ docker compose --env-file .env.infisical up -d
 # UI: http://localhost:8080
 ```
 
-## Секреты в проекте (11 шт.)
+## Секреты в проекте (10 шт.)
 
 | Ключ | Назначение |
 |------|-----------|
 | ANTHROPIC_API_KEY | Claude API (обязательный) |
 | CONFLUENCE_TOKEN | Confluence PAT |
-| CONFLUENCE_PERSONAL_TOKEN | Confluence PAT (дубль) |
 | CONFLUENCE_URL | URL Confluence |
 | GITHUB_TOKEN | GitHub PAT |
 | MIRO_ACCESS_TOKEN | Miro API |

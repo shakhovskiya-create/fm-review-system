@@ -19,8 +19,8 @@ source .venv/bin/activate
 # Установить
 pip install mcp-atlassian
 
-# Добавить CONFLUENCE_PERSONAL_TOKEN в .env
-echo "CONFLUENCE_PERSONAL_TOKEN=your_pat_here" >> .env
+# Добавить CONFLUENCE_TOKEN в .env
+echo "CONFLUENCE_TOKEN=your_pat_here" >> .env
 ```
 
 ---

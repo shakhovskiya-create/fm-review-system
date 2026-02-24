@@ -115,6 +115,7 @@
   },
   "enabledMcpjsonServers": [
     "confluence",
-    "memory"
+    "memory",
+    "github"
   ]
 }

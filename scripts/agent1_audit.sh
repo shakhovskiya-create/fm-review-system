@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEPRECATED: use `python3 scripts/run_agent.py --agent 1 --project PROJECT --command /audit` instead.
 # Интервью для Agent 1 (Architect) — аудит ФМ
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"

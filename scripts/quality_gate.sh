@@ -44,9 +44,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-check_pass() { ((PASS++)); echo -e "  ${GREEN}✅ $1${NC}"; }
-check_fail() { ((FAIL++)); echo -e "  ${RED}❌ $1${NC}"; }
-check_warn() { ((WARN++)); echo -e "  ${YELLOW}⚠️  $1${NC}"; }
+check_pass() { ((++PASS)); echo -e "  ${GREEN}✅ $1${NC}"; }
+check_fail() { ((++FAIL)); echo -e "  ${RED}❌ $1${NC}"; }
+check_warn() { ((++WARN)); echo -e "  ${YELLOW}⚠️  $1${NC}"; }
 
 # ─── 1. СТРУКТУРА ПРОЕКТА ───────────────────────────────────
 subheader "1. Структура проекта"
@@ -139,14 +139,14 @@ for agent_dir in "${PROJECT_DIR}"/AGENT_*/; do
             if [[ "$has_required" == "yes" ]]; then
                 status=$(jq -r '.status' "$summary_found")
                 check_pass "${agent_name}: _summary.json (status=${status})"
-                ((SUMMARY_COUNT++))
+                ((SUMMARY_COUNT++)) || true
             else
                 check_warn "${agent_name}: _summary.json невалидный (нет обязательных полей)"
-                ((SUMMARY_FAILED++))
+                ((SUMMARY_FAILED++)) || true
             fi
         else
             check_pass "${agent_name}: _summary.json найден"
-            ((SUMMARY_COUNT++))
+            ((SUMMARY_COUNT++)) || true
         fi
     else
         md_count=$(find "$agent_dir" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
@@ -160,7 +160,7 @@ done
 # ─── 6. МАТРИЦА ТРАССИРУЕМОСТИ (FC-10A) ─────────────────────
 subheader "6. Трассируемость (FC-10A)"
 
-TRACE_MATRIX=$(find "${PROJECT_DIR}/AGENT_4_QA_TESTER" -name 'traceability-matrix.json' 2>/dev/null | head -1)
+TRACE_MATRIX=$(find "${PROJECT_DIR}/AGENT_4_QA_TESTER" -name 'traceability-matrix.json' 2>/dev/null | head -1) || true
 if [[ -n "$TRACE_MATRIX" ]]; then
     if command -v jq &>/dev/null; then
         total=$(jq -r '.summary.totalFindings // 0' "$TRACE_MATRIX" 2>/dev/null)
@@ -173,6 +173,33 @@ if [[ -n "$TRACE_MATRIX" ]]; then
     fi
 else
     check_warn "Матрица трассируемости отсутствует (создается Agent 4)"
+fi
+
+# ─── 6.5 JSON FINDINGS COVERAGE (CRITICAL-A1) ────────────────
+subheader "6.5. JSON findings coverage (CRITICAL-A1)"
+
+FINDINGS_JSON=$(find "${PROJECT_DIR}/AGENT_1_ARCHITECT" -name '*_findings.json' 2>/dev/null | head -1) || true
+if [[ -n "$FINDINGS_JSON" ]] && command -v jq &>/dev/null; then
+    total_findings=$(jq '.findings | length' "$FINDINGS_JSON" 2>/dev/null) || total_findings=0
+    crit_findings=$(jq '[.findings[] | select(.severity == "CRITICAL")] | length' "$FINDINGS_JSON" 2>/dev/null) || crit_findings=0
+    check_pass "JSON findings: ${total_findings} (${crit_findings} CRITICAL)"
+
+    # Check if all CRITICAL findings from Agent 1 are covered by Agent 4 test cases
+    if [[ -n "$TRACE_MATRIX" && "$crit_findings" -gt 0 ]]; then
+        uncovered_crit=$(jq -r --slurpfile findings "$FINDINGS_JSON" '
+            [($findings[0].findings[] | select(.severity == "CRITICAL") | .id)] as $crit_ids |
+            [.entries[] | select(.status == "covered") | .findingId] as $covered |
+            [$crit_ids[] | select(. as $id | $covered | index($id) | not)]
+            | length
+        ' "$TRACE_MATRIX" 2>/dev/null) || uncovered_crit=""
+        if [[ -n "$uncovered_crit" && "$uncovered_crit" -gt 0 ]]; then
+            check_fail "${uncovered_crit} CRITICAL findings без покрытия тестами"
+        elif [[ -n "$uncovered_crit" ]]; then
+            check_pass "Все CRITICAL findings покрыты тестами"
+        fi
+    fi
+else
+    check_warn "JSON findings не найден (_findings.json от Agent 1)"
 fi
 
 # ─── 7. ЖУРНАЛ АУДИТА CONFLUENCE (FC-12B) ────────────────────
@@ -211,6 +238,7 @@ subheader "8.5. Когерентность версий"
 # Собираем FM-версию из разных источников
 VER_CONTEXT=""
 VER_SUMMARY=""
+VER_CONFLUENCE=""
 CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
 if [[ -f "$CONTEXT_FILE" ]]; then
     VER_CONTEXT=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$CONTEXT_FILE" 2>/dev/null | head -1) || true
@@ -227,15 +255,45 @@ for summary in "${PROJECT_DIR}"/AGENT_*/*_summary.json; do
         fi
     fi
 done
-# Сравниваем
-if [[ -n "$VER_CONTEXT" && -n "$VER_SUMMARY" ]]; then
+
+# CRITICAL-A2: проверка версии из Confluence (если доступен)
+_QG_PAGE_ID=""
+_QG_PAGE_ID_FILE="${PROJECT_DIR}/CONFLUENCE_PAGE_ID"
+[[ -f "$_QG_PAGE_ID_FILE" ]] && _QG_PAGE_ID=$(tr -d '[:space:]' < "$_QG_PAGE_ID_FILE") || true
+_QG_CONFLUENCE_URL="${CONFLUENCE_URL:-}"
+_QG_CONFLUENCE_TOKEN="${CONFLUENCE_TOKEN:-}"
+
+if [[ -n "$_QG_PAGE_ID" && -n "$_QG_CONFLUENCE_URL" && -n "$_QG_CONFLUENCE_TOKEN" ]] && command -v curl &>/dev/null; then
+    _page_body=$(curl -sf -m 10 \
+        -H "Authorization: Bearer ${_QG_CONFLUENCE_TOKEN}" \
+        -H "Accept: application/json" \
+        "${_QG_CONFLUENCE_URL}/rest/api/content/${_QG_PAGE_ID}?expand=body.storage" 2>/dev/null) || true
+    if [[ -n "$_page_body" ]] && command -v jq &>/dev/null; then
+        _body_html=$(jq -r '.body.storage.value // empty' <<< "$_page_body" 2>/dev/null) || true
+        if [[ -n "$_body_html" ]]; then
+            VER_CONFLUENCE=$(echo "$_body_html" | grep -oP 'Версия ФМ[^0-9]*\K[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true
+        fi
+    fi
+fi
+
+# Сравниваем все три источника
+_local_ver="${VER_CONTEXT:-${VER_SUMMARY:-}}"
+if [[ -n "$VER_CONFLUENCE" && -n "$_local_ver" ]]; then
+    if [[ "$VER_CONFLUENCE" == "$_local_ver" ]]; then
+        check_pass "Версия когерентна: ${_local_ver} (Confluence == local)"
+    else
+        check_fail "Версия рассинхронизирована: Confluence=${VER_CONFLUENCE}, local=${_local_ver}"
+    fi
+elif [[ -n "$VER_CONFLUENCE" ]]; then
+    check_pass "Версия из Confluence: ${VER_CONFLUENCE}"
+elif [[ -n "$VER_CONTEXT" && -n "$VER_SUMMARY" ]]; then
     if [[ "$VER_CONTEXT" == "$VER_SUMMARY" ]]; then
-        check_pass "Версия когерентна: ${VER_CONTEXT} (context == summaries)"
+        check_pass "Версия когерентна: ${VER_CONTEXT} (context == summaries, Confluence недоступен)"
     else
         check_warn "Версия рассинхронизирована: PROJECT_CONTEXT=${VER_CONTEXT}, summaries=${VER_SUMMARY}"
     fi
 elif [[ -n "$VER_CONTEXT" ]]; then
-    check_pass "Версия из PROJECT_CONTEXT: ${VER_CONTEXT} (summaries для сравнения нет)"
+    check_pass "Версия из PROJECT_CONTEXT: ${VER_CONTEXT} (Confluence и summaries для сравнения нет)"
 elif [[ -n "$VER_SUMMARY" ]]; then
     check_pass "Версия из summaries: ${VER_SUMMARY} (PROJECT_CONTEXT не содержит версию)"
 else
@@ -261,7 +319,7 @@ else
 fi
 
 # Проверка BPMN-диаграмм (drawio attachments или файлы)
-BPMN_COUNT=$(find "${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER" -name '*.drawio' 2>/dev/null | wc -l | tr -d ' ')
+BPMN_COUNT=$(find "${PROJECT_DIR}/AGENT_8_BPMN_DESIGNER" -name '*.drawio' 2>/dev/null | wc -l | tr -d ' ') || true
 if [[ "${BPMN_COUNT:-0}" -gt 0 ]]; then
     check_pass "BPMN-диаграммы: ${BPMN_COUNT} файл(ов)"
 else
@@ -304,6 +362,8 @@ elif [[ $FAIL -eq 0 ]]; then
 else
     echo -e "  ${RED}${BOLD}НЕ ГОТОВО — ЕСТЬ КРИТИЧЕСКИЕ ПРОБЛЕМЫ (${FAIL}) ${ICO_FAIL}${NC}"
     echo -e "  ${RED}Критические ошибки нельзя пропустить. Исправьте и повторите.${NC}"
+    "${SCRIPT_DIR}/notify.sh" --level ERROR --event "quality_gate_blocked" \
+        --project "$PROJECT" --message "Quality Gate blocked: ${FAIL} critical failures, ${WARN} warnings" 2>/dev/null || true
     EXIT_CODE=1
 fi
 echo -e "${BOLD}═══════════════════════════════════════════════════════════${NC}"
