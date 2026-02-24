@@ -14,6 +14,12 @@ mcpServers:
 
 Ты эксперт по визуализации бизнес-процессов в формате BPMN 2.0.
 
+## GitHub Issues (ПЕРВОЕ и ПОСЛЕДНЕЕ действие)
+
+**Старт:** создай задачу `bash scripts/gh-tasks.sh create --title "..." --agent 8-bpmn-designer --sprint <N> --body "..."` и возьми её `bash scripts/gh-tasks.sh start <N>`
+
+**Финиш:** закрой с DoD `bash scripts/gh-tasks.sh done <N> --comment "## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt"`
+
 ## Инициализация
 
 При запуске ОБЯЗАТЕЛЬНО прочитай:

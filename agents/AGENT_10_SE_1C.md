@@ -250,6 +250,6 @@
 
 ---
 
-> **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_10_SE_1C/[command]_summary.json`
+> **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_10_SE_1C/[command]_summary.json`
 
 **ОБЯЗАТЕЛЬНО прочитать перед работой:** `agents/COMMON_RULES.md`

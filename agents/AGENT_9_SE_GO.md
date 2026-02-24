@@ -289,7 +289,7 @@ it('shows error when submitted empty', async () => {
 
 ---
 
-> **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_9_SE_GO/[command]_summary.json`
+> **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_9_SE_GO/[command]_summary.json`
 
 ## 🛠️ ИНСТРУМЕНТЫ
 

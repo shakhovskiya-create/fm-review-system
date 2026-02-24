@@ -27,7 +27,7 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
     fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1 || true)
   fi
 
-  echo "- $project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}"
+  echo "- projects/$project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}"
 done
 
 # Knowledge Graph: auto-seed if empty (LOW-P4)
@@ -48,22 +48,27 @@ if [ -f "$CONTEXT_FILE" ]; then
   echo "- Progress: CONTEXT.md exists (read for session continuity)"
 fi
 
-# GitHub Issues: открытые задачи оркестратора
-issues=$(gh issue list --repo shakhovskiya-create/fm-review-system \
-  --label "agent:orchestrator" --state open --limit 10 \
-  --json number,title,labels \
-  --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
-if [ -n "$issues" ]; then
-  echo "- GitHub Issues (orchestrator):"
-  echo "$issues"
-fi
+# Определяем repo динамически
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 
-# Sprint summary
-sprint_info=$(gh issue list --repo shakhovskiya-create/fm-review-system \
-  --state open --limit 100 --json labels \
-  --jq '[.[].labels[].name | select(startswith("sprint:"))] | group_by(.) | map({sprint: .[0], count: length}) | .[] | "\(.sprint): \(.count) open"' 2>/dev/null || true)
-if [ -n "$sprint_info" ]; then
-  echo "- Sprints: $sprint_info"
+if [ -n "$REPO" ]; then
+  # GitHub Issues: открытые задачи оркестратора
+  issues=$(gh issue list --repo "$REPO" \
+    --label "agent:orchestrator" --state open --limit 10 \
+    --json number,title,labels \
+    --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
+  if [ -n "$issues" ]; then
+    echo "- GitHub Issues (orchestrator):"
+    echo "$issues"
+  fi
+
+  # Sprint summary
+  sprint_info=$(gh issue list --repo "$REPO" \
+    --state open --limit 100 --json labels \
+    --jq '[.[].labels[].name | select(startswith("sprint:"))] | group_by(.) | map({sprint: .[0], count: length}) | .[] | "\(.sprint): \(.count) open"' 2>/dev/null || true)
+  if [ -n "$sprint_info" ]; then
+    echo "- Sprints: $sprint_info"
+  fi
 fi
 
 echo "========================================="

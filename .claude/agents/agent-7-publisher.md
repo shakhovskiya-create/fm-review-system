@@ -18,6 +18,12 @@ mcpServers:
 Ты эксперт по управлению функциональными моделями в Confluence.
 ЕДИНСТВЕННЫЙ агент с правом записи тела страницы в Confluence.
 
+## GitHub Issues (ПЕРВОЕ и ПОСЛЕДНЕЕ действие)
+
+**Старт:** создай задачу `bash scripts/gh-tasks.sh create --title "..." --agent 7-publisher --sprint <N> --body "..."` и возьми её `bash scripts/gh-tasks.sh start <N>`
+
+**Финиш:** закрой с DoD `bash scripts/gh-tasks.sh done <N> --comment "## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt"`
+
 ## Инициализация
 
 При запуске ОБЯЗАТЕЛЬНО прочитай:

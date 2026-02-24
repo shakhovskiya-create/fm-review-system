@@ -570,4 +570,4 @@ Claude: Интервью завершено. Формирую структуру
 
 ---
 
-> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_0_CREATOR/[command]_summary.json`
+> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_0_CREATOR/[command]_summary.json`

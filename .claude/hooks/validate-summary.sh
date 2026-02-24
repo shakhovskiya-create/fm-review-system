@@ -7,7 +7,8 @@
 #   CLAUDE_PROJECT_DIR - project root directory
 #
 # Exit codes:
-#   0 - always (warning only, does not block)
+#   0 - agent handled issues properly (or agent is excluded from enforcement)
+#   2 - BLOCK: agent didn't create or didn't close GitHub Issues
 
 set -euo pipefail
 
@@ -56,21 +57,60 @@ done
 # No recent summaries found is not an error - the agent may not have
 # produced output that requires a summary (e.g., simple queries).
 
-# GitHub Issues: напоминание обновить issues + DoD enforcement
+# GitHub Issues: BLOCKING enforcement (exit 2 = блокирует завершение агента)
 INPUT=$(cat <&0 2>/dev/null || echo "")
 AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
+BLOCK=false
+
 if [ -n "$AGENT_NAME" ]; then
     AGENT_LABEL=""
     case "$AGENT_NAME" in
         agent-*)  AGENT_LABEL=$(echo "$AGENT_NAME" | sed 's/^agent-//') ;;
         helper-*) AGENT_LABEL="orchestrator" ;;
     esac
+
     if [ -n "$AGENT_LABEL" ]; then
-        open_issues=$(gh issue list --repo shakhovskiya-create/fm-review-system \
+        # Определяем repo из текущего git remote (не хардкодим)
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
+        if [ -z "$REPO" ]; then
+            echo "WARNING: Не удалось определить GitHub repo. Пропускаю проверку Issues."
+            exit 0
+        fi
+
+        # 1. Проверка: агент СОЗДАЛ хотя бы одну задачу?
+        # Ищем все issues с меткой этого агента (open + closed, за последний час)
+        all_issues=$(gh issue list --repo "$REPO" \
+            --label "agent:${AGENT_LABEL}" --state all --limit 50 \
+            --json number,createdAt,state,labels \
+            --jq '[.[] | select(
+                (.createdAt | fromdateiso8601) > (now - 3600)
+            )] | length' 2>/dev/null || echo "-1")
+
+        # Если gh недоступен — не блокируем (graceful degradation)
+        if [ "$all_issues" = "-1" ]; then
+            echo "WARNING: Не удалось проверить GitHub Issues (gh CLI недоступен). Пропускаю."
+            exit 0
+        fi
+
+        if [ "$all_issues" -eq 0 ] 2>/dev/null; then
+            echo "BLOCKED: Агент ${AGENT_NAME} НЕ создал ни одной GitHub Issue."
+            echo ""
+            echo "Правило 26: каждый агент ОБЯЗАН создать задачу при старте."
+            echo "Создай задачу и закрой её с DoD:"
+            echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"
+            echo "  bash scripts/gh-tasks.sh start <N>"
+            echo "  bash scripts/gh-tasks.sh done <N> --comment '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt'"
+            BLOCK=true
+        fi
+
+        # 2. Проверка: нет ли незакрытых in-progress задач?
+        open_issues=$(gh issue list --repo "$REPO" \
             --label "agent:${AGENT_LABEL}" --label "status:in-progress" \
             --state open --json number --jq 'length' 2>/dev/null || echo "0")
+
         if [ "$open_issues" -gt 0 ] 2>/dev/null; then
-            echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues со status:in-progress."
+            echo "BLOCKED: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues со status:in-progress."
+            echo ""
             echo "Закрой через: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
             echo ""
             echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD, правило 27):"
@@ -85,8 +125,15 @@ if [ -n "$AGENT_NAME" ]; then
             echo "  - [x] Artifacts: [файлы]"
             echo "  - [x] Docs updated (N/A)"
             echo "  - [x] No hidden debt"
+            BLOCK=true
         fi
     fi
+fi
+
+if [ "$BLOCK" = true ]; then
+    echo ""
+    echo "Хук SubagentStop заблокировал завершение. Выполни действия выше и повтори."
+    exit 2
 fi
 
 exit 0

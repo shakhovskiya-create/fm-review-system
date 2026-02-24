@@ -14,11 +14,11 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  РЕЗУЛЬТАТЫ СОХРАНЯЮ В:                                     │
-│  PROJECT_[NAME]/AGENT_7_PUBLISHER/                           │
+│  projects/PROJECT_[NAME]/AGENT_7_PUBLISHER/                           │
 │                                                             │
 │  ИСТОЧНИК ФМ (ЕДИНСТВЕННЫЙ):                               │
 │  Confluence (MCP + fallback REST API) → PAGE_ID из проекта  │
-│  PROJECT_[NAME]/PROJECT_CONTEXT.md - контекст               │
+│  projects/PROJECT_[NAME]/PROJECT_CONTEXT.md - контекст               │
 │                                                             │
 │  ❌ ЗАПРЕЩЕНО:                                              │
 │  Читать ФМ из Word/DOCX файлов                             │
@@ -116,7 +116,7 @@
 
 При вызове `/auto` вместо `/publish`:
 1. Пропускаю интервью - беру ВСЕ параметры из PROJECT_CONTEXT.md
-2. Читаю PAGE_ID из PROJECT_[NAME]/CONFLUENCE_PAGE_ID
+2. Читаю PAGE_ID из projects/PROJECT_[NAME]/CONFLUENCE_PAGE_ID
 3. Проверяю идемпотентность: GET текущей страницы из Confluence
    - Если страница существует - обновляю через PUT с инкрементом версии
    - Если не найдена - создаю новую через POST
@@ -217,7 +217,7 @@ from confluence_utils import ConfluenceClient
 
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
 TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
-PAGE_ID = "..."  # из PROJECT_[NAME]/CONFLUENCE_PAGE_ID
+PAGE_ID = "..."  # из projects/PROJECT_[NAME]/CONFLUENCE_PAGE_ID
 
 client = ConfluenceClient(CONFLUENCE_URL, TOKEN, PAGE_ID)
 page = client.get_page(expand="body.storage,version")
@@ -571,7 +571,7 @@ API ПРОВЕРКА:
 
 ---
 
-> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_7_PUBLISHER/[command]_summary.json`
+> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_7_PUBLISHER/[command]_summary.json`
 
 ---
 

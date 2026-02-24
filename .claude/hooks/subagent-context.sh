@@ -24,7 +24,7 @@ for project_dir in "$PROJECT_DIR"/projects/PROJECT_*/; do
     fm_version=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$project_dir/PROJECT_CONTEXT.md" 2>/dev/null | head -1 || true)
   fi
 
-  context="${context}Project: $project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}\n"
+  context="${context}Project: projects/$project_name | FM: ${fm_version:-N/A} | PAGE_ID: ${page_id:-N/A}\n"
 done
 
 if [ -n "$context" ]; then
@@ -48,15 +48,33 @@ if [ -n "$AGENT_NAME" ]; then
     helper-*) AGENT_LABEL="orchestrator" ;;
   esac
   if [ -n "$AGENT_LABEL" ]; then
-    issues=$(gh issue list --repo shakhovskiya-create/fm-review-system \
+    REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
+    if [ -z "$REPO" ]; then
+      echo "WARNING: Не удалось определить GitHub repo. GitHub Issues недоступны."
+      exit 0
+    fi
+    issues=$(gh issue list --repo "$REPO" \
       --label "agent:${AGENT_LABEL}" --state open --limit 10 \
       --json number,title,labels \
       --jq '.[] | "#\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("priority:"))] | join(", "))]"' 2>/dev/null || true)
+
+    echo ""
+    echo "=== GitHub Issues (ОБЯЗАТЕЛЬНО, правило 26) ==="
     if [ -n "$issues" ]; then
-      echo ""
-      echo "GitHub Issues (назначены тебе):"
+      echo "Твои задачи:"
       echo "$issues"
+      echo ""
+      echo "ДЕЙСТВИЯ:"
+      echo "  1. Возьми задачу: bash scripts/gh-tasks.sh start <N>"
+      echo "  2. По завершении закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+    else
+      echo "У тебя нет назначенных задач."
+      echo ""
+      echo "ДЕЙСТВИЕ: Создай задачу для текущей работы:"
+      echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"
     fi
+    echo "Подробнее: agents/COMMON_RULES.md, правила 26-28"
+    echo "============================================="
   fi
 fi
 

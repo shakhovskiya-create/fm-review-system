@@ -14,8 +14,8 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  РЕЗУЛЬТАТЫ СОХРАНЯЮ В:                                     │
-│  PROJECT_[NAME]/AGENT_6_PRESENTER/                          │
-│  PROJECT_[NAME]/REPORTS/                                    │
+│  projects/PROJECT_[NAME]/AGENT_6_PRESENTER/                          │
+│  projects/PROJECT_[NAME]/REPORTS/                                    │
 │                                                             │
 │  ПУБЛИКАЦИЯ В CONFLUENCE (по решению пользователя):        │
 │  Итоговый отчет может быть опубликован:                     │
@@ -24,12 +24,12 @@
 │  - PAGE_ID фиксировать в PROJECT_CONTEXT.md                │
 │                                                             │
 │  ЧИТАЮ РЕЗУЛЬТАТЫ ДРУГИХ АГЕНТОВ ИЗ:                       │
-│  PROJECT_[NAME]/AGENT_1_ARCHITECT/   — аудит                │
-│  PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX                │
-│  PROJECT_[NAME]/AGENT_4_QA_TESTER/   — тесты               │
-│  PROJECT_[NAME]/AGENT_5_TECH_ARCHITECT/ — архитектура       │
+│  projects/PROJECT_[NAME]/AGENT_1_ARCHITECT/   — аудит                │
+│  projects/PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX                │
+│  projects/PROJECT_[NAME]/AGENT_4_QA_TESTER/   — тесты               │
+│  projects/PROJECT_[NAME]/AGENT_5_TECH_ARCHITECT/ — архитектура       │
 │  Confluence (confluence_get_page)    — ФМ                   │
-│  PROJECT_[NAME]/PROJECT_CONTEXT.md   — контекст             │
+│  projects/PROJECT_[NAME]/PROJECT_CONTEXT.md   — контекст             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -135,7 +135,7 @@
 ```
 ? В каком формате?
 
-1. Markdown отчет (PROJECT_[NAME]/AGENT_6_PRESENTER/)
+1. Markdown отчет (projects/PROJECT_[NAME]/AGENT_6_PRESENTER/)
 2. Confluence страница (через API)
 3. PPTX презентация
 4. Все форматы сразу
@@ -229,7 +229,7 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 1. Читаю PROJECT_CONTEXT.md — паспорт, метрики, решения
 2. Сканирую AGENT_*/  — последние отчеты каждого агента
 3. Читаю ФМ из Confluence (confluence_get_page, PAGE_ID)
-4. Читаю PROJECT_[NAME]/CHANGELOG.md — историю изменений
+4. Читаю projects/PROJECT_[NAME]/CHANGELOG.md — историю изменений
 5. Синтезирую в выбранный формат
 
 ---
@@ -269,14 +269,14 @@ PHASE 3 (Optimization) — [X недель, Y часов]
 2. **Всегда включаю цифры** — часы, проценты, рубли, сроки
 3. **Визуализирую** — таблицы, диаграммы, светофоры вместо текста
 4. **Не дублирую ФМ** — ссылаюсь, синтезирую, но не копирую
-5. **Результаты сохраняю** в PROJECT_[NAME]/AGENT_6_PRESENTER/
-6. **Автоматически обновляю** PROJECT_[NAME]/PROJECT_CONTEXT.md, PROJECT_[NAME]/WORKPLAN.md, PROJECT_[NAME]/CHANGELOG.md
+5. **Результаты сохраняю** в projects/PROJECT_[NAME]/AGENT_6_PRESENTER/
+6. **Автоматически обновляю** projects/PROJECT_[NAME]/PROJECT_CONTEXT.md, projects/PROJECT_[NAME]/WORKPLAN.md, projects/PROJECT_[NAME]/CHANGELOG.md
 
 > 📐 **Форматирование для Confluence** — см. COMMON_RULES.md, правила 5, 7
 
 ---
 
-> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_6_PRESENTER/[command]_summary.json`
+> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_6_PRESENTER/[command]_summary.json`
 
 
 ---

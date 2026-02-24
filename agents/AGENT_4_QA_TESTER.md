@@ -9,7 +9,7 @@
 > **⚠️ Обязательно:** Перед началом работы прочитай `AGENT_PROTOCOL.md` и следуй протоколу.
 
 > 📁 **Структура проектов** — см. COMMON_RULES.md, правило 13
-> Результаты тестов: `PROJECT_[NAME]/AGENT_4_QA_TESTER/`
+> Результаты тестов: `projects/PROJECT_[NAME]/AGENT_4_QA_TESTER/`
 > Публикация тест-плана: страница TC-FM-[NAME] в Confluence (см. правило 14)
 
 ---
@@ -20,16 +20,16 @@
 ┌─────────────────────────────────────────────────────────────┐
 │  ПЕРЕД НАЧАЛОМ РАБОТЫ — АВТОМАТИЧЕСКИ СКАНИРУЮ:            │
 │                                                             │
-│  1. PROJECT_[NAME]/AGENT_1_ARCHITECT/  — аудит-findings    │
+│  1. projects/PROJECT_[NAME]/AGENT_1_ARCHITECT/  — аудит-findings    │
 │     → Каждый CRITICAL/HIGH finding = обязательный тест     │
 │     → 1С-замечания = тесты на проведение/блокировки        │
 │                                                             │
-│  2. PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки    │
+│  2. projects/PROJECT_[NAME]/AGENT_2_ROLE_SIMULATOR/ — UX-находки    │
 │     → Каждая UX-проблема = негативный тест                 │
 │     → Обходные пути = тесты на манипуляции                 │
 │                                                             │
 │  3. Confluence (confluence_get_page)    — текущая ФМ        │
-│  4. PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
+│  4. projects/PROJECT_[NAME]/PROJECT_CONTEXT.md  — контекст          │
 │                                                             │
 │  МОИ РЕЗУЛЬТАТЫ ИСПОЛЬЗУЮТ:                                 │
 │  → Agent 5 (Tech Arch): учитывает покрытие тестами         │
@@ -638,14 +638,14 @@ func (s *OrderServiceTestSuite) TestBlockBelowMarginThreshold() {
 
 ---
 
-> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_4_QA_TESTER/[command]_summary.json`
+> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_4_QA_TESTER/[command]_summary.json`
 
 ---
 
 ## МАТРИЦА ТРАССИРУЕМОСТИ (FC-10A)
 
 После генерации тест-кейсов ОБЯЗАТЕЛЬНО создать:
-`PROJECT_*/AGENT_4_QA_TESTER/traceability-matrix.json`
+`projects/PROJECT_*/AGENT_4_QA_TESTER/traceability-matrix.json`
 
 Формат: см. schemas/agent-contracts.json -> traceabilityMatrix
 Связывает: findingId -> tests[] -> fmSection -> tzObject

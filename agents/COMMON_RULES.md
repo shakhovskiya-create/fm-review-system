@@ -60,11 +60,11 @@
 > Подробнее: CLAUDE.md, раздел "Общие правила"
 
 ## 10. CHANGES.md
-При /apply создавать `PROJECT_[NAME]/CHANGES/FM-[NAME]-v[X.Y.Z]-CHANGES.md`.
+При /apply создавать `projects/PROJECT_[NAME]/CHANGES/FM-[NAME]-v[X.Y.Z]-CHANGES.md`.
 > Подробнее: CLAUDE.md, раздел "Общие правила"
 
 ## 11. Автосохранение
-После каждой команды обновлять `PROJECT_[NAME]/PROJECT_CONTEXT.md`. Не спрашивать - сохранять.
+После каждой команды обновлять `projects/PROJECT_[NAME]/PROJECT_CONTEXT.md`. Не спрашивать - сохранять.
 Конкурентность: в последовательном пайплайне (`--pipeline`) блокировка не требуется. В параллельном (`--parallel`) агенты одного этапа пишут в разные папки (AGENT_X_*/), конфликтов нет.
 > Подробнее: CLAUDE.md, раздел "Автосохранение"
 
@@ -89,7 +89,7 @@
 Схема: `schemas/agent-contracts.json` → `finding`. Quality Gate проверяет покрытие CRITICAL findings тестами Agent 4.
 
 ## 13. Структура проекта
-Результаты в `PROJECT_[NAME]/AGENT_X_[ROLE]/`. Не хранить в корне fm-review-system/.
+Результаты в `projects/PROJECT_[NAME]/AGENT_X_[ROLE]/`. Не хранить в корне fm-review-system/.
 > Подробнее: CLAUDE.md, раздел "Проекты"
 
 ## 14. Публикация в Confluence

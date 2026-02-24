@@ -1,164 +1,96 @@
-# Промпт для внедрения AI-оркестратора в новый проект
+# Каталог инфраструктурных плагинов для мультиагентных проектов
 
-> Скопируй этот промпт в Claude Code в целевом проекте. Claude сам создаст все файлы, хуки, labels и проверит что всё работает.
-> Референсный проект: `fm-review-system` (github.com/shakhovskiya-create/fm-review-system)
+> Список компонентов, которые оркестратор разворачивает в **существующем** проекте.
+> Проект уже есть, Claude Code уже работает, агенты уже зарегистрированы.
+> Промпт описывает **что добавить/обновить** в инфраструктуре проекта.
+> Референс: `fm-review-system` (github.com/shakhovskiya-create/fm-review-system)
 
 ---
 
-## ПРОМПТ (копировать целиком)
+## ПРОМПТ (скопировать в Claude Code целевого проекта)
 
 ```
-Внедри в этот проект систему AI-оркестрации по образцу fm-review-system. Ниже полная спецификация — что создать, как настроить, как проверить. Делай всё последовательно, каждый шаг проверяй. НЕ сдавай результат без smoke-тестов и зелёного CI.
+В этом проекте уже есть Claude Code и мультиагентная система. Ниже каталог инфраструктурных плагинов — проверь каждый компонент, добавь недостающие, обнови устаревшие. Не перезаписывай существующее — дополняй. Каждый шаг проверяй smoke-тестом.
 
-## 1. CLAUDE.md (корень проекта)
+## Плагин 1: CLAUDE.md — секции оркестратора
 
-Создай CLAUDE.md (макс 50 строк). Обязательные секции:
+Открой существующий CLAUDE.md. Убедись что есть эти секции (добавь недостающие):
 
 ```markdown
-# CLAUDE.md - <НАЗВАНИЕ_ПРОЕКТА>
+## Роль оркестратора
 
-> <Краткое описание проекта — 1 строка>
-
-## Роль
-
-**Я — AI-оркестратор проекта <НАЗВАНИЕ>.** Задачи:
-1. Маршрутизация запросов к субагентам
-2. Управление инфраструктурой: хуки, скрипты, CI/CD, тесты
-
-**Context pollution prevention:** НЕ читай файлы с отчётами/артефактами агентов напрямую — делегируй субагенту. Большие отчёты забивают контекстное окно.
-
-## Правила
-
-**ОБЯЗАТЕЛЬНО:** Перед работой прочитать `.claude/rules/common-rules.md`.
+**Context pollution prevention:** НЕ читай файлы с отчётами/артефактами агентов напрямую — делегируй субагенту.
 
 ## Задачи
 
 GitHub Issues + Kanban (GitHub Project). Sprint dashboard: `bash scripts/gh-tasks.sh sprint`
+
+## Правила
+
+**ОБЯЗАТЕЛЬНО:** Перед работой прочитать `.claude/rules/common-rules.md`.
 ```
 
-## 2. .claude/settings.json (хуки)
+Если CLAUDE.md > 60 строк — вынеси справочный контент в `.claude/rules/` (Claude Code загружает их автоматически).
 
-Создай `.claude/settings.json` с ПОЛНЫМ набором хуков. Для каждого хука — отдельный .sh скрипт в `.claude/hooks/`.
+## Плагин 2: Хуки (.claude/settings.json + .claude/hooks/)
+
+Открой `.claude/settings.json`. Добавь в секцию `hooks` недостающие события (merge с существующими, не перезаписывай):
+
+**Требуемые события:**
+
+| Событие | Скрипт | Назначение |
+|---------|--------|------------|
+| SessionStart | session-start.sh | Контекст проекта + открытые GitHub Issues оркестратора |
+| SubagentStart (matcher: `agent-.*`) | subagent-start.sh | Инжекция GitHub Issues для агента |
+| PreToolUse Write | block-secrets.sh | Блокировка записи секретов в файлы |
+| PreToolUse Edit | block-secrets.sh | Блокировка записи секретов в файлы |
+| SubagentStop (matcher: `agent-.*`) | subagent-stop.sh | Проверка что агент обновил свои issues + DoD шаблон |
+| PreCompact | precompact.sh | Предупреждение при переполнении контекста |
+| Stop | session-stop.sh | Логирование завершения сессии |
+
+**Формат записи в settings.json:**
 
 ```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "agent-.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-start.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-secrets.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-secrets.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "agent-.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-stop.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
+  "EventName": [
+    {
+      "matcher": "опционально",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/script-name.sh",
+          "timeout": 10
+        }
+      ]
+    }
+  ]
 }
 ```
 
-## 3. Хуки — скрипты (.claude/hooks/)
+Для каждого хука создай `.sh` скрипт в `.claude/hooks/` (chmod +x, set -euo pipefail).
 
-Создай ВСЕ 6 скриптов ниже. Каждый — `chmod +x`. Каждый начинается с `set -euo pipefail`.
+### 2.1 session-start.sh (SessionStart)
 
-### 3.1 session-start.sh (SessionStart)
-Назначение: при старте сессии показать оркестратору контекст + открытые GitHub Issues.
+Показывает при старте сессии: имя проекта, открытые GitHub Issues оркестратора, sprint summary.
 
 ```bash
 #!/bin/bash
-# SessionStart: контекст проекта + GitHub Issues оркестратора
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-
 echo "=== $(basename "$PROJECT_DIR"): Session Start ==="
 
-# Определяем OWNER/REPO из git remote
 REPO_URL=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || echo "")
 if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
   GH_OWNER="${BASH_REMATCH[1]}"
   GH_REPO="${BASH_REMATCH[2]}"
 
-  # Открытые задачи оркестратора
   issues=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
     --label "agent:orchestrator" --state open --limit 10 \
     --json number,title,labels \
     --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
-  if [ -n "$issues" ]; then
-    echo "GitHub Issues (orchestrator):"
-    echo "$issues"
-  fi
+  [ -n "$issues" ] && echo "GitHub Issues (orchestrator):" && echo "$issues"
 
-  # Sprint summary
   sprint_info=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
     --state open --limit 100 --json labels \
     --jq '[.[].labels[].name | select(startswith("sprint:"))] | group_by(.) | map("\(.[0]): \(length) open") | .[]' 2>/dev/null || true)
@@ -169,28 +101,24 @@ echo "========================================="
 exit 0
 ```
 
-### 3.2 subagent-start.sh (SubagentStart)
-Назначение: при старте субагента инжектировать его GitHub Issues.
+### 2.2 subagent-start.sh (SubagentStart)
+
+Инжектирует назначенные GitHub Issues при старте субагента.
 
 ```bash
 #!/bin/bash
-# SubagentStart: инжекция GitHub Issues для агента
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-
-# Определяем OWNER/REPO
 REPO_URL=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || echo "")
 [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]] || exit 0
 GH_OWNER="${BASH_REMATCH[1]}"
 GH_REPO="${BASH_REMATCH[2]}"
 
-# Извлекаем имя агента из stdin
 INPUT=$(cat <&0 2>/dev/null || echo "")
 AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
 [ -z "$AGENT_NAME" ] && exit 0
 
-# Маппинг имени: agent-backend -> backend, helper-* -> orchestrator
 AGENT_LABEL=""
 case "$AGENT_NAME" in
   agent-*)  AGENT_LABEL=$(echo "$AGENT_NAME" | sed 's/^agent-//') ;;
@@ -213,20 +141,18 @@ fi
 exit 0
 ```
 
-### 3.3 block-secrets.sh (PreToolUse: Write, Edit)
-Назначение: блокирует запись секретов (API-ключей, токенов) в файлы.
+### 2.3 block-secrets.sh (PreToolUse: Write, Edit)
+
+Блокирует запись секретов (API-ключей, токенов, PEM-ключей) в файлы.
 
 ```bash
 #!/bin/bash
-# PreToolUse: блокировка записи секретов в файлы
 set -euo pipefail
 
 INPUT=$(cat)
 TEXT=$(echo "$INPUT" | jq -r '(.tool_input.content // "") + "\n" + (.tool_input.new_string // "")' 2>/dev/null || echo "")
 [ -z "$TEXT" ] && exit 0
 
-# Паттерны: Anthropic (sk-ant-), GitHub (ghp_/gho_/ghs_), Slack (xox-), AWS (AKIA), PEM keys
-# Минимальная длина после префикса предотвращает false positive на коротких примерах
 if echo "$TEXT" | grep -qE '(sk-ant-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|xox[bpras]-[A-Za-z0-9-]{20,}|AKIA[A-Z0-9]{16}|-----BEGIN (RSA |EC )?PRIVATE KEY-----)'; then
   FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null || echo "unknown")
   echo "BLOCKED: Обнаружен секрет в записи в файл '$FILE_PATH'. Секреты хранить в env/secrets manager, не в файлах." >&2
@@ -236,12 +162,12 @@ fi
 exit 0
 ```
 
-### 3.4 subagent-stop.sh (SubagentStop)
-Назначение: предупреждение если агент не закрыл свои issues.
+### 2.4 subagent-stop.sh (SubagentStop)
+
+Предупреждает если агент не закрыл свои issues. Показывает DoD-шаблон.
 
 ```bash
 #!/bin/bash
-# SubagentStop: проверка что агент обновил свои GitHub Issues
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -286,12 +212,12 @@ fi
 exit 0
 ```
 
-### 3.5 precompact.sh (PreCompact — Context Monitor)
-Назначение: предупреждение при переполнении контекстного окна.
+### 2.5 precompact.sh (PreCompact)
+
+Предупреждение при переполнении контекстного окна.
 
 ```bash
 #!/bin/bash
-# PreCompact: предупреждение о переполнении контекста
 set -euo pipefail
 
 echo "=== Context Monitor: компакция запущена ==="
@@ -306,12 +232,12 @@ echo "========================================="
 exit 0
 ```
 
-### 3.6 session-stop.sh (Stop)
-Назначение: логирование завершения сессии.
+### 2.6 session-stop.sh (Stop)
+
+Логирование завершения сессии.
 
 ```bash
 #!/bin/bash
-# Stop: логирование завершения сессии
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -322,11 +248,9 @@ echo "$(date -Iseconds) | session_end" >> "$LOG_DIR/sessions.log"
 exit 0
 ```
 
-## 4. scripts/gh-tasks.sh (GitHub Issues CLI)
+## Плагин 3: Task Tracking — scripts/gh-tasks.sh
 
-Создай `scripts/gh-tasks.sh` (chmod +x). Скрипт автоматически определяет OWNER/REPO из git remote.
-
-ВАЖНО: вместо хардкода REPO, определяй динамически:
+Проверь есть ли `scripts/gh-tasks.sh`. Если нет — создай (chmod +x). Скрипт определяет OWNER/REPO из git remote (не хардкодь).
 
 ```bash
 # В начале скрипта:
@@ -340,35 +264,45 @@ else
 fi
 ```
 
-Команды которые ОБЯЗАН поддерживать gh-tasks.sh:
-- `create --title "..." --agent <name> --sprint <N> --body "..." [--priority P] [--type T]` — **--body ОБЯЗАТЕЛЕН** (образ результата + AC)
-- `start <issue_number>` — status:planned -> status:in-progress + Kanban "In Progress"
-- `done <issue_number> --comment "..."` — **--comment ОБЯЗАТЕЛЕН** (результат + DoD checklist). Закрыть + Kanban "Done"
-- `block <issue_number> --reason "..."` — status:blocked
-- `list [--agent X] [--sprint N] [--status S]`
-- `my-tasks --agent <name>` — открытые задачи агента
-- `sprint [N]` — dashboard (In Progress / Planned / Blocked / Done / Progress: X/Y)
+**Обязательные команды:**
 
-Каждая команда create/start/done синхронизирует статус на Kanban-доске (GitHub Project).
+| Команда | Описание | Enforcement |
+|---------|----------|-------------|
+| `create --title "..." --agent <name> --sprint <N> --body "..."` | Создать issue | **--body ОБЯЗАТЕЛЕН** → exit 1 если пустой |
+| `start <N>` | status:planned → status:in-progress + Kanban | — |
+| `done <N> --comment "..."` | Закрыть issue + Kanban "Done" | **--comment ОБЯЗАТЕЛЕН** → exit 1 если пустой |
+| `block <N> --reason "..."` | status:blocked | — |
+| `list [--agent X] [--sprint N] [--status S]` | Список issues | — |
+| `my-tasks --agent <name>` | Открытые задачи агента | — |
+| `sprint [N]` | Dashboard: In Progress / Planned / Blocked / Done | — |
 
-Enforcement (ЖЁСТКО):
-- `create` без `--body` → exit 1, показать шаблон: `## Образ результата\n## Acceptance Criteria\n- [ ] AC1`
-- `done` без `--comment` → exit 1, показать шаблон: `## Результат\n## DoD\n- [x] Tests pass\n- [x] AC met`
-
-Внутренние функции:
-- `_remove_status_labels` — убирает все status:* метки
+**Внутренние функции:**
+- `_remove_status_labels` — убирает все status:* метки перед установкой новой
 - `_sync_project_status` — обновляет колонку на Kanban через `gh project item-edit`
 - `_validate_artifacts` — cross-check: сверяет `git diff HEAD~1 --name-only` с текстом `--comment`, выводит WARNING для файлов не упомянутых в Artifacts (не блокирует, но ловит checkbox-ticking)
 
 При `create` — автоматически `gh project item-add` в Project board.
 
-Используй референс: github.com/shakhovskiya-create/fm-review-system/blob/main/scripts/gh-tasks.sh
+Референс: github.com/shakhovskiya-create/fm-review-system/blob/main/scripts/gh-tasks.sh
 
-## 5. .claude/rules/common-rules.md
+## Плагин 4: GitHub Labels + Kanban — scripts/setup-project.sh
 
-Создай файл с правилами. Claude Code автоматически загружает файлы из `.claude/rules/`.
+Проверь есть ли `scripts/setup-project.sh` (или аналог). Если нет — создай одноразовый скрипт (chmod +x).
 
-Обязательные правила (каждое — отдельная секция):
+Что он делает:
+1. Определяет OWNER/REPO из git remote
+2. Создаёт GitHub Labels (idempotent — если label уже есть, пропускает):
+   - `agent:*` — по одному на каждого агента проекта (**адаптируй список**)
+   - `sprint:1` ... `sprint:5`
+   - `status:planned`, `status:in-progress`, `status:blocked`
+   - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
+   - `type:feature`, `type:bug`, `type:infra`, `type:finding`
+3. Создаёт GitHub Project (Kanban board) если не существует
+4. Выводит URL Kanban
+
+## Плагин 5: Правила — .claude/rules/common-rules.md
+
+Проверь есть ли `.claude/rules/common-rules.md`. Создай или дополни следующими секциями:
 
 ### Smoke-тесты перед сдачей
 НЕ сдавать результат без smoke-тестов. После ЛЮБЫХ изменений:
@@ -385,24 +319,25 @@ Enforcement (ЖЁСТКО):
 4. Противоречие плану — STOP, не продолжать
 
 ### GitHub Issues — persistent task tracking (ОБЯЗАТЕЛЬНО)
+
 **Первое действие агента:**
 1. SubagentStart-хук инжектирует назначенные issues — прочитать их
 2. Если есть issue со status:in-progress — продолжить эту задачу
-3. Если есть issues со status:planned — взять приоритетную, выполнить `bash scripts/gh-tasks.sh start <N>`
+3. Если есть issues со status:planned — взять приоритетную: `bash scripts/gh-tasks.sh start <N>`
 
 **Во время работы:**
-4. Обнаружил новую проблему → создать issue: `bash scripts/gh-tasks.sh create ...`
-5. Встретил блокер → пометить: `bash scripts/gh-tasks.sh block <N> --reason "..."`
+4. Обнаружил новую проблему → `bash scripts/gh-tasks.sh create ...`
+5. Встретил блокер → `bash scripts/gh-tasks.sh block <N> --reason "..."`
 
 **Последнее действие агента:**
-6. Закрыть выполненные issues: `bash scripts/gh-tasks.sh done <N> --comment "Результат + DoD"`
-7. Если задача не завершена — оставить status:in-progress, добавить комментарий с прогрессом
+6. Закрыть выполненные: `bash scripts/gh-tasks.sh done <N> --comment "Результат + DoD"`
+7. Если не завершена — оставить status:in-progress, добавить комментарий с прогрессом
 
 **Железное правило:** ни один агент не завершает работу без обновления своих GitHub Issues.
 
 ### Definition of Done (DoD) — обязательный чеклист
 
-**При закрытии ЛЮБОГО issue** агент ОБЯЗАН включить DoD-чеклист в `--comment`:
+**При закрытии ЛЮБОГО issue** агент ОБЯЗАН включить в `--comment`:
 
 ```
 ## DoD
@@ -414,12 +349,11 @@ Enforcement (ЖЁСТКО):
 - [x] No hidden debt
 ```
 
-Скрипт `gh-tasks.sh done` НЕ закроет issue без `--comment`. Это enforcement.
-Artifact cross-check: скрипт сверяет git diff с комментарием, выводит WARNING если файлы не упомянуты.
+`gh-tasks.sh done` НЕ закроет issue без `--comment`. Artifact cross-check сверяет git diff с комментарием.
 
 ### Обязательные комментарии к GitHub Issues
 
-**При создании (`--body` обязателен):**
+**При создании (`--body`):**
 ```
 ## Образ результата
 [Что должно появиться/измениться]
@@ -429,7 +363,7 @@ Artifact cross-check: скрипт сверяет git diff с комментар
 - [ ] AC2
 ```
 
-**При закрытии (`--comment` обязателен):**
+**При закрытии (`--comment`):**
 ```
 ## Результат
 [Кратко что сделано]
@@ -442,66 +376,49 @@ Artifact cross-check: скрипт сверяет git diff с комментар
 ```
 
 ### Context pollution prevention
-НЕ читай файлы с отчётами/артефактами агентов напрямую — делегируй субагенту. Большие отчёты забивают контекстное окно.
+НЕ читай файлы с отчётами/артефактами агентов напрямую — делегируй субагенту.
 
-## 6. scripts/setup-orchestrator.sh
+## Порядок выполнения
 
-Создай одноразовый скрипт начальной настройки (chmod +x).
+1. Прочитай существующие CLAUDE.md, .claude/settings.json, .claude/rules/ — пойми что уже есть
+2. Добавь недостающие плагины (1-5), не трогая существующий контент
+3. `chmod +x .claude/hooks/*.sh scripts/*.sh`
+4. Запусти `bash scripts/setup-project.sh` — создаст labels + Kanban (если ещё нет)
+5. Smoke-тест хуков:
+   - block-secrets.sh: safe → exit 0; с секретом → exit 2
+   - gh-tasks.sh без аргументов → usage
+   - gh-tasks.sh sprint → доска
+6. Проверь JSON: `python3 -c "import json; json.load(open('.claude/settings.json')); print('OK')"`
+7. Запусти тесты проекта — 0 failures
+8. Commit, push, CI: `gh run watch --exit-status`
 
-Что он делает:
-1. Определяет OWNER/REPO из git remote
-2. Создаёт GitHub Labels:
-   - agent:* — по одному на каждого агента проекта (НАСТРОЙ ПОД ПРОЕКТ)
-   - sprint:1..5
-   - status:planned, status:in-progress, status:blocked
-   - priority:critical, priority:high, priority:medium, priority:low
-   - type:feature, type:bug, type:infra, type:finding
-3. Создаёт GitHub Project (Kanban board)
-4. Выводит URL Kanban и подсказку для создания первой задачи
-
-ВАЖНО: список агентов в setup-orchestrator.sh — адаптировать под конкретный проект!
-
-## 7. Порядок внедрения
-
-1. Создай ВСЕ файлы из пунктов 1-6
-2. `chmod +x .claude/hooks/*.sh scripts/*.sh`
-3. Запусти `bash scripts/setup-orchestrator.sh` — создаст labels + Kanban
-4. Проверь каждый хук:
-   - block-secrets.sh: safe content -> exit 0; content с реальным секретом -> exit 2
-   - gh-tasks.sh без аргументов -> usage
-   - gh-tasks.sh sprint -> доска
-5. Проверь JSON: `python3 -c "import json; json.load(open('.claude/settings.json')); print('OK')"`
-6. Запусти тесты проекта — 0 failures
-7. Commit, push, дождись зелёного CI: `gh run watch --exit-status`
-8. Создай первую задачу: `bash scripts/gh-tasks.sh create --title "Начальная настройка" --agent orchestrator --sprint 1 --priority high`
-
-## 8. Чеклист (НЕ сдавать без)
+## Чеклист верификации
 
 ```
-[ ] CLAUDE.md создан (< 50 строк, context pollution prevention)
-[ ] .claude/settings.json — валидный JSON, все 6 хуков зарегистрированы
-[ ] .claude/hooks/ — 6 скриптов, все chmod +x, все exit 0 на safe input
+[ ] CLAUDE.md содержит секции оркестратора (context prevention, правила, задачи)
+[ ] .claude/settings.json — валидный JSON, все 7 хуков зарегистрированы
+[ ] .claude/hooks/ — скрипты chmod +x, exit 0 на safe input
 [ ] block-secrets.sh — БЛОКИРУЕТ реальные API-ключи и private keys
 [ ] scripts/gh-tasks.sh — create/start/done/block/list/sprint работают
-[ ] gh-tasks.sh create без --body → exit 1 (enforcement работает)
-[ ] gh-tasks.sh done без --comment → exit 1 (enforcement работает)
+[ ] gh-tasks.sh create без --body → exit 1
+[ ] gh-tasks.sh done без --comment → exit 1
 [ ] gh-tasks.sh done с --comment → artifact cross-check WARNING если файлы не упомянуты
-[ ] scripts/setup-orchestrator.sh — labels + Kanban созданы на GitHub
-[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, GitHub Issues, DoD, context prevention
+[ ] GitHub Labels созданы (agent:*, sprint:*, status:*, priority:*, type:*)
+[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, GitHub Issues, DoD
 [ ] Тесты проекта — 0 failures
 [ ] git push + CI зелёный
-[ ] Первая задача создана на Kanban (с --body!)
 ```
 ```
 
 ---
 
-## Адаптация под конкретный проект
+## Что адаптировать
 
-При запуске промпта в новом проекте — подскажи Claude:
+Пользователь подсказывает оркестратору при запуске:
 
-1. **Список агентов** — замени дефолтный список на реальных агентов проекта
-2. **Тестовый фреймворк** — укажи что запускать (pytest / jest / go test / etc.)
-3. **Доменные guard-хуки** — добавь специфичные ограничения по аналогии с block-secrets.sh
-4. **MCP серверы** — добавь `enabledMcpjsonServers` в settings.json если используешь
-5. **DoD** — адаптируй чеклист под проект (например: "Docker image built" для микросервисов, "Migrations tested" для БД-проектов)
+1. **Агенты** — какие субагенты есть в проекте (для labels и маппинга в хуках)
+2. **Тестовый фреймворк** — pytest / jest / go test / etc.
+3. **Guard-хуки** — доменные ограничения (SQL injection, PII, etc.)
+4. **MCP серверы** — Confluence, Langfuse, Playwright и т.д.
+5. **DoD** — специфичные пункты ("Docker image built", "Migrations tested", etc.)
+6. **Секреты** — Infisical / Vault / другой secret manager

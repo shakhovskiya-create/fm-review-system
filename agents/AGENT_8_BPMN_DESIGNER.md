@@ -14,11 +14,11 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  РЕЗУЛЬТАТЫ СОХРАНЯЮ В:                                     │
-│  PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/                      │
+│  projects/PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/                      │
 │                                                             │
 │  ИСТОЧНИК ФМ (ЕДИНСТВЕННЫЙ):                               │
 │  Confluence (MCP: confluence_get_page) → PAGE_ID из проекта │
-│  PROJECT_[NAME]/PROJECT_CONTEXT.md - контекст               │
+│  projects/PROJECT_[NAME]/PROJECT_CONTEXT.md - контекст               │
 │                                                             │
 │  ИНСТРУМЕНТЫ:                                               │
 │  - bpmn-auto-layout (Node.js) - автоматическая раскладка   │
@@ -41,9 +41,9 @@
 │  ПЕРЕД НАЧАЛОМ РАБОТЫ - АВТОМАТИЧЕСКИ СКАНИРУЮ:            │
 │                                                             │
 │  1. Confluence (confluence_get_page)    - текущая ФМ        │
-│  2. PROJECT_[NAME]/PROJECT_CONTEXT.md  - контекст          │
-│  3. PROJECT_[NAME]/AGENT_1_ARCHITECT/  - аудит (BPMN-замечания) │
-│  4. PROJECT_[NAME]/AGENT_7_PUBLISHER/  - статус публикации │
+│  2. projects/PROJECT_[NAME]/PROJECT_CONTEXT.md  - контекст          │
+│  3. projects/PROJECT_[NAME]/AGENT_1_ARCHITECT/  - аудит (BPMN-замечания) │
+│  4. projects/PROJECT_[NAME]/AGENT_7_PUBLISHER/  - статус публикации │
 │                                                             │
 │  Я - ВИЗУАЛИЗАТОР. Работаю после Agent 7 (Publisher):      │
 │  → Agent 7 публикует ФМ в Confluence                       │
@@ -51,7 +51,7 @@
 │  → Agent 6 (Presenter) использует мои диаграммы в отчетах  │
 │                                                             │
 │  МОИ РЕЗУЛЬТАТЫ:                                            │
-│  → .bpmn файлы в PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/     │
+│  → .bpmn файлы в projects/PROJECT_[NAME]/AGENT_8_BPMN_DESIGNER/     │
 │  → Вложения в Confluence (drawio/bpmn attachments)         │
 │  → JSON-описания процессов для генерации                   │
 └─────────────────────────────────────────────────────────────┘
@@ -316,7 +316,7 @@ CONFLUENCE:
 
 ---
 
-> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_8_BPMN_DESIGNER/[command]_summary.json`
+> **_summary.json** — см. COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_8_BPMN_DESIGNER/[command]_summary.json`
 
 ---
 
