@@ -14,6 +14,31 @@
 set -euo pipefail
 
 REPO="shakhovskiya-create/fm-review-system"
+PROJECT_OWNER="shakhovskiya-create"
+PROJECT_NUM=1
+
+# Синхронизация статуса в GitHub Project Kanban
+_sync_project_status() {
+    local issue_url="$1" target_status="$2"
+    # Находим item ID в проекте
+    local item_id
+    item_id=$(gh project item-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+        --jq ".items[] | select(.content.number == ${issue_url}) | .id" 2>/dev/null || true)
+    [ -z "$item_id" ] && return 0
+
+    # Находим Status field ID и option ID
+    local field_id option_id
+    field_id=$(gh project field-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+        --jq '.fields[] | select(.name == "Status") | .id' 2>/dev/null || true)
+    [ -z "$field_id" ] && return 0
+
+    option_id=$(gh project field-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+        --jq ".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$target_status\") | .id" 2>/dev/null || true)
+    [ -z "$option_id" ] && return 0
+
+    gh project item-edit --project-id "$(gh project list --owner "$PROJECT_OWNER" --format json --jq ".projects[] | select(.number == $PROJECT_NUM) | .id")" \
+        --id "$item_id" --field-id "$field_id" --single-select-option-id "$option_id" 2>/dev/null || true
+}
 
 _usage() {
     echo "Usage: gh-tasks.sh <command> [options]"
@@ -60,13 +85,19 @@ cmd_create() {
     local args=(--repo "$REPO" --title "$title" --label "$labels")
     [[ -n "$body" ]] && args+=(--body "$body")
 
-    gh issue create "${args[@]}"
+    local url
+    url=$(gh issue create "${args[@]}")
+    echo "$url"
+
+    # Добавляем в Project board
+    gh project item-add "$PROJECT_NUM" --owner "$PROJECT_OWNER" --url "$url" 2>/dev/null || true
 }
 
 cmd_start() {
     local issue="${1:?ERROR: issue number required}"
     _remove_status_labels "$issue"
     gh issue edit "$issue" --repo "$REPO" --add-label "status:in-progress"
+    _sync_project_status "$issue" "In Progress"
     echo "Issue #${issue}: status:in-progress"
 }
 
@@ -84,6 +115,7 @@ cmd_done() {
     _remove_status_labels "$issue"
     [[ -n "$comment" ]] && gh issue comment "$issue" --repo "$REPO" --body "$comment"
     gh issue close "$issue" --repo "$REPO"
+    _sync_project_status "$issue" "Done"
     echo "Issue #${issue}: closed"
 }
 
