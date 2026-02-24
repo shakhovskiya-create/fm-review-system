@@ -61,9 +61,14 @@ def find_macros(html_body):
 def main():
     # SSL is handled per-request via _make_ssl_context()
 
-    config = load_env()
-    confluence_url = config.get("CONFLUENCE_URL", "https://confluence.ekf.su")
-    token = config.get("CONFLUENCE_TOKEN", "")
+    # MEDIUM-S6: prefer env vars (12-Factor), fallback to .env.local
+    confluence_url = os.environ.get("CONFLUENCE_URL", "")
+    token = os.environ.get("CONFLUENCE_TOKEN", "")
+    if not token and ENV_FILE.exists():
+        config = load_env()
+        confluence_url = confluence_url or config.get("CONFLUENCE_URL", "https://confluence.ekf.su")
+        token = token or config.get("CONFLUENCE_TOKEN", "")
+    confluence_url = confluence_url or "https://confluence.ekf.su"
 
     # Check content macros
     print("=== Checking Confluence Macros ===\n")

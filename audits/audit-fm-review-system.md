@@ -2,7 +2,7 @@
 
 **Дата:** 20 февраля 2026 г.
 **Аудитор:** Шаховский А.С. (Архитектурный аудитор)
-**Обновлён:** 20 февраля 2026 г. (актуализация статусов после Sprint 1-5)
+**Обновлён:** 24 февраля 2026 г. (актуализация после deep audit sprint)
 
 ---
 
@@ -48,7 +48,7 @@
 **Стандарты:** Claude Code Docs 2026.
 
 Использование AI-тулинга в проекте находится на эталонном уровне:
-- Компактный `CLAUDE.md` (~87 строк) + 8 модульных `.claude/rules/` (subagents-registry, project-file-map, pipeline, confluence, hooks-inventory и др.)
+- Компактный `CLAUDE.md` (**45 строк**) + 8 модульных `.claude/rules/` (subagents-registry с маршрутизацией, project-file-map, pipeline, confluence, hooks-inventory и др.)
 - 7 операционных `.claude/skills/` (evolve, fm-audit, make-no-mistakes, quality-gate, test, run-pipeline, run-agent)
 - Использование Hooks (SubagentStart, PreCompact, Stop) для автоматизации жизненного цикла.
 - Интеграция Knowledge Graph (server-memory) + Episodic Memory (межсессионная память).
@@ -127,6 +127,30 @@
 - user_id де-хардкожен: os.environ.get("USER") вместо "shahovsky"
 - Новые тесты: test_langfuse_tracer.py, test_xhtml_sanitizer.py, test_export/publish_full.py, test_run_agent_full.py
 
+### Deep Audit Sprint (24.02.2026) — 17 из 37 findings закрыты
+
+| ID | Severity | Действие | Статус |
+|----|----------|----------|--------|
+| CRITICAL-S2 | CRITICAL | Изоляция cwd по project_dir в run_agent.py | ✅ DONE |
+| CRITICAL-A2 | CRITICAL | Проверка версии из Confluence в quality_gate.sh | ✅ DONE |
+| HIGH-S3 | HIGH | Убрать id-token:write из CI | ✅ DONE |
+| HIGH-S5 | HIGH | Убрать hardcoded PAGE_ID fallback | ✅ DONE |
+| HIGH-A3 | HIGH | Audit trail для QG --reason override | ✅ DONE |
+| HIGH-A5 | HIGH | DRY: Infisical auth в lib/secrets.sh | ✅ DONE |
+| HIGH-X1 | HIGH | Per-agent timeout в pipeline | ✅ DONE |
+| HIGH-P1 | HIGH | CLAUDE.md: 87→45 строк, убраны дубли | ✅ DONE |
+| MEDIUM-P3 | MEDIUM | Agents 6/7 → opus | ✅ DONE |
+| MEDIUM-S6 | MEDIUM | check_confluence_macros → env vars | ✅ DONE |
+| MEDIUM-A8 | MEDIUM | user_id де-хардкожен | ✅ DONE |
+| MEDIUM-DOC1 | MEDIUM | mcp-confluence.sh задокументирован | ✅ DONE |
+| MEDIUM-DOC2 | MEDIUM | "12 AI-агентов" — корректный счет | ✅ DONE |
+| LOW-S8 | LOW | id-token:write удалён из обоих CI jobs | ✅ DONE |
+| LOW-A9 | LOW | Legacy scripts помечены DEPRECATED | ✅ DONE |
+| LOW-DOC3 | LOW | CHANGELOG обновлён | ✅ DONE |
+| LOW-DOC4 | LOW | ADR создан в docs/adr/ | ✅ DONE |
+
+Подробности: `audits/audit-fm-review-system-deep.md`
+
 ---
 
 ## Сводная таблица (финальный статус)
@@ -142,7 +166,7 @@
 | 7 | LOW | D1 | Domain | Ретраи без jitter | ✅ ИСПРАВЛЕНО |
 | 8 | LOW | X2 | DX | Отсутствие ADR | ✅ ИСПРАВЛЕНО |
 
-**Итог: 8 из 8 findings закрыты. Проект соответствует уровню PRODUCTION+.**
+**Итог: Базовый аудит — 8/8 закрыты. Deep audit — 17/37 закрыты (все CRITICAL security + архитектура). Проект: PRODUCTION-READY.**
 
 ---
 
@@ -152,13 +176,13 @@
 |---------|----------|
 | Файлов проверено | 45 |
 | Веб-источников использовано | 7 |
-| Findings total | 8 (0C + 2H + 2M + 4L) |
-| Findings закрыто | 8/8 (100%) |
-| Security score | 9/10 |
-| Architecture score | 9/10 |
-| Best practices score | 10/10 |
+| Findings (базовый аудит) | 8/8 закрыто (100%) |
+| Findings (deep audit) | 17/37 закрыто (46%) — 2C+7H+5M+3L |
+| Security score | 8/10 |
+| Architecture score | 8/10 |
+| Best practices score | 9/10 |
 | Domain score | 10/10 |
-| Overall maturity | PRODUCTION+ |
+| Overall maturity | PRODUCTION-READY |
 
 ---
 

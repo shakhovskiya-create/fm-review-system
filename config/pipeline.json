@@ -17,8 +17,8 @@
     "3": {"name": "Defender",      "file": "AGENT_3_DEFENDER.md",       "dir": "AGENT_3_DEFENDER",       "model": "opus",   "budget_usd": 6.0,  "timeout_seconds": 600},
     "4": {"name": "QATester",      "file": "AGENT_4_QA_TESTER.md",      "dir": "AGENT_4_QA_TESTER",      "model": "sonnet", "budget_usd": 3.0,  "timeout_seconds": 600},
     "5": {"name": "TechArchitect", "file": "AGENT_5_TECH_ARCHITECT.md", "dir": "AGENT_5_TECH_ARCHITECT", "model": "opus",   "budget_usd": 10.0, "timeout_seconds": 900},
-    "6": {"name": "Presenter",     "file": "AGENT_6_PRESENTER.md",      "dir": "AGENT_6_PRESENTER",      "model": "sonnet", "budget_usd": 3.0,  "timeout_seconds": 300},
-    "7": {"name": "Publisher",     "file": "AGENT_7_PUBLISHER.md",      "dir": "AGENT_7_PUBLISHER",      "model": "sonnet", "budget_usd": 3.0,  "timeout_seconds": 300},
+    "6": {"name": "Presenter",     "file": "AGENT_6_PRESENTER.md",      "dir": "AGENT_6_PRESENTER",      "model": "opus",   "budget_usd": 6.0,  "timeout_seconds": 600},
+    "7": {"name": "Publisher",     "file": "AGENT_7_PUBLISHER.md",      "dir": "AGENT_7_PUBLISHER",      "model": "opus",   "budget_usd": 6.0,  "timeout_seconds": 600},
     "8": {"name": "BPMNDesigner",  "file": "AGENT_8_BPMN_DESIGNER.md",  "dir": "AGENT_8_BPMN_DESIGNER",  "model": "sonnet", "budget_usd": 3.0,  "timeout_seconds": 300}
   }
 }
