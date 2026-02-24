@@ -3,9 +3,9 @@
 # Используется оркестратором и агентами для persistent task tracking.
 #
 # Usage:
-#   gh-tasks.sh create --title "..." --agent 1-architect --sprint 13 [--priority high] [--type infra] [--body "..."]
+#   gh-tasks.sh create --title "..." --agent 1-architect --sprint 13 --body "..." [--priority high] [--type infra]
 #   gh-tasks.sh start <issue_number>          # status:planned -> status:in-progress
-#   gh-tasks.sh done <issue_number> [--comment "..."]   # close issue
+#   gh-tasks.sh done <issue_number> --comment "..."      # close issue (comment REQUIRED)
 #   gh-tasks.sh block <issue_number> --reason "..."      # status:blocked
 #   gh-tasks.sh list [--agent X] [--sprint N] [--status S]
 #   gh-tasks.sh my-tasks --agent X            # open tasks for agent
@@ -44,9 +44,9 @@ _usage() {
     echo "Usage: gh-tasks.sh <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  create   --title '...' --agent <name> --sprint <N> [--priority P] [--type T] [--body '...']"
+    echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T]"
     echo "  start    <issue_number>"
-    echo "  done     <issue_number> [--comment '...']"
+    echo "  done     <issue_number> --comment '...'   (REQUIRED: DoD + результат)"
     echo "  block    <issue_number> --reason '...'"
     echo "  list     [--agent X] [--sprint N] [--status S]"
     echo "  my-tasks --agent <name>"
@@ -79,11 +79,12 @@ cmd_create() {
     [[ -z "$title" ]] && { echo "ERROR: --title required"; exit 1; }
     [[ -z "$agent" ]] && { echo "ERROR: --agent required"; exit 1; }
     [[ -z "$sprint" ]] && { echo "ERROR: --sprint required"; exit 1; }
+    [[ -z "$body" ]] && { echo "ERROR: --body required (образ результата + Acceptance Criteria)"; echo "Template: '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"; exit 1; }
 
     local labels="agent:${agent},sprint:${sprint},priority:${priority},type:${type},status:planned"
 
     local args=(--repo "$REPO" --title "$title" --label "$labels")
-    [[ -n "$body" ]] && args+=(--body "$body")
+    args+=(--body "$body")
 
     local url
     url=$(gh issue create "${args[@]}")
@@ -112,8 +113,10 @@ cmd_done() {
         esac
     done
 
+    [[ -z "$comment" ]] && { echo "ERROR: --comment required (DoD checklist + результат)"; echo "Template: '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: ...\n- [x] No hidden debt'"; exit 1; }
+
     _remove_status_labels "$issue"
-    [[ -n "$comment" ]] && gh issue comment "$issue" --repo "$REPO" --body "$comment"
+    gh issue comment "$issue" --repo "$REPO" --body "$comment"
     gh issue close "$issue" --repo "$REPO"
     _sync_project_status "$issue" "Done"
     echo "Issue #${issue}: closed"

@@ -27,6 +27,7 @@ description: "Карта всех файлов системы fm-review-system �
 
 ## Governance
 - `AGENT_PROTOCOL.md`, `HANDOFF.md`, `DECISIONS.md`, `logs/`
+- `.claude/rules/dod.md` — Definition of Done (DoD) checklist + шаблоны комментариев
 
 ## Скрипты
 - `scripts/orchestrate.sh` — главное меню (14 пунктов, включая resume и проверку секретов)

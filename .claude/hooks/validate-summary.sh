@@ -56,7 +56,7 @@ done
 # No recent summaries found is not an error - the agent may not have
 # produced output that requires a summary (e.g., simple queries).
 
-# GitHub Issues: напоминание обновить issues
+# GitHub Issues: напоминание обновить issues + DoD enforcement
 INPUT=$(cat <&0 2>/dev/null || echo "")
 AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
 if [ -n "$AGENT_NAME" ]; then
@@ -71,7 +71,20 @@ if [ -n "$AGENT_NAME" ]; then
             --state open --json number --jq 'length' 2>/dev/null || echo "0")
         if [ "$open_issues" -gt 0 ] 2>/dev/null; then
             echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues со status:in-progress."
-            echo "Закрой через: bash scripts/gh-tasks.sh done <N> --comment 'Результат'"
+            echo "Закрой через: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+            echo ""
+            echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD, правило 27):"
+            echo "  ## Результат"
+            echo "  [Что сделано]"
+            echo "  ## Было -> Стало"
+            echo "  - [Изменение]"
+            echo "  ## DoD"
+            echo "  - [x] Tests pass"
+            echo "  - [x] No regression"
+            echo "  - [x] AC met"
+            echo "  - [x] Artifacts: [файлы]"
+            echo "  - [x] Docs updated (N/A)"
+            echo "  - [x] No hidden debt"
         fi
     fi
 fi

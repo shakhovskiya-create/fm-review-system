@@ -234,3 +234,49 @@ Kanban-доска: GitHub Project #1.
 9. Sprint dashboard: `bash scripts/gh-tasks.sh sprint [N]`
 
 **Железное правило:** Ни один агент не завершает работу без обновления своих GitHub Issues.
+
+## 27. Definition of Done (DoD) — обязательный чеклист
+
+**При закрытии ЛЮБОГО issue (`gh-tasks.sh done`)** агент ОБЯЗАН включить DoD-чеклист в `--comment`:
+
+```
+## DoD
+- [x] Tests pass
+- [x] No regression
+- [x] AC met
+- [x] Artifacts: [список файлов/страниц]
+- [x] Docs updated (или N/A)
+- [x] No hidden debt
+```
+
+Скрипт `gh-tasks.sh done` НЕ закроет issue без `--comment`. Это enforcement, а не рекомендация.
+
+Conditional: если менялась ФМ — добавить "Confluence verified". Если менялась инфра — добавить "Smoke test passed".
+
+> Подробнее: `.claude/rules/dod.md`
+
+## 28. Обязательные комментарии к GitHub Issues
+
+### При создании (`--body` обязателен):
+```
+## Образ результата
+[Что должно появиться/измениться]
+
+## Acceptance Criteria
+- [ ] AC1
+- [ ] AC2
+```
+
+### При закрытии (`--comment` обязателен):
+```
+## Результат
+[Кратко что сделано]
+
+## Было -> Стало
+- [Изменение]
+
+## DoD
+[Чеклист из правила 27]
+```
+
+Скрипт `gh-tasks.sh` НЕ создаст issue без `--body` и НЕ закроет без `--comment`. Это история проекта.
