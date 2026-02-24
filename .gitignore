@@ -84,6 +84,9 @@ scripts/.langfuse_state/
 *.tar.gz
 *.jsonl
 
+# Skills CLI mirror (Codex/Copilot agents, not needed)
+.agents/
+
 # Knowledge graph memory (runtime, user-specific)
 .claude-memory/
 

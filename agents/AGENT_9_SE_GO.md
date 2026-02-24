@@ -117,6 +117,18 @@
 □ Data fetching: React Query/SWR, loading/error states
 □ Routing: code splitting, protected routes
 □ Auth: token storage, refresh flow, CSRF
+□ Waterfalls: Promise.all, deferred await, Suspense boundaries (→ skill: vercel-react-best-practices, категории 1-3)
+□ Bundle size: barrel imports, dynamic imports, third-party defer (→ skill: vercel-react-best-practices, категория 2)
+□ RSC: serialization boundaries, React.cache(), after() (→ skill: vercel-react-best-practices, категория 3)
+```
+
+**Runtime UI verification (Playwright MCP):**
+```
+При наличии dev-сервера (localhost) — используй Playwright MCP для проверки:
+□ browser_navigate → browser_snapshot — UI рендерится без ошибок
+□ browser_verify_text_visible — ключевые элементы на месте
+□ browser_console_messages — нет ошибок в консоли
+□ browser_network_requests — нет 4xx/5xx запросов
 ```
 
 ---
@@ -214,10 +226,11 @@ it('shows error when submitted empty', async () => {
 
 **React-специфика:**
 ```
-□ Re-renders: лишние рендеры, неправильные зависимости
-□ Bundle size: code splitting, lazy loading
+□ Re-renders: лишние рендеры, неправильные зависимости (→ skill: vercel-react-best-practices, категория 5)
+□ Bundle size: code splitting, lazy loading (→ skill: vercel-react-best-practices, категория 2)
 □ Images: оптимизация, lazy loading, WebP
-□ Virtualization: react-virtualized для длинных списков
+□ Virtualization: content-visibility, react-virtualized (→ skill: vercel-react-best-practices, rendering-content-visibility)
+□ JS performance: index maps, early exit, hoist RegExp (→ skill: vercel-react-best-practices, категория 7)
 ```
 
 ---
@@ -277,5 +290,12 @@ it('shows error when submitted empty', async () => {
 ---
 
 > **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `PROJECT_*/AGENT_9_SE_GO/[command]_summary.json`
+
+## 🛠️ ИНСТРУМЕНТЫ
+
+| Инструмент | Назначение | Когда использовать |
+|-----------|-----------|-------------------|
+| **Playwright MCP** | Runtime UI verification | При наличии dev-сервера — проверить рендеринг, консоль, сеть |
+| **vercel-react-best-practices** skill | 57 правил React/Next.js performance | При React code review — глубокие паттерны с примерами кода |
 
 **ОБЯЗАТЕЛЬНО прочитать перед работой:** `agents/COMMON_RULES.md`

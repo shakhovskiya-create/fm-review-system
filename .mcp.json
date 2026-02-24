@@ -18,6 +18,18 @@
     "langfuse": {
       "command": "scripts/mcp-langfuse.sh",
       "args": []
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless",
+        "--no-sandbox",
+        "--browser", "chromium",
+        "--isolated",
+        "--viewport-size", "1280x720"
+      ]
     }
   }
 }

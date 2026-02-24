@@ -66,6 +66,14 @@ description: "Карта всех файлов системы fm-review-system �
 - `.claude/skills/test/` (/test)
 - `.claude/skills/run-pipeline/` (/run-pipeline)
 - `.claude/skills/run-agent/` (/run-agent)
+- `.claude/skills/vercel-react-best-practices/` (57 правил React/Next.js performance, Agent 9)
+
+## MCP Servers
+- `confluence` — Confluence API (scripts/mcp-confluence.sh, Infisical secrets)
+- `memory` — Knowledge Graph (@modelcontextprotocol/server-memory)
+- `github` — GitHub API (scripts/mcp-github.sh)
+- `langfuse` — Observability (scripts/mcp-langfuse.sh)
+- `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9)
 
 ## Task Tracking (GitHub Issues)
 - `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
