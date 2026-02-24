@@ -218,6 +218,10 @@ def send_to_langfuse(stats: SessionStats, cost: float, session_id: str):
             "turn_count": stats.turn_count,
             "tool_calls": stats.tool_calls,
             "cost_usd": cost,
+            "input_tokens": stats.input_tokens,
+            "output_tokens": stats.output_tokens,
+            "cache_creation_tokens": stats.cache_creation_tokens,
+            "cache_read_tokens": stats.cache_read_tokens,
         },
         tags=tags,
     )
