@@ -1,4 +1,5 @@
 #!/bin/bash
+# DEPRECATED: use `python3 scripts/run_agent.py --agent 3 --project PROJECT --command /respond` instead.
 # Интервью для Agent 3 (Defender)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"

@@ -117,7 +117,7 @@ class PipelineTracer:
         self.root = self.langfuse.start_span(name=f"pipeline-{self.project}")
         self.root.update_trace(
             name=f"pipeline-{self.project}",
-            user_id="shahovsky",
+            user_id=os.environ.get("USER", "unknown"),
             metadata={
                 "project": self.project,
                 "model": self.model,
@@ -396,11 +396,15 @@ async def run_single_agent(
 
     log(f"Agent {agent_id} ({config['name']}): ЗАПУСК")
 
+    # CRITICAL-S2: isolate agent cwd to project directory
+    project_dir = ROOT_DIR / "projects" / project
+    project_dir.mkdir(parents=True, exist_ok=True)
+
     options = ClaudeCodeOptions(
         model=model,
         permission_mode="acceptEdits",
         max_turns=25,
-        cwd=str(ROOT_DIR),
+        cwd=str(project_dir),
         append_system_prompt=(
             f"Ты Agent {agent_id} ({config['name']}) в автономном конвейере. "
             f"Проект: {project}. НЕ задавай вопросов. "
@@ -724,6 +728,8 @@ async def run_pipeline(
             aid = agent_ids[0]
             agent_model = model if model != "sonnet" else AGENT_REGISTRY[aid].get("model", model)
             agent_budget = max_budget_per_agent if max_budget_per_agent != 5.0 else AGENT_REGISTRY[aid].get("budget_usd", 5.0)
+            # HIGH-X1: per-agent timeout from config (fallback to pipeline default)
+            agent_timeout = AGENT_REGISTRY[aid].get("timeout_seconds", timeout_per_agent)
             agent_result = await run_single_agent(
                 agent_id=aid,
                 project=project,
@@ -731,7 +737,7 @@ async def run_pipeline(
                 model=agent_model,
                 dry_run=dry_run,
                 max_budget=agent_budget,
-                timeout=timeout_per_agent,
+                timeout=agent_timeout,
             )
             stage_results = {aid: agent_result}
         else:
@@ -744,7 +750,8 @@ async def run_pipeline(
                     model=model if model != "sonnet" else AGENT_REGISTRY[aid].get("model", model),
                     dry_run=dry_run,
                     max_budget=max_budget_per_agent if max_budget_per_agent != 5.0 else AGENT_REGISTRY[aid].get("budget_usd", 5.0),
-                    timeout=timeout_per_agent,
+                    # HIGH-X1: per-agent timeout from config
+                    timeout=AGENT_REGISTRY[aid].get("timeout_seconds", timeout_per_agent),
                 )
                 for aid in agent_ids
             ]
@@ -1029,10 +1036,13 @@ def _load_dotenv():
                     env = dict(os.environ)
                     if api_url:
                         env["INFISICAL_API_URL"] = api_url
+                    
+                    # Pass credentials via environment variables instead of process args
+                    env["INFISICAL_CLIENT_ID"] = client_id
+                    env["INFISICAL_CLIENT_SECRET"] = client_secret
+                    
                     login_result = subprocess.run(
-                        ["infisical", "login", "--method=universal-auth",
-                         f"--client-id={client_id}", f"--client-secret={client_secret}",
-                         "--silent"],
+                        ["infisical", "login", "--method=universal-auth", "--silent"],
                         capture_output=True, text=True, timeout=15, env=env,
                     )
                     # Extract token from output
