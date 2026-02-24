@@ -1,35 +1,68 @@
 {
   "agent": "Agent5_TechArchitect",
-  "command": "/auto (pipeline full)",
-  "timestamp": "2026-02-13T16:30:00Z",
-  "fmVersion": "1.0.6",
+  "command": "/full (pipeline v1.0.4)",
+  "timestamp": "2026-02-25T17:30:00Z",
+  "fmVersion": "1.0.4",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
   "counts": {
-    "directories": 5,
-    "documents": 5,
-    "accumulationRegisters": 4,
-    "informationRegisters": 9,
-    "reports": 11,
-    "processes": 4,
-    "backgroundJobs": 16,
-    "integrations": 5,
-    "roles": 8,
-    "enumerations": 10,
-    "totalObjects": 77
+    "directories": 6,
+    "documents": 6,
+    "accumulationRegisters": 5,
+    "informationRegisters": 13,
+    "reports": 15,
+    "processes": 5,
+    "backgroundJobs": 20,
+    "integrations": 6,
+    "roles": 9,
+    "enumerations": 11,
+    "constants": 10,
+    "functionalOptions": 6,
+    "controlPoints": 25,
+    "totalObjects": 143
   },
   "estimate": {
-    "p1Hours": 1885,
+    "p1Hours": 2350,
     "p2Hours": 408,
-    "totalHours": 2293,
+    "totalHours": 2758,
     "teamSize": "3 dev + 1 analyst + 1 tester",
-    "timelineMonths": 9,
-    "uncertaintyDeltaHours": "from -32 to +160 depending on B1-B9 decisions"
+    "timelineMonths": 6,
+    "deltaFromPrevious": "+465h (+20%) vs v1.0.6 estimate (2293h)"
+  },
+  "feasibilityReview": {
+    "totalReviewed": 17,
+    "feasible": 9,
+    "notApplicable": 8,
+    "needsAlternative": 0,
+    "infeasible": 0
+  },
+  "deltaFromV106": {
+    "newObjects": 66,
+    "modifiedObjects": 12,
+    "removedObjects": 0,
+    "keyChanges": [
+      "Таймаут блокировки 15 мин -> 5 мин (CRIT-001)",
+      "Два раздельных порога нагрузки 30/50 (HIGH-002/003)",
+      "Резервный режим ELMA с очередью FIFO (BIZ-012)",
+      "Агрегированные лимиты автосогласования (BIZ-001)",
+      "Перекрёстный контроль шкал при изменении плана ЛС",
+      "Автотриггеры НПСС: курс ЦБ >5%, закупочная цена >15%",
+      "Лимит итераций корректировки цены (5 итераций)",
+      "4 новых пилотных отчета (LS-RPT-070, 072-074)",
+      "Постфактум-контроль экстренных согласований 24ч/48ч",
+      "Пользователи: 50-70 одновременных (было 10-50)"
+    ]
+  },
+  "inputFindings": {
+    "agent1Audit": 13,
+    "agent2UX": 4,
+    "agent4TestCases": 72
   },
   "outputFiles": [
-    "ARCHITECTURE-v1.0.6.md",
-    "TZ-v1.0.6.md"
+    "ARCHITECTURE-v1.0.4.md",
+    "TZ-v1.0.4.md",
+    "feasibility_review.json"
   ],
   "appliedChanges": 0,
-  "notes": "Полная архитектура: 77 объектов 1С. ТЗ: MVP 1885ч + P2 408ч = 2293ч (~9 месяцев). Все 9 бизнес-вопросов (B1-B9) маппированы на объекты с дельтой трудоемкости. 16 фоновых заданий с retry/мониторингом (закрывает B4). Цикл корректировки цены спроектирован (закрывает B2). 5 интеграций специфицированы."
+  "notes": "Полная архитектура: 143 объекта 1С (+66 vs v1.0.6). ТЗ v2.0: MVP 2350ч + P2 408ч = 2758ч (~6 мес.). Дельта +465ч обусловлена: резервный режим ELMA (+80ч), агрегированные лимиты (+40ч), перекрестный контроль (+48ч), автотриггеры НПСС (+32ч), нагрузка согласующих (+48ч). Все 17 findings (13 Agent1 + 4 Agent2) оценены: 9 feasible, 8 not_applicable (документарные). 0 infeasible."
 }

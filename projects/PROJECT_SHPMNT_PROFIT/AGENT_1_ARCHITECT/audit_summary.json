@@ -1,49 +1,20 @@
 {
-  "agent": "AGENT_1_ARCHITECT",
-  "command": "audit",
-  "fm_code": "FM-LS-PROFIT",
-  "fm_version": "1.0.3",
-  "confluence_page_id": 83951683,
-  "confluence_version": 78,
-  "date": "2026-02-20",
-  "timestamp": "2026-02-20T10:00:00Z",
+  "agent": "Agent1_Architect",
+  "command": "/audit",
+  "timestamp": "2026-02-25T14:00:00Z",
+  "fmVersion": "1.0.4",
+  "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
-  "findings": {
-    "CRITICAL": 2,
-    "HIGH": 7,
-    "MEDIUM": 11,
-    "LOW": 5,
-    "total": 25
+  "counts": {
+    "critical": 1,
+    "high": 3,
+    "medium": 5,
+    "low": 4,
+    "total": 13
   },
-  "previous_audit": {
-    "version": "1.0.2",
-    "total_findings": 39,
-    "fixed": 32,
-    "partially_fixed": 5,
-    "remaining": 2
-  },
-  "checklist_1c": {
-    "sequence": "OK",
-    "states": "OK",
-    "posting": "OK",
-    "locks": "WARN",
-    "access": "OK",
-    "rollback": "OK",
-    "integrations": "OK",
-    "background": "OK",
-    "audit": "OK",
-    "data": "WARN"
-  },
-  "critical_findings": [
-    "CRIT-001: Противоречие блокировки 5 мин (п. 3.15) vs 15 мин (п. 3.16)",
-    "CRIT-002: Вектор обхода через разные шкалы Заказов (1/15/25) и ЛС (0/3/10)"
+  "outputFiles": [
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/AUDIT-REPORT-v1.0.4-2026-02-25.md",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/audit_findings.json"
   ],
-  "report_path": "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/AUDIT-REPORT-v1.0.3-2026-02-20.md",
-  "next_actions": [
-    "Fix CRIT-001: update p.3.16 lock timeout 15->5 min",
-    "Fix CRIT-002: add cross-control rule for LS plan reduction",
-    "Fix HIGH-002/003: section numbering 7.1 and reference in p.3.1",
-    "Add requirement codes for p.3.19 features (HIGH-005)",
-    "Update prioritization text for LS-RPT-068 (HIGH-004)"
-  ]
+  "notes": "Re-audit of v1.0.4 after fixes from v1.0.3 audit (25 findings). 21/25 fully fixed, 3 downgraded, 1 relocated. Remaining CRITICAL: LS-BR-035 has stale 15min timeout (should be 5min). FM ready for development after CRIT-001 fix."
 }

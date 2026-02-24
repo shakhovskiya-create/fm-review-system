@@ -1,29 +1,64 @@
 {
   "agent": "Agent4_QATester",
-  "command": "/auto (pipeline generate-all)",
-  "timestamp": "2026-02-13T15:30:00Z",
-  "fmVersion": "1.0.6",
+  "command": "/generate-all",
+  "timestamp": "2026-02-25T12:00:00Z",
+  "fmVersion": "1.0.4",
+  "confluenceVersion": 82,
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
+  "githubIssue": 28,
   "counts": {
-    "critical": 20,
-    "high": 24,
-    "medium": 21,
-    "low": 0,
-    "total": 65,
-    "positive": 14,
-    "negative": 14,
+    "critical": 22,
+    "high": 28,
+    "medium": 14,
+    "low": 8,
+    "total": 72,
+    "positive": 18,
+    "negative": 19,
     "boundary": 17,
-    "manipulation": 10,
-    "integration": 3,
-    "performance": 3,
-    "stateTransition": 4
+    "manipulation": 8,
+    "integration": 5,
+    "performance": 5,
+    "gherkin": 4,
+    "gap": 6
   },
-  "outputFiles": [
-    "TEST-CASES-CORE-v1.0.6.md",
-    "TEST-CASES-EXTENDED-v1.0.6.md",
-    "traceability-matrix.json"
+  "coverageSummary": {
+    "findingsCovered": 27,
+    "findingsNotApplicable": 3,
+    "findingsUncovered": 0,
+    "coveragePercent": 100,
+    "auditV104Critical": 1,
+    "auditV104High": 3,
+    "auditV104Medium": 5,
+    "auditV104Low": 4,
+    "newRequirementsV104": 6
+  },
+  "newInV104": [
+    "TC-004 (CRIT-001): таймаут LS-BR-035 — выявляет дефект 15 мин vs 5 мин",
+    "TC-013 (BIZ-001): агрегированный лимит менеджера 20 000 руб./день",
+    "TC-014 (BIZ-001): агрегированный лимит БЮ 100 000 руб./день",
+    "TC-017..TC-019: лимит итераций корректировки цены (5 итераций, п. 3.5.1)",
+    "TC-021..TC-024: перекрёстный контроль шкал при изменении плана ЛС (п. 3.15)",
+    "TC-025..TC-027: ELMA fallback (резервный режим: до 5 п.п. автосогл., свыше FIFO)",
+    "TC-028..TC-029: нагрузка согласующих — оба порога 30 и 50 (HIGH-002)",
+    "TC-031: LS-RPT-072 — оба порога в одном отчёте (HIGH-003)",
+    "TC-032..TC-033: LS-RPT-073..074 — отчёты пилота",
+    "TC-034..TC-035: LS-BR-075 — автотриггеры пересчёта НПСС",
+    "TC-067 (HIGH-001): проверка числа P1-требований (61 vs ~64)"
   ],
-  "appliedChanges": 0,
-  "notes": "65 тест-кейсов (30 CORE + 35 EXTENDED). 100% покрытие всех 27 находок (9 бизнес-вопросов B1-B9 + 17 UX-находок CRITICAL/HIGH/MEDIUM + 4 паттерна ошибок из .patches). 4 gap-теста выявляют пробелы ФМ, требующие решения. 10 тестов на манипуляции, 3 на производительность."
+  "outputFiles": [
+    "TEST-CASES-v1.0.4-2026-02-25.md",
+    "traceability-matrix.json",
+    "generate-all_summary.json"
+  ],
+  "deprecatedFiles": [
+    "TEST-CASES-CORE-v1.0.6.md",
+    "TEST-CASES-EXTENDED-v1.0.6.md"
+  ],
+  "openQuestions": [
+    "Q1 (CRIT-001): Какой таймаут блокировки реализовывать — 5 мин (основной текст) или 15 мин (LS-BR-035)? Ответ нужен до разработки.",
+    "Q2 (HIGH-001): Сколько фактически P1-требований (61 или ~64)? Уточнить до планирования спринтов.",
+    "Q3 (GAP-02): Поведение при race condition пересчёта НПСС + согласование — не определено в ФМ."
+  ],
+  "notes": "72 тест-кейса: 100% покрытие всех findings аудита v1.0.4 (1C/3H/5M/4L) + 6 новых требований v1.0.4 + регрессия B1-B9 + манипуляции + нагрузка. 4 Gherkin-сценария для Vanessa Automation. Ключевой вывод: TC-004 должен выявить дефект CRIT-001 (LS-BR-035 таймаут 15 мин) в момент приёмочного тестирования."
 }

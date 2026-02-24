@@ -1,204 +1,288 @@
 {
   "project": "PROJECT_SHPMNT_PROFIT",
-  "fmVersion": "1.0.6",
-  "timestamp": "2026-02-13T15:30:00Z",
+  "fmVersion": "1.0.4",
+  "timestamp": "2026-02-25T12:00:00Z",
   "entries": [
     {
+      "findingId": "CRITICAL-001",
+      "description": "LS-BR-035 таблица требований: «15 мин», основной текст п.3.15/3.16: «5 мин»",
+      "severity": "CRITICAL",
+      "tests": ["TC-004", "TC-036"],
+      "fmSection": "Раздел 6 (LS-BR-035) vs п. 3.15, п. 3.16",
+      "tzObject": "РегистрСведений.БлокировкиЛС",
+      "status": "covered",
+      "notes": "TC-004 намеренно проверяет оба значения; дефект возникает при таймауте 15 мин"
+    },
+    {
+      "findingId": "HIGH-001",
+      "description": "Число P1-требований в тексте: «61», фактически ~64",
+      "severity": "HIGH",
+      "tests": ["TC-067"],
+      "fmSection": "Раздел 6 (текст приоритизации после таблицы)",
+      "tzObject": "Документация (не объект 1С)",
+      "status": "covered",
+      "notes": "TC-067 подсчитывает фактическое число P1 и сравнивает с задокументированным"
+    },
+    {
+      "findingId": "HIGH-002",
+      "description": "Два порога нагрузки согласующих: 30 задач (перелив) vs 50 задач (лимит) — рядом, разработчик может перепутать",
+      "severity": "HIGH",
+      "tests": ["TC-028", "TC-029", "TC-031"],
+      "fmSection": "Раздел 5 (Пилотный период)",
+      "tzObject": "ELMA + РегламентноеЗадание.ПереливОчереди",
+      "status": "covered",
+      "notes": "TC-028 проверяет перелив при 30, TC-029 проверяет сигнал при 50. TC-031 проверяет оба порога в LS-RPT-072"
+    },
+    {
+      "findingId": "HIGH-003",
+      "description": "LS-RPT-072 содержит только порог 30, но п.5 использует порог 50 для расчёта нагрузки",
+      "severity": "HIGH",
+      "tests": ["TC-031"],
+      "fmSection": "Раздел 5 (п.5) vs Раздел 6 (LS-RPT-072)",
+      "tzObject": "LS-RPT-072 Отчёт нагрузки согласующих",
+      "status": "covered",
+      "notes": "TC-031 явно проверяет наличие обоих порогов в отчёте LS-RPT-072"
+    },
+    {
+      "findingId": "MED-001",
+      "description": "Исключение дефолт-решения ГД: условие не разъяснено явно «на момент наступления»",
+      "severity": "MEDIUM",
+      "tests": ["TC-010"],
+      "fmSection": "п. 3.6 (дефолт-решения ГД)",
+      "tzObject": "РегламентноеЗадание.АвтоотказГД",
+      "status": "covered"
+    },
+    {
+      "findingId": "MED-002",
+      "description": "Грамматические ошибки «ручное согласования» (2 места)",
+      "severity": "MEDIUM",
+      "tests": [],
+      "fmSection": "п. 3.8, FAQ п.8",
+      "tzObject": "N/A",
+      "status": "not_applicable",
+      "notes": "Стилистические ошибки — не тестируются функциональными тест-кейсами"
+    },
+    {
+      "findingId": "MED-003",
+      "description": "«Автоматический отказа» в п.3.5.2",
+      "severity": "MEDIUM",
+      "tests": [],
+      "fmSection": "п. 3.5.2",
+      "tzObject": "N/A",
+      "status": "not_applicable",
+      "notes": "Стилистическая ошибка"
+    },
+    {
+      "findingId": "MED-004",
+      "description": "«Документооборот» вместо «документооборота» (3 места)",
+      "severity": "MEDIUM",
+      "tests": [],
+      "fmSection": "п. 3.11, 3.14",
+      "tzObject": "N/A",
+      "status": "not_applicable",
+      "notes": "Стилистическая ошибка"
+    },
+    {
+      "findingId": "MED-005",
+      "description": "BPMN 12 (санкции) упоминается, но не описан явным номером",
+      "severity": "MEDIUM",
+      "tests": [],
+      "fmSection": "п. 3.12 (закрытие ЛС, BPMN)",
+      "tzObject": "N/A",
+      "status": "not_applicable",
+      "notes": "Документарная проблема; функциональный тест-кейс нецелесообразен"
+    },
+    {
+      "findingId": "GAP-02",
+      "description": "Поведение при одновременном пересчёте НПСС и согласовании ЛС (race condition)",
+      "severity": "LOW",
+      "tests": ["TC-068"],
+      "fmSection": "п. 3.9 (триггеры НПСС) + п. 3.4 (согласование)",
+      "tzObject": "РегистрСведений.НормативнаяПлановаяСебестоимость",
+      "status": "covered",
+      "notes": "TC-068 выявляет open question; ожидаемый результат не определён до ответа аналитиков"
+    },
+    {
       "findingId": "B1",
-      "tests": ["TC-CORE-013"],
-      "fmSection": "3.6",
+      "description": "SLA для заказов < 100 т.р. — жёсткие значения 2/4/12ч",
+      "severity": "N/A",
+      "tests": ["TC-007", "TC-011"],
+      "fmSection": "п. 3.4.1, п. 3.6",
       "tzObject": "РегистрСведений.SLAСогласования",
       "status": "covered"
     },
     {
       "findingId": "B2",
-      "tests": ["TC-CORE-024", "TC-EXT-010", "TC-EXT-011"],
-      "fmSection": "3.4",
+      "description": "Согласование с корректировкой цены — рекомендация менеджеру",
+      "severity": "N/A",
+      "tests": ["TC-017", "TC-018", "TC-019", "TC-020"],
+      "fmSection": "п. 3.5.1",
       "tzObject": "Документ.ЗаявкаНаСогласование",
       "status": "covered"
     },
     {
       "findingId": "B3",
-      "tests": ["TC-CORE-025", "TC-CORE-026"],
-      "fmSection": "3.9, 3.17",
+      "description": "Логический резерв ЛС при дефиците — 48ч блокирует, 90д информационно",
+      "severity": "N/A",
+      "tests": ["TC-041"],
+      "fmSection": "п. 3.9, 3.17",
       "tzObject": "РегистрНакопления.РезервыЛС",
       "status": "covered"
     },
     {
       "findingId": "B4",
-      "tests": ["TC-CORE-036"],
-      "fmSection": "3.18",
+      "description": "Фоновое задание пересчёта санкций — retry 3x15min, таймаут 2ч, алерт ФД",
+      "severity": "N/A",
+      "tests": ["TC-038"],
+      "fmSection": "п. 3.18",
       "tzObject": "РегламентноеЗадание.ПересчетСанкций",
       "status": "covered"
     },
     {
       "findingId": "B5",
-      "tests": ["TC-EXT-005", "TC-EXT-006"],
-      "fmSection": "3.6",
+      "description": "Терминальное поведение при автоотказе ГД — уведомление CFO",
+      "severity": "N/A",
+      "tests": ["TC-008"],
+      "fmSection": "п. 3.5.2",
       "tzObject": "Документ.ЗаявкаНаСогласование",
       "status": "covered"
     },
     {
       "findingId": "B6",
-      "tests": ["TC-EXT-007", "TC-EXT-008"],
-      "fmSection": "3.6, 3.11",
+      "description": "Улучшение рентабельности во время согласования — автосогласование < 1 п.п.",
+      "severity": "N/A",
+      "tests": ["TC-009"],
+      "fmSection": "п. 3.5.3",
       "tzObject": "РегистрСведений.РентабельностьСогласования",
       "status": "covered"
     },
     {
       "findingId": "B7",
-      "tests": ["TC-CORE-006", "TC-EXT-009"],
-      "fmSection": "3.3, 3.10",
+      "description": "Формулы «Выручка отгруженного» — нетто с учётом возвратов",
+      "severity": "N/A",
+      "tests": ["TC-002"],
+      "fmSection": "п. 3.3, п. 3.5",
       "tzObject": "РегистрНакопления.ВыручкаОтгруженного",
       "status": "covered"
     },
     {
       "findingId": "B8",
-      "tests": ["TC-EXT-019", "TC-EXT-020"],
-      "fmSection": "3.12, 3.15",
+      "description": "Автопродление ЛС + НПСС > 90 дней — блокировка остаётся",
+      "severity": "N/A",
+      "tests": ["TC-061"],
+      "fmSection": "п. 3.12, п. 3.15.1",
       "tzObject": "Справочник.ЛокальнаяСмета",
       "status": "covered"
     },
     {
       "findingId": "B9",
-      "tests": ["TC-EXT-021", "TC-EXT-022"],
-      "fmSection": "3.17, 3.18",
+      "description": "Определение подтверждённого дефицита — автоматическое + РБЮ для споров",
+      "severity": "N/A",
+      "tests": ["TC-041"],
+      "fmSection": "п. 3.17, 3.18",
       "tzObject": "РегистрСведений.ДефицитТовара",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-001",
-      "tests": ["TC-CORE-035"],
-      "fmSection": "3.5",
-      "tzObject": "Обработка.ПанельМенеджера",
+      "findingId": "BIZ-001",
+      "description": "Нет агрегированного лимита автосогласования на менеджера (20 000 руб./день) и БЮ (100 000 руб./день)",
+      "severity": "HIGH",
+      "tests": ["TC-013", "TC-014", "TC-016"],
+      "fmSection": "п. 3.7 (экстренные согласования)",
+      "tzObject": "РегистрНакопления.ЛимитыЭкстренногоСогласования",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-002",
-      "tests": ["TC-CORE-002", "TC-CORE-003"],
-      "fmSection": "3.3",
-      "tzObject": "Документ.ЗаказКлиента",
+      "findingId": "BIZ-003",
+      "description": "Перегрузка согласующих в пики (до 420 задач/день на РБЮ)",
+      "severity": "HIGH",
+      "tests": ["TC-028", "TC-029", "TC-030", "TC-055", "TC-057"],
+      "fmSection": "Раздел 5 (Пилотный период)",
+      "tzObject": "ELMA + РегламентноеЗадание.ПереливОчереди",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-003",
-      "tests": ["TC-CORE-034"],
-      "fmSection": "3.6, 3.11",
-      "tzObject": "Обработка.ПрогрессСогласования",
+      "findingId": "BIZ-008",
+      "description": "Нет baseline текущих потерь — ROI не обоснован",
+      "severity": "HIGH",
+      "tests": ["TC-032", "TC-062"],
+      "fmSection": "п. 5 (Пилотный период), LS-RPT-073",
+      "tzObject": "LS-RPT-073 Базовый замер KPI",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-005",
-      "tests": ["TC-CORE-017", "TC-CORE-018", "TC-CORE-019"],
-      "fmSection": "3.7",
-      "tzObject": "Документ.ЭкстренноеСогласование",
+      "findingId": "BIZ-012",
+      "description": "ELMA — единая точка отказа; резервный режим (fallback)",
+      "severity": "MEDIUM",
+      "tests": ["TC-025", "TC-026", "TC-027"],
+      "fmSection": "п. 3.13 (резервный режим)",
+      "tzObject": "РегламентноеЗадание.МониторингELMA",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-007",
-      "tests": ["TC-CORE-020", "TC-CORE-021", "TC-CORE-022"],
-      "fmSection": "3.8",
-      "tzObject": "Документ.ЗаказКлиента",
+      "findingId": "LS-BR-075",
+      "description": "Автотриггеры пересчёта НПСС (курс ЦБ > 5% / закупочная цена > 15%)",
+      "severity": "N/A",
+      "tests": ["TC-034", "TC-035"],
+      "fmSection": "п. 3.9 (НПСС), Раздел 6 (LS-BR-075)",
+      "tzObject": "РегистрСведений.НормативнаяПлановаяСебестоимость",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-008",
-      "tests": ["TC-CORE-033"],
-      "fmSection": "3.5",
-      "tzObject": "Обработка.ИнтерактивныйПересчет",
+      "findingId": "CrossControl",
+      "description": "Перекрёстный контроль шкал при изменении плана ЛС (п. 3.15) — НОВОЕ v1.0.4",
+      "severity": "N/A",
+      "tests": ["TC-021", "TC-022", "TC-023", "TC-024", "TC-054"],
+      "fmSection": "п. 3.15",
+      "tzObject": "РегламентноеЗадание.ПерекрёстныйКонтрольШкал",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-010",
-      "tests": ["TC-CORE-037"],
-      "fmSection": "3.17",
-      "tzObject": "Документ.ЗаказКлиента",
+      "findingId": "IterationLimit",
+      "description": "Лимит итераций корректировки цены — не более 5 (п. 3.5.1) — НОВОЕ v1.0.4",
+      "severity": "N/A",
+      "tests": ["TC-017", "TC-018", "TC-019", "TC-052"],
+      "fmSection": "п. 3.5.1",
+      "tzObject": "РегистрСведений.ИтерацииКорректировкиЦены",
       "status": "covered"
     },
     {
-      "findingId": "UX-ROLE-013",
-      "tests": ["TC-CORE-024"],
-      "fmSection": "3.4",
-      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "findingId": "LS-RPT-072",
+      "description": "Отчёт нагрузки согласующих: порог 30 (перелив) + порог 50 (лимит) — НОВОЕ v1.0.4",
+      "severity": "N/A",
+      "tests": ["TC-031"],
+      "fmSection": "Раздел 6 (LS-RPT-072)",
+      "tzObject": "LS-RPT-072",
       "status": "covered"
     },
     {
-      "findingId": "UX-APPROVER-001",
-      "tests": ["TC-EXT-010", "TC-EXT-011"],
-      "fmSection": "3.4",
-      "tzObject": "Документ.ЗаявкаНаСогласование",
+      "findingId": "LS-RPT-073",
+      "description": "Базовый замер KPI перед пилотом — НОВОЕ v1.0.4",
+      "severity": "N/A",
+      "tests": ["TC-032", "TC-062"],
+      "fmSection": "Раздел 6 (LS-RPT-073), п.5",
+      "tzObject": "LS-RPT-073",
       "status": "covered"
     },
     {
-      "findingId": "UX-APPROVER-002",
-      "tests": ["TC-EXT-005", "TC-EXT-006"],
-      "fmSection": "3.6",
-      "tzObject": "Документ.ЗаявкаНаСогласование",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-003",
-      "tests": ["TC-EXT-033"],
-      "fmSection": "3.6",
-      "tzObject": "Обработка.ДашбордСогласующего",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-004",
-      "tests": ["TC-EXT-012"],
-      "fmSection": "3.11",
-      "tzObject": "Документ.ЗаявкаНаСогласование",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-005",
-      "tests": ["TC-EXT-013"],
-      "fmSection": "3.8",
-      "tzObject": "Обработка.АрбитражДиректораДРП",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-006",
-      "tests": ["TC-EXT-014"],
-      "fmSection": "3.6",
-      "tzObject": "Документ.ЗаявкаНаСогласование",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-007",
-      "tests": ["TC-EXT-015"],
-      "fmSection": "3.7",
-      "tzObject": "Документ.ЭкстренноеСогласование",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-008",
-      "tests": ["TC-EXT-023", "TC-EXT-024"],
-      "fmSection": "3.18",
-      "tzObject": "Справочник.СтратегическиеКлиенты",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-009",
-      "tests": ["TC-EXT-025"],
-      "fmSection": "3.12, 3.18",
-      "tzObject": "Документ.ЗакрытиеЛС",
-      "status": "covered"
-    },
-    {
-      "findingId": "UX-APPROVER-010",
-      "tests": ["TC-EXT-017", "TC-EXT-018"],
-      "fmSection": "3.15",
-      "tzObject": "РегистрСведений.АктуальностьНПСС",
+      "findingId": "LS-RPT-074",
+      "description": "Промежуточный отчёт пилота (порог 50% игнорирования) — НОВОЕ v1.0.4",
+      "severity": "N/A",
+      "tests": ["TC-033"],
+      "fmSection": "Раздел 6 (LS-RPT-074), п.5",
+      "tzObject": "LS-RPT-074",
       "status": "covered"
     }
   ],
   "summary": {
-    "totalFindings": 27,
+    "totalFindings": 30,
     "covered": 27,
+    "not_applicable": 3,
     "uncovered": 0,
-    "totalTests": 65,
+    "totalTests": 72,
     "coveragePercent": 100,
-    "notes": "Все 9 бизнес-вопросов аудита (B1-B9) и все 17 UX-находок CRITICAL/HIGH/MEDIUM покрыты тестами. 4 gap-теста документируют неоднозначности ФМ, требующие решения до разработки."
+    "newInV104": 6,
+    "newTestsForAuditFindings": 8,
+    "notes": "Все 4 CRITICAL/HIGH findings аудита v1.0.4 покрыты. 6 новых требований v1.0.4 полностью покрыты (перекрёстный контроль, агрег. лимиты, ELMA fallback, нагрузка согласующих, итерации корректировки, LS-BR-075). 3 MED-002..004 — стилистические ошибки, не требуют функциональных тест-кейсов (not_applicable)."
   }
 }
