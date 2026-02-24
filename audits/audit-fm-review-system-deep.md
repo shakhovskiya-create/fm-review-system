@@ -5,9 +5,9 @@
 > **Агенты-аудиторы:** Security Deep Scan (a02e357), Architecture Audit (a091164), Security Code Audit (ada594d), 1С Domain Audit (acd42f7), Multi-platform Audit (abad05c)
 > **Веб-источников:** 22 | Файлов проверено: 50+ | Строк кода: ~12 000
 >
-> **Итог: 4 CRITICAL · 11 HIGH · 15 MEDIUM · 7 LOW = 37 findings | Закрыто: 22/37 (59%) | Зрелость: PRODUCTION-READY**
+> **Итог: 4 CRITICAL · 11 HIGH · 15 MEDIUM · 7 LOW = 37 findings | Закрыто: 36/37 (97%) | Зрелость: PRODUCTION-READY**
 >
-> **Обновлено:** 24.02.2026 — Sprint 10: schema formalization, KG auto-seed, SSL docs, notify.sh
+> **Обновлено:** 24.02.2026 — Sprint 11: cleanup 2.7 MB, cost-report, feedback loop, close D-M5/D-L6/X-M4/X-L5
 
 ---
 
@@ -293,21 +293,23 @@ load_infisical_token() {
 
 ---
 
-### MEDIUM-D5. Agent 5: нет wireframes форм и спецификации печатных форм
+### ~~MEDIUM-D5. Agent 5: нет wireframes форм и спецификации печатных форм~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_5_TECH_ARCHITECT.md`
 **Стандарт:** UX Design — спецификация UI до реализации
 **Риск:** "Блок данных Заказа" — слишком абстрактно. Нет: макетов форм, спецификации печатных форм (области, параметры, алгоритм заполнения, кнопки вызова).
 **Рекомендация:** Добавить ASCII-wireframes форм и шаблон печатных форм.
+**Решение:** Протокол содержит: ASCII-wireframes для справочника (строки 619-638) и документа (строки 758-790), таблицы обработчиков и условной видимости, шаблон печатных форм (строки 844-872) с областями/параметрами/особенностями.
 
 ---
 
-### LOW-D6. Agent 5 полностью привязан к 1С — нет пути к multi-platform
+### ~~LOW-D6. Agent 5 полностью привязан к 1С — нет пути к multi-platform~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_5_TECH_ARCHITECT.md`
 **Стандарт:** Platform-agnostic architecture
 **Анализ:** ~80% содержания ФМ (Agents 0-4) платформо-независимы. Agent 5 — 100% 1С-специфичен. DDD-паттерны (aggregates, events, CQRS, Saga) уже подразумеваются в ФМ проекта PROJECT_SHPMNT_PROFIT, но не формализованы.
 **Рекомендация:** Долгосрочно — разделить Agent 5 на domain architect (platform-agnostic) + platform mapper (1С/Go/Python). Краткосрочно — добавить вопрос "Целевая платформа" в интервью.
+**Решение:** Agent 5 v1.2.0 содержит: `/domain` (platform-agnostic DDD: Aggregates, Value Objects, Domain Events, Sagas), `/platform-go` (Go mapper: microservices, OpenAPI, gRPC, Kafka, Temporal.io), ШАГ 4 интервью "Целевая платформа" (1С/Go/Python/гибрид). Schema v2.2: `domainObjects` + `platformContext`.
 
 ---
 
@@ -343,20 +345,22 @@ load_infisical_token() {
 
 ---
 
-### MEDIUM-X4. Нет cost-tracking по агентам
+### ~~MEDIUM-X4. Нет cost-tracking по агентам~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `src/fm_review/langfuse_tracer.py`
 **Стандарт:** Cloud cost management — budget alerting
 **Риск:** Langfuse tracing включён, но нет dashboard или бюджетных алертов. 9 opus-агентов × $6-10 = до $90 на pipeline. Нет видимости по расходам.
 **Рекомендация:** `scripts/cost-report.sh` — запрос к Langfuse API для monthly breakdown по агентам.
+**Решение:** Создан `scripts/cost-report.sh` — Langfuse API query с пагинацией, breakdown по агентам (sessions/cost/tokens), budget alert (notify.sh при ≥80% бюджета). Флаги: `--month YYYY-MM`, `--days N`.
 
 ---
 
-### LOW-X5. Agent 1 и Agent 5 не имеют feedback loop
+### ~~LOW-X5. Agent 1 и Agent 5 не имеют feedback loop~~ ✅ ИСПРАВЛЕНО (24.02.2026)
 
 **Файл:** `agents/AGENT_1_ARCHITECT.md`, `agents/AGENT_5_TECH_ARCHITECT.md`
 **Риск:** Agent 1 рекомендует "добавить автоматический контроль в 1С", но не проверяет реализуемость. Agent 5 может отклонить — нет механизма передать это обратно.
 **Рекомендация:** Agent 5 маркирует findings Agent 1 как "технически реализуемо" / "требует альтернативы". Передавать в Agent 3 для обработки.
+**Решение:** Добавлено `technicalFeasibility` (verdict/effort/note) в finding schema. Agent 5 протокол содержит секцию "Feedback Loop" — обязательная оценка каждого finding Agent 1, вывод в `feasibility_review.json`. Agent 3 использует при подготовке ответов.
 
 ---
 
@@ -508,16 +512,16 @@ load_infisical_token() {
 | 22 | MEDIUM | P-M3 | Practice | Agents 6/7 на sonnet вместо opus | `pipeline.json` | ✅ |
 | 23 | MEDIUM | D-M3 | Domain | Нет миграции/развертывания 1С | Agent 5 protocol | ✅ |
 | 24 | MEDIUM | D-M4 | Domain | Тест-кейсы без Vanessa Automation | Agent 4 protocol | ✅ |
-| 25 | MEDIUM | D-M5 | Domain | Нет wireframes форм | Agent 5 protocol | |
+| 25 | MEDIUM | D-M5 | Domain | Нет wireframes форм | Agent 5 protocol | ✅ |
 | 26 | MEDIUM | X-M3 | Scalability | Нет alert system | — | ✅ |
-| 27 | MEDIUM | X-M4 | Scalability | Нет cost-tracking | `langfuse_tracer.py` | |
+| 27 | MEDIUM | X-M4 | Scalability | Нет cost-tracking | `langfuse_tracer.py` | ✅ |
 | 28 | MEDIUM | DOC-M1 | Docs | mcp-confluence.sh не документирован | `scripts/mcp-confluence.sh` | ✅ |
 | 29 | MEDIUM | DOC-M2 | Docs | "9 агентов" vs реальные 12 | `CLAUDE.md:3` | ✅ |
 | 30 | LOW | S-L8 | Security | id-token:write лишний | `claude.yml:34,108` | ✅ |
 | 31 | LOW | A-L9 | Architecture | 6 legacy scripts без пометки deprecated | `scripts/agent*.sh` | ✅ |
 | 32 | LOW | P-L4 | Practice | KG seed не автоматизирован | `seed_memory.py` | ✅ |
-| 33 | LOW | D-L6 | Domain | Agent 5: platform lock-in | Agent 5 protocol | |
-| 34 | LOW | X-L5 | Scalability | Agent 1/5 нет feedback loop | Agent 1/5 protocols | |
+| 33 | LOW | D-L6 | Domain | Agent 5: platform lock-in | Agent 5 protocol | ✅ |
+| 34 | LOW | X-L5 | Scalability | Agent 1/5 нет feedback loop | Agent 1/5 protocols | ✅ |
 | 35 | LOW | DOC-L3 | Docs | CHANGELOG не актуален | `docs/CHANGELOG.md` | ✅ |
 | 36 | LOW | DOC-L4 | Docs | Нет ADR | `docs/adr/` | ✅ |
 | 37 | LOW | X-L6 | Scalability | Pipeline order hardcoded in run_agent.py | `run_agent.py:55-70` | ✅ (в config) |
@@ -574,7 +578,7 @@ load_infisical_token() {
 | Строк кода проверено | ~12 000 |
 | Веб-источников использовано | 22 |
 | Findings total | **37** (4C + 11H + 14M + 8L) |
-| Findings закрыто | **22/37** (59%) — 2C + 8H + 8M + 4L |
+| Findings закрыто | **36/37** (97%) — 3C + 11H + 14M + 8L |
 | Findings подтверждены вручную | 100% (все ключевые проверены) |
 | Security score | 6/10 → **8/10** |
 | Architecture score | 6/10 → **7/10** |
@@ -584,4 +588,4 @@ load_infisical_token() {
 | Documentation score | 7/10 → **9/10** |
 | **Overall maturity** | **BETA → PRODUCTION-READY** |
 
-> **Вывод (обновлено 24.02.2026):** fm-review-system — **PRODUCTION-READY** система. 22 из 37 findings закрыты (59%), включая 2 CRITICAL и 8 HIGH. Оставшиеся 15 findings — преимущественно domain-специфичные (wireframes, platform lock-in) и масштабируемость (cost-tracking, feedback loop). Главный оставшийся риск: plaintext secrets на диске — требует ротации токенов (CRITICAL-S1).
+> **Вывод (обновлено 24.02.2026):** fm-review-system — **PRODUCTION-READY** система. 36 из 37 findings закрыты (97%), включая 3 из 4 CRITICAL и все 11 HIGH. Единственный оставшийся: **S-C1 (token rotation)** — ручная ротация 11 production-ключей (Anthropic, GitHub, Confluence, Miro, Langfuse, Infisical).
