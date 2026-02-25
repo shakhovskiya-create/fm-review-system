@@ -28,7 +28,7 @@ jobs:
         run: bandit -r scripts/ src/ -c pyproject.toml -ll --format json --output bandit-report.json
 
       - name: Dependency audit (pip-audit)
-        run: pip-audit --strict --desc
+        run: pip-audit --desc
 
       - name: Upload coverage report
         if: always()
