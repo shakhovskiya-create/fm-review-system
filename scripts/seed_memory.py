@@ -121,6 +121,27 @@ AGENTS = [
         ],
     },
     {
+        "name": "Agent9_SE_Go",
+        "entityType": "agent",
+        "observations": [
+            "Senior Engineer for Go + React projects",
+            "Commands: /review",
+            "Architecture review, code review, test review, performance review",
+            "Has Playwright and Agentation MCP tools for UI verification",
+            "File: agents/AGENT_9_SE_GO.md",
+        ],
+    },
+    {
+        "name": "Agent10_SE_1C",
+        "entityType": "agent",
+        "observations": [
+            "Senior Engineer for 1C (UT/ERP/KA) projects",
+            "Commands: /review",
+            "Architecture review, code review, Vanessa Automation tests, performance review",
+            "File: agents/AGENT_10_SE_1C.md",
+        ],
+    },
+    {
         "name": "Orchestrator_Helper",
         "entityType": "agent",
         "observations": [
@@ -133,6 +154,426 @@ AGENTS = [
             "Has Episodic Memory access (subagents do not)",
         ],
     },
+]
+
+# ── Scripts ────────────────────────────────────────────────────
+SCRIPTS = [
+    {"name": "run_agent_py", "entityType": "script", "observations": [
+        "Main entry: scripts/run_agent.py",
+        "Claude Code SDK-based agent executor",
+        "Supports: --pipeline, --agent, --resume, --parallel, --dry-run",
+        "Per-agent budgets, prompt injection protection, Langfuse tracing",
+    ]},
+    {"name": "publish_to_confluence_py", "entityType": "script", "observations": [
+        "scripts/publish_to_confluence.py",
+        "Two modes: --from-file (XHTML update) or .docx import (legacy)",
+        "Uses ConfluenceClient (lock + backup + retry)",
+        "XHTML sanitizer before publishing",
+    ]},
+    {"name": "export_from_confluence_py", "entityType": "script", "observations": [
+        "scripts/export_from_confluence.py",
+        "Exports Confluence page to local XHTML file",
+        "Used by agents to read FM for offline processing",
+    ]},
+    {"name": "quality_gate_sh", "entityType": "script", "observations": [
+        "scripts/quality_gate.sh",
+        "Mandatory before Agent 7 publishing",
+        "Checks: _summary.json exists, findings covered, no CRITICAL unresolved",
+        "Exit codes: 0=ready, 1=critical block, 2=warnings",
+    ]},
+    {"name": "gh_tasks_sh", "entityType": "script", "observations": [
+        "scripts/gh-tasks.sh",
+        "CLI wrapper for GitHub Issues: create/start/done/block/list/sprint",
+        "Enforces --body on create, --comment on done (DoD)",
+        "Artifact cross-check: warns if files from git diff not mentioned in comment",
+    ]},
+    {"name": "orchestrate_sh", "entityType": "script", "observations": [
+        "scripts/orchestrate.sh",
+        "Interactive menu (14 options) for pipeline management",
+        "Includes resume, secret check, agent selection",
+    ]},
+    {"name": "load_secrets_sh", "entityType": "script", "observations": [
+        "scripts/load-secrets.sh",
+        "Priority: Infisical Universal Auth -> keyring -> .env",
+        "Sets 7+ env vars: CONFLUENCE_TOKEN, ANTHROPIC_API_KEY, etc.",
+    ]},
+    {"name": "check_secrets_sh", "entityType": "script", "observations": [
+        "scripts/check-secrets.sh --verbose",
+        "Verifies all secrets available from configured sources",
+    ]},
+    {"name": "notify_sh", "entityType": "script", "observations": [
+        "scripts/notify.sh",
+        "Alert system: Slack webhook + email + JSONL log",
+        "Levels: INFO/WARN/ERROR/CRITICAL",
+    ]},
+    {"name": "cost_report_sh", "entityType": "script", "observations": [
+        "scripts/cost-report.sh",
+        "Monthly cost breakdown by agent via Langfuse API",
+        "Budget alerts when threshold exceeded",
+    ]},
+    {"name": "tg_report_py", "entityType": "script", "observations": [
+        "scripts/tg-report.py",
+        "Telegram cost report: --yesterday, --today, --days N, --month",
+    ]},
+    {"name": "seed_memory_py", "entityType": "script", "observations": [
+        "scripts/seed_memory.py",
+        "Populates Knowledge Graph (.claude-memory/memory.jsonl)",
+        "Discovers projects, agents, relations automatically",
+    ]},
+]
+
+# ── Hooks ──────────────────────────────────────────────────────
+HOOKS = [
+    {"name": "hook_inject_project_context", "entityType": "hook", "observations": [
+        "SessionStart hook: .claude/hooks/inject-project-context.sh",
+        "Injects active projects, KG entity count, GitHub Issues into session",
+    ]},
+    {"name": "hook_subagent_context", "entityType": "hook", "observations": [
+        "SubagentStart hook: .claude/hooks/subagent-context.sh",
+        "Injects project context + assigned GitHub Issues into subagent",
+        "Writes .current-subagent marker for guard hooks",
+    ]},
+    {"name": "hook_guard_confluence_write", "entityType": "hook", "observations": [
+        "PreToolUse hook: .claude/hooks/guard-confluence-write.sh",
+        "Blocks Bash-based Confluence writes (curl PUT/POST)",
+        "All writes must go through publish_to_confluence.py",
+    ]},
+    {"name": "hook_guard_mcp_confluence", "entityType": "hook", "observations": [
+        "PreToolUse hook: .claude/hooks/guard-mcp-confluence-write.sh",
+        "Blocks MCP confluence_update_page/delete_page",
+        "Exception: Agent 7 (Publisher) is allowed",
+    ]},
+    {"name": "hook_guard_destructive_bash", "entityType": "hook", "observations": [
+        "PreToolUse hook: .claude/hooks/guard-destructive-bash.sh",
+        "Blocks: rm -rf system dirs, git push --force main, git reset --hard, git clean -f",
+        "Uses CMD_POS anchor to avoid false positives in strings",
+    ]},
+    {"name": "hook_guard_agent_write_scope", "entityType": "hook", "observations": [
+        "PreToolUse hook: .claude/hooks/guard-agent-write-scope.sh",
+        "Ensures agents write only to their own AGENT_X_* directory",
+        "Orchestrator (helper-architect) exempt",
+    ]},
+    {"name": "hook_block_secrets", "entityType": "hook", "observations": [
+        "PreToolUse hook: .claude/hooks/block-secrets.sh",
+        "Blocks Write/Edit to .env, credentials, key files",
+    ]},
+    {"name": "hook_validate_summary", "entityType": "hook", "observations": [
+        "SubagentStop hook: .claude/hooks/validate-summary.sh",
+        "Checks _summary.json created and valid after agent run",
+        "Reminds DoD template for unclosed issues",
+    ]},
+    {"name": "hook_validate_xhtml_style", "entityType": "hook", "observations": [
+        "PostToolUse hook: .claude/hooks/validate-xhtml-style.sh",
+        "Checks XHTML output for style compliance (header colors, etc.)",
+    ]},
+    {"name": "hook_langfuse_trace", "entityType": "hook", "observations": [
+        "Stop hook: .claude/hooks/langfuse-trace.sh",
+        "Sends session trace to Langfuse for observability",
+    ]},
+]
+
+# ── MCP Servers ────────────────────────────────────────────────
+MCP_SERVERS = [
+    {"name": "mcp_confluence", "entityType": "mcp_server", "observations": [
+        "Confluence MCP server via scripts/mcp-confluence.sh",
+        "Tools: get_page, update_page, create_page, search, comments, labels",
+        "Secrets loaded from Infisical",
+    ]},
+    {"name": "mcp_memory", "entityType": "mcp_server", "observations": [
+        "Knowledge Graph: @modelcontextprotocol/server-memory",
+        "Data: .claude-memory/memory.jsonl",
+        "Tools: search_nodes, create_entities, add_observations, create_relations",
+    ]},
+    {"name": "mcp_github", "entityType": "mcp_server", "observations": [
+        "GitHub MCP server via scripts/mcp-github.sh",
+        "Tools: issues, PRs, code search, repository management",
+    ]},
+    {"name": "mcp_langfuse", "entityType": "mcp_server", "observations": [
+        "Langfuse observability MCP via scripts/mcp-langfuse.sh",
+        "Tools: get_traces, get_observations",
+    ]},
+    {"name": "mcp_playwright", "entityType": "mcp_server", "observations": [
+        "Playwright MCP: @playwright/mcp (headless Chromium)",
+        "Used by Agent 9 for runtime UI verification",
+    ]},
+    {"name": "mcp_agentation", "entityType": "mcp_server", "observations": [
+        "Agentation MCP: visual React UI annotation",
+        "9 tools for Agent 9 workflow",
+    ]},
+]
+
+# ── Skills ─────────────────────────────────────────────────────
+SKILLS = [
+    {"name": "skill_evolve", "entityType": "skill", "observations": [
+        "/evolve: Analyzes .patches/ and updates agent instructions",
+        "Self-improvement loop for the system",
+    ]},
+    {"name": "skill_quality_gate", "entityType": "skill", "observations": [
+        "Pre-loaded for Agent 7: runs quality_gate.sh before publishing",
+    ]},
+    {"name": "skill_fm_audit", "entityType": "skill", "observations": [
+        "Pre-loaded for Agent 1: FM audit checklist",
+    ]},
+    {"name": "skill_test", "entityType": "skill", "observations": [
+        "/test: runs pytest tests/ -v --tb=short",
+    ]},
+    {"name": "skill_run_pipeline", "entityType": "skill", "observations": [
+        "/run-pipeline: runs scripts/run_agent.py --pipeline --project $ARGS",
+    ]},
+    {"name": "skill_run_agent", "entityType": "skill", "observations": [
+        "/run-agent: runs scripts/run_agent.py --agent $0 --project $1 --command $2",
+    ]},
+]
+
+# ── Key Modules ────────────────────────────────────────────────
+MODULES = [
+    {"name": "confluence_utils", "entityType": "module", "observations": [
+        "src/fm_review/confluence_utils.py",
+        "ConfluenceClient: lock + backup + retry + audit log",
+        "Shared: _get_page_id(), _make_ssl_context(), create_client_from_env()",
+    ]},
+    {"name": "xhtml_sanitizer", "entityType": "module", "observations": [
+        "src/fm_review/xhtml_sanitizer.py",
+        "sanitize_xhtml(): removes scripts, event handlers, js URLs",
+        "Checks: forbidden tags, blue headers, unknown macros, well-formedness",
+    ]},
+    {"name": "pipeline_tracer", "entityType": "module", "observations": [
+        "src/fm_review/pipeline_tracer.py",
+        "AgentResult dataclass: agent_id, status, cost_usd, duration, etc.",
+        "PipelineTracer: Langfuse tracing for pipeline runs",
+    ]},
+    {"name": "langfuse_tracer", "entityType": "module", "observations": [
+        "src/fm_review/langfuse_tracer.py",
+        "Stop hook tracer: sends session data to Langfuse",
+    ]},
+]
+
+# ── Architectural Decisions ────────────────────────────────────
+DECISIONS = [
+    {"name": "decision_confluence_only", "entityType": "decision", "observations": [
+        "ADR: Confluence is the single source of truth for FM",
+        "Rationale: business users read in Confluence, not in git",
+        "Consequence: all agents read from Confluence, only Agent 7 writes",
+    ]},
+    {"name": "decision_lock_backup_retry", "entityType": "decision", "observations": [
+        "ADR: All Confluence writes via lock + backup + retry (FC-01)",
+        "Prevents concurrent write corruption, enables rollback",
+    ]},
+    {"name": "decision_infisical_secrets", "entityType": "decision", "observations": [
+        "ADR: Infisical Universal Auth for secrets management",
+        "Priority: Infisical -> keyring -> .env fallback",
+        "Machine Identity: fm-review-pipeline, TTL 10 years",
+    ]},
+    {"name": "decision_no_ai_mentions", "entityType": "decision", "observations": [
+        "ADR: Author always Shahovsky A.S., never mention AI/Agent/Claude/GPT",
+        "Business requirement: FM appears human-authored to stakeholders",
+    ]},
+    {"name": "decision_quality_gate", "entityType": "decision", "observations": [
+        "ADR: Mandatory Quality Gate before publishing to Confluence",
+        "Checks: summary exists, CRITICAL findings addressed, tests pass",
+    ]},
+    {"name": "decision_github_issues", "entityType": "decision", "observations": [
+        "ADR: GitHub Issues as persistent task tracking for agents",
+        "Labels: agent:*, sprint:*, status:*, priority:*, type:*",
+        "DoD enforcement: --comment required on close",
+    ]},
+    {"name": "decision_dod_enforcement", "entityType": "decision", "observations": [
+        "ADR: Definition of Done checklist mandatory for every issue closure",
+        "8 points: tests, regression, AC, artifacts, docs, debt",
+        "Enforced by gh-tasks.sh: rejects close without comment",
+    ]},
+]
+
+# ── Rules ──────────────────────────────────────────────────────
+RULES = [
+    {"name": "rule_smoke_testing", "entityType": "rule", "observations": [
+        ".claude/rules/smoke-testing.md",
+        "Mandatory smoke tests before delivery: pytest, scripts, secrets, CI",
+        "Path-scoped: scripts/**, .claude/hooks/**, .github/workflows/**",
+    ]},
+    {"name": "rule_dod", "entityType": "rule", "observations": [
+        ".claude/rules/dod.md",
+        "Definition of Done: 8 mandatory points for issue closure",
+        "Path-scoped: scripts/gh-tasks.sh, .claude/agents/**",
+    ]},
+    {"name": "rule_subagents_registry", "entityType": "rule", "observations": [
+        ".claude/rules/subagents-registry.md",
+        "12 agents: natural language routing table",
+        "Maps user phrases to agent + command",
+    ]},
+    {"name": "rule_project_file_map", "entityType": "rule", "observations": [
+        ".claude/rules/project-file-map.md",
+        "Complete file map of the system: scripts, modules, hooks, MCP, skills",
+    ]},
+    {"name": "rule_confluence_mcp", "entityType": "rule", "observations": [
+        ".claude/rules/confluence-mcp.md",
+        "MCP tools table: which agent can use which Confluence tool",
+    ]},
+    {"name": "rule_agent_workflow", "entityType": "rule", "observations": [
+        ".claude/rules/agent-workflow.md",
+        "Plan -> Implement -> Fix cycle, deviation rules, GitHub Issues workflow",
+    ]},
+    {"name": "rule_knowledge_graph", "entityType": "rule", "observations": [
+        ".claude/rules/knowledge-graph.md",
+        "KG + Episodic Memory usage: what to record, when to search",
+    ]},
+    {"name": "rule_pipeline", "entityType": "rule", "observations": [
+        ".claude/rules/pipeline.md",
+        "Pipeline stages, budgets, resume, parallel execution details",
+    ]},
+    {"name": "rule_project_structure", "entityType": "rule", "observations": [
+        ".claude/rules/project-structure.md",
+        "Template for new projects, active projects list",
+    ]},
+    {"name": "rule_hooks_inventory", "entityType": "rule", "observations": [
+        ".claude/rules/hooks-inventory.md",
+        "All hooks: trigger, script, matcher, purpose",
+    ]},
+]
+
+# ── CI/CD ──────────────────────────────────────────────────────
+CICD = [
+    {"name": "ci_pipeline", "entityType": "ci_cd", "observations": [
+        ".github/workflows/ci.yml",
+        "Steps: ruff -> ShellCheck -> pytest+coverage -> bandit -> pip-audit",
+        "Coverage threshold: 50% (actual: 74%)",
+        "Runs on push to main and PRs",
+    ]},
+    {"name": "ci_claude_review", "entityType": "ci_cd", "observations": [
+        ".github/workflows/claude.yml",
+        "Claude-powered PR review workflow",
+    ]},
+    {"name": "ci_security_review", "entityType": "ci_cd", "observations": [
+        ".github/workflows/security-review.yml",
+        "Security scanning workflow for PRs",
+    ]},
+]
+
+# ── Key Documents ──────────────────────────────────────────────
+DOCUMENTS = [
+    {"name": "doc_claude_md", "entityType": "document", "observations": [
+        "CLAUDE.md: main project instructions (~55 lines)",
+        "Orchestrator role, routing table, pipeline, secrets, business cycle",
+    ]},
+    {"name": "doc_common_rules", "entityType": "document", "observations": [
+        "agents/COMMON_RULES.md: compact agent rules (~47 lines)",
+        "26 rules covering communication, Confluence, format, governance",
+    ]},
+    {"name": "doc_agent_protocol", "entityType": "document", "observations": [
+        "AGENT_PROTOCOL.md: formal agent behavior protocol",
+    ]},
+    {"name": "doc_handoff", "entityType": "document", "observations": [
+        "HANDOFF.md: session-to-session context handoff",
+    ]},
+    {"name": "doc_changelog", "entityType": "document", "observations": [
+        "docs/CHANGELOG.md: system change history",
+    ]},
+    {"name": "doc_confluence_template", "entityType": "document", "observations": [
+        "docs/CONFLUENCE_TEMPLATE.md: XHTML template for FM pages",
+    ]},
+    {"name": "doc_contract_confluence", "entityType": "document", "observations": [
+        "docs/CONTRACT_CONFLUENCE_FM.md: Confluence integration contract",
+    ]},
+    {"name": "doc_model_selection", "entityType": "document", "observations": [
+        "docs/MODEL_SELECTION.md: model and budget selection per agent",
+    ]},
+    {"name": "doc_agent_template", "entityType": "document", "observations": [
+        "docs/AGENT_TEMPLATE.md: template for creating new agents",
+    ]},
+    {"name": "doc_bootstrap_prompt", "entityType": "document", "observations": [
+        "docs/ORCHESTRATOR_BOOTSTRAP_PROMPT.md: initial system prompt",
+    ]},
+]
+
+# ── Infrastructure ─────────────────────────────────────────────
+INFRA = [
+    {"name": "infra_langfuse", "entityType": "infrastructure", "observations": [
+        "infra/langfuse/: self-hosted Langfuse v3 (Docker Compose)",
+        "Observability: traces, costs, agent performance",
+    ]},
+    {"name": "infra_infisical", "entityType": "infrastructure", "observations": [
+        "Infisical hosted: https://infisical.shakhoff.com",
+        "Machine Identity: fm-review-pipeline (Universal Auth, TTL 10 years)",
+        "infra/infisical/.env.machine-identity (in .gitignore)",
+    ]},
+    {"name": "infra_tg_bot", "entityType": "infrastructure", "observations": [
+        "scripts/tg-bot.py + infra/fm-tg-bot.service (systemd)",
+        "Telegram bot: responds to /report in chat",
+    ]},
+    {"name": "infra_cron", "entityType": "infrastructure", "observations": [
+        "scripts/cron-tg-report.sh: 9:00 yesterday report, 18:00 today report",
+    ]},
+    {"name": "schema_agent_contracts", "entityType": "schema", "observations": [
+        "schemas/agent-contracts.json (v2.2)",
+        "Multi-platform support, _summary.json and _findings.json schemas",
+    ]},
+    {"name": "infisical_json", "entityType": "config", "observations": [
+        "infisical.json: project config for Infisical CLI",
+    ]},
+    {"name": "pyproject_toml", "entityType": "config", "observations": [
+        "pyproject.toml: Python project config",
+        "Dependencies, ruff config, pytest config, bandit config",
+    ]},
+]
+
+# ── Patch Patterns ─────────────────────────────────────────────
+PATCHES = [
+    {"name": "patch_boundary_conditions", "entityType": "patch_pattern", "observations": [
+        "Pattern: business rules lack boundary conditions (0, negative, max)",
+        "Agent 1 must always check for edge cases",
+    ]},
+    {"name": "patch_broken_crossref", "entityType": "patch_pattern", "observations": [
+        "Pattern: section A references B but B doesn't reference A",
+        "Cross-references must be bidirectional",
+    ]},
+    {"name": "patch_misleading_name", "entityType": "patch_pattern", "observations": [
+        "Pattern: field/entity name doesn't match actual semantics",
+        "Names must be self-explanatory",
+    ]},
+    {"name": "patch_note_contradiction", "entityType": "patch_pattern", "observations": [
+        "Pattern: exception note contradicts the main business rule",
+        "Notes must be consistent with rules",
+    ]},
+    {"name": "patch_missing_terminal_state", "entityType": "patch_pattern", "observations": [
+        "Pattern: approval workflow lacks reject/cancel/timeout states",
+        "All workflows must define terminal states",
+    ]},
+    {"name": "patch_untestable_approval", "entityType": "patch_pattern", "observations": [
+        "Pattern: approval flow has no max iteration or timeout",
+        "Must define exit conditions for approval cycles",
+    ]},
+]
+
+# ── Business Concepts ──────────────────────────────────────────
+BUSINESS = [
+    {"name": "concept_fm", "entityType": "concept", "observations": [
+        "Functional Model (FM): main deliverable describing business process",
+        "Structure: meta, code system, rules, tables, history, warnings",
+        "Versioned: X.Y.Z, stored in Confluence",
+    ]},
+    {"name": "concept_business_review", "entityType": "concept", "observations": [
+        "Business review cycle: DRAFT -> PUBLISHED -> BUSINESS REVIEW -> REWORK -> APPROVED",
+        "Max 5 iterations, timeout 7 business days",
+        "Agent 2 does preventive critique before business sees it",
+    ]},
+    {"name": "concept_1c_platform", "entityType": "concept", "observations": [
+        "1C:Enterprise platform: UT (Trade Management), ERP, KA",
+        "Extension-based customization, Vanessa Automation for testing",
+    ]},
+    {"name": "concept_code_system", "entityType": "concept", "observations": [
+        "Code system in FM: prefixed identifiers (LS-BR-XXX, LS-DOC-XXX, etc.)",
+        "Each code has unique prefix per domain (BR=business rule, DOC=document)",
+    ]},
+    {"name": "concept_quality_gate", "entityType": "concept", "observations": [
+        "Quality Gate: mandatory check before publishing FM to Confluence",
+        "Ensures all CRITICAL findings addressed, tests pass, summaries valid",
+        "Exit codes: 0=ready, 1=block, 2=warnings (can skip with --reason)",
+    ]},
+    {"name": "concept_pipeline_stages", "entityType": "concept", "observations": [
+        "Pipeline: Agent 1 -> [2,4] -> 5 -> 3 -> QualityGate -> 7 -> [8,6]",
+        "Parallel stages: [2,4] and [8,6]",
+        "Per-agent budgets, resume support, Langfuse tracing",
+    ]},
 ]
 
 # ── Pipeline stages ────────────────────────────────────────────
@@ -165,6 +606,30 @@ RELATIONS = [
     ("Orchestrator_Helper", "FM_Pipeline", "orchestrates"),
     ("Orchestrator_Helper", "Agent0_Creator", "delegates_fm_to"),
     ("Orchestrator_Helper", "Agent1_Architect", "delegates_fm_to"),
+    # Agent 9-10
+    ("Agent9_SE_Go", "FM_Pipeline", "extends"),
+    ("Agent10_SE_1C", "FM_Pipeline", "extends"),
+    # Scripts
+    ("run_agent_py", "FM_Pipeline", "executes"),
+    ("publish_to_confluence_py", "confluence_utils", "uses"),
+    ("export_from_confluence_py", "confluence_utils", "uses"),
+    ("quality_gate_sh", "FM_Pipeline", "gates"),
+    ("gh_tasks_sh", "mcp_github", "wraps"),
+    # Hooks to scripts
+    ("hook_guard_confluence_write", "publish_to_confluence_py", "enforces_use_of"),
+    ("hook_validate_summary", "quality_gate_sh", "prepares_for"),
+    # MCP to agents
+    ("mcp_confluence", "Agent7_Publisher", "used_by"),
+    ("mcp_memory", "Orchestrator_Helper", "used_by"),
+    ("mcp_playwright", "Agent9_SE_Go", "used_by"),
+    # Skills to agents
+    ("skill_quality_gate", "Agent7_Publisher", "preloaded_for"),
+    ("skill_fm_audit", "Agent1_Architect", "preloaded_for"),
+    # Decisions
+    ("decision_confluence_only", "Agent7_Publisher", "affects"),
+    ("decision_lock_backup_retry", "confluence_utils", "implemented_in"),
+    ("decision_quality_gate", "quality_gate_sh", "implemented_in"),
+    ("decision_github_issues", "gh_tasks_sh", "implemented_in"),
 ]
 
 
@@ -279,7 +744,8 @@ def main():
     reset = "--reset" in sys.argv
 
     # Collect all entities
-    entities = AGENTS + [PIPELINE]
+    entities = (AGENTS + [PIPELINE] + SCRIPTS + HOOKS + MCP_SERVERS + SKILLS
+                + MODULES + DECISIONS + RULES + CICD + DOCUMENTS + INFRA + PATCHES + BUSINESS)
     projects = discover_projects()
     entities.extend(projects)
 

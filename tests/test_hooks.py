@@ -28,6 +28,7 @@ EXPECTED_HOOKS = [
     "auto-save-context.sh",
     "precompact-save-context.sh",
     "session-log.sh",
+    "guard-agent-write-scope.sh",
 ]
 
 
@@ -208,6 +209,74 @@ class TestValidateSummary:
         os.utime(summary_file, None)
 
         result = run_hook("validate-summary.sh", env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 0
+
+
+class TestGuardAgentWriteScope:
+    """Tests for guard-agent-write-scope.sh hook."""
+
+    def test_allows_write_without_marker(self, tmp_path):
+        """No marker file = orchestrator session, allow all."""
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "projects/PROJECT_X/AGENT_1_ARCHITECT/file.md")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 0
+
+    def test_allows_agent_writing_own_dir(self, tmp_path):
+        """Agent 1 writing to AGENT_1_* should be allowed."""
+        marker = tmp_path / ".claude" / ".current-subagent"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("agent-1-architect")
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "projects/PROJECT_X/AGENT_1_ARCHITECT/report.md")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 0
+
+    def test_blocks_agent_writing_other_dir(self, tmp_path):
+        """Agent 2 writing to AGENT_1_* should be blocked."""
+        marker = tmp_path / ".claude" / ".current-subagent"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("agent-2-simulator")
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "projects/PROJECT_X/AGENT_1_ARCHITECT/report.md")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 2
+        assert "BLOCKED" in result.stderr
+
+    def test_allows_orchestrator_anywhere(self, tmp_path):
+        """helper-architect can write to any agent directory."""
+        marker = tmp_path / ".claude" / ".current-subagent"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("helper-architect")
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "projects/PROJECT_X/AGENT_1_ARCHITECT/report.md")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 0
+
+    def test_allows_non_project_writes(self, tmp_path):
+        """Agent can write to non-project paths (scripts, etc.)."""
+        marker = tmp_path / ".claude" / ".current-subagent"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("agent-1-architect")
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "scripts/some_script.py")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
+            "CLAUDE_PROJECT_DIR": str(tmp_path)
+        })
+        assert result.returncode == 0
+
+    def test_allows_project_context_writes(self, tmp_path):
+        """Agent can write PROJECT_CONTEXT.md (not in AGENT_* subdir)."""
+        marker = tmp_path / ".claude" / ".current-subagent"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("agent-1-architect")
+        stdin = json.dumps({"tool_input": {"file_path": str(tmp_path / "projects/PROJECT_X/PROJECT_CONTEXT.md")}})
+        result = run_hook("guard-agent-write-scope.sh", stdin_data=stdin, env_extra={
             "CLAUDE_PROJECT_DIR": str(tmp_path)
         })
         assert result.returncode == 0

@@ -1,3 +1,7 @@
+---
+globs: scripts/gh-tasks.sh, .claude/agents/**
+---
+
 # Definition of Done (DoD) — Universal Checklist
 
 Every GitHub Issue closed by an agent or orchestrator MUST satisfy this DoD.

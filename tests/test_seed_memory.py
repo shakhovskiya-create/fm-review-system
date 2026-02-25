@@ -14,20 +14,35 @@ sys.path.insert(0, str(SCRIPTS_DIR.parent))
 
 from scripts.seed_memory import (
     AGENTS,
+    BUSINESS,
+    CICD,
+    DECISIONS,
+    DOCUMENTS,
+    HOOKS,
+    INFRA,
+    MCP_SERVERS,
+    MODULES,
+    PATCHES,
     PIPELINE,
     PROJECT_ROOT,
     RELATIONS,
+    RULES,
+    SCRIPTS,
+    SKILLS,
     discover_projects,
     write_memory,
 )
+
+ALL_ENTITIES = (AGENTS + [PIPELINE] + SCRIPTS + HOOKS + MCP_SERVERS + SKILLS
+                + MODULES + DECISIONS + RULES + CICD + DOCUMENTS + INFRA + PATCHES + BUSINESS)
 
 
 class TestAgentDefinitions:
     """Validate AGENTS list structure."""
 
     def test_agents_defined(self):
-        """10 agents: 9 FM agents (Agent0-8) + Orchestrator_Helper."""
-        assert len(AGENTS) == 10
+        """12 agents: Agent0-8 + Agent9 (SE Go) + Agent10 (SE 1C) + Orchestrator_Helper."""
+        assert len(AGENTS) == 12
 
     def test_each_agent_has_name(self):
         for agent in AGENTS:
@@ -47,9 +62,9 @@ class TestAgentDefinitions:
         assert len(names) == len(set(names))
 
     def test_fm_agent_names_match_ids(self):
-        """FM agents (first 9) follow Agent{N}_{Name} convention."""
+        """FM agents (first 11) follow Agent{N}_{Name} convention."""
         fm_agents = [a for a in AGENTS if a["name"].startswith("Agent")]
-        assert len(fm_agents) == 9
+        assert len(fm_agents) == 11
         for i, agent in enumerate(fm_agents):
             assert agent["name"].startswith(f"Agent{i}_")
 
@@ -79,14 +94,14 @@ class TestRelations:
             assert len(rel) == 3, f"Relation {rel} should be a 3-tuple"
 
     def test_all_relation_sources_exist(self):
-        """All 'from' entities exist in AGENTS or PIPELINE."""
-        valid_names = {a["name"] for a in AGENTS} | {PIPELINE["name"]}
+        """All 'from' entities exist in ALL_ENTITIES."""
+        valid_names = {e["name"] for e in ALL_ENTITIES}
         for from_name, _, _ in RELATIONS:
             assert from_name in valid_names, f"Unknown source: {from_name}"
 
     def test_all_relation_targets_exist(self):
-        """All 'to' entities exist in AGENTS or PIPELINE."""
-        valid_names = {a["name"] for a in AGENTS} | {PIPELINE["name"]}
+        """All 'to' entities exist in ALL_ENTITIES."""
+        valid_names = {e["name"] for e in ALL_ENTITIES}
         for _, to_name, _ in RELATIONS:
             assert to_name in valid_names, f"Unknown target: {to_name}"
 

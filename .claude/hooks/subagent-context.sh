@@ -41,6 +41,9 @@ fi
 INPUT=$(cat <&0 2>/dev/null || echo "")
 AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
 if [ -n "$AGENT_NAME" ]; then
+  # Write marker for guard hooks (agent write scope, etc.)
+  echo "$AGENT_NAME" > "$PROJECT_DIR/.claude/.current-subagent"
+
   # Извлекаем номер/имя агента: agent-0-creator -> 0-creator, helper-architect -> orchestrator
   AGENT_LABEL=""
   case "$AGENT_NAME" in
