@@ -2,6 +2,7 @@
 # MCP Confluence server launcher with Infisical support.
 # Priority: Infisical (Universal Auth) -> Infisical (user) -> .env file.
 # Used by .mcp.json as the command for confluence MCP server.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -9,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 source "${SCRIPT_DIR}/lib/secrets.sh"
 
 MCP_CMD="$PROJECT_DIR/.venv/bin/mcp-atlassian"
-MCP_ARGS=(--confluence-url https://confluence.ekf.su --no-confluence-ssl-verify)
+MCP_ARGS=(--confluence-url https://confluence.ekf.su)
 
 # Priority 1: Infisical Universal Auth (Machine Identity)
 if _infisical_universal_auth "$PROJECT_DIR"; then

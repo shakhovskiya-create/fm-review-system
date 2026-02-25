@@ -71,11 +71,12 @@ fi
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
 HOSTNAME=$(hostname 2>/dev/null || echo "unknown")
 
-# Build JSON safely with printf (no jq dependency)
-JSON_PAYLOAD=$(printf '{"timestamp":"%s","level":"%s","event":"%s","message":"%s","project":"%s","agent":"%s","host":"%s"}' \
-    "$TIMESTAMP" "$LEVEL" "$EVENT" \
-    "$(echo "$MESSAGE" | sed 's/"/\\"/g' | head -c 500)" \
-    "$PROJECT" "$AGENT" "$HOSTNAME")
+# Build JSON safely with jq (proper escaping of special characters)
+JSON_PAYLOAD=$(jq -nc \
+    --arg ts "$TIMESTAMP" --arg lvl "$LEVEL" --arg evt "$EVENT" \
+    --arg msg "$(echo "$MESSAGE" | head -c 500)" \
+    --arg prj "$PROJECT" --arg agt "$AGENT" --arg host "$HOSTNAME" \
+    '{timestamp:$ts, level:$lvl, event:$evt, message:$msg, project:$prj, agent:$agt, host:$host}')
 
 # ─── 1. Always: log to file ───────────────────────────────────
 LOG_DIR="${PROJECT_DIR}/logs"
@@ -99,7 +100,7 @@ if [[ -n "$SLACK_URL" ]]; then
     [[ -n "$AGENT" ]] && SLACK_TEXT="${SLACK_TEXT} | agent: \`${AGENT}\`"
     [[ -n "$MESSAGE" ]] && SLACK_TEXT="${SLACK_TEXT}\n${MESSAGE}"
 
-    SLACK_BODY=$(printf '{"text":"%s"}' "$(echo "$SLACK_TEXT" | sed 's/"/\\"/g')")
+    SLACK_BODY=$(jq -nc --arg text "$SLACK_TEXT" '{text:$text}')
 
     # Non-blocking: don't fail pipeline if Slack is down
     curl -sf -m 5 -X POST -H 'Content-type: application/json' \

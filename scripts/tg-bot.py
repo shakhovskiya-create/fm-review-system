@@ -20,6 +20,7 @@ Env vars (из Infisical/load-secrets.sh):
     LANGFUSE_HOST
 """
 
+import collections
 import json
 import logging
 import os
@@ -107,6 +108,28 @@ def run_report(args: list[str]) -> str:
         return f"Ошибка: {e}"
 
 
+# Rate limiter: max RATE_LIMIT_MAX requests per RATE_LIMIT_WINDOW seconds per chat
+RATE_LIMIT_MAX = int(os.environ.get("TG_RATE_LIMIT_MAX", "10"))
+RATE_LIMIT_WINDOW = int(os.environ.get("TG_RATE_LIMIT_WINDOW", "3600"))
+_rate_limits: dict[str, collections.deque] = {}
+
+
+def _is_rate_limited(chat_id: str) -> bool:
+    """Check if chat has exceeded rate limit. Returns True if limited."""
+    now = time.time()
+    if chat_id not in _rate_limits:
+        _rate_limits[chat_id] = collections.deque()
+    q = _rate_limits[chat_id]
+    # Remove expired entries
+    while q and q[0] < now - RATE_LIMIT_WINDOW:
+        q.popleft()
+    if len(q) >= RATE_LIMIT_MAX:
+        log.warning("Rate limited chat_id=%s (%d/%d in %ds)", chat_id, len(q), RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)
+        return True
+    q.append(now)
+    return False
+
+
 def handle_message(msg: dict):
     """Обработать входящее сообщение."""
     chat_id = msg["chat"]["id"]
@@ -122,6 +145,10 @@ def handle_message(msg: dict):
         return
 
     if not text.startswith("/report"):
+        return
+
+    if _is_rate_limited(str(chat_id)):
+        send_message(chat_id, f"Лимит: {RATE_LIMIT_MAX} запросов в час. Попробуйте позже.")
         return
 
     # Парсинг аргумента после /report

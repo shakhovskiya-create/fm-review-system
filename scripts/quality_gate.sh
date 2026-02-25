@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 # QUALITY_GATE.SH — Проверка качества ФМ перед передачей v2.0
 # ═══════════════════════════════════════════════════════════════
@@ -16,6 +16,7 @@
 #
 # Коды выхода: 0=готово, 1=критические ошибки, 2=предупреждения
 # FC-08C: При коде 2 можно пропустить с --reason "обоснование"
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
@@ -352,8 +353,11 @@ elif [[ $FAIL -eq 0 ]]; then
         mkdir -p "$QG_AUDIT_DIR"
         QG_AUDIT_FILE="${QG_AUDIT_DIR}/quality_gate_overrides.jsonl"
         QG_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
-        printf '{"timestamp":"%s","project":"%s","warnings":%d,"failed":%d,"reason":"%s","pid":%d}\n' \
-            "$QG_TIMESTAMP" "$PROJECT" "$WARN" "$FAIL" "$(echo "$SKIP_REASON" | sed 's/"/\\"/g')" "$$" \
+        jq -nc \
+            --arg ts "$QG_TIMESTAMP" --arg prj "$PROJECT" \
+            --argjson warn "$WARN" --argjson fail "$FAIL" \
+            --arg reason "$SKIP_REASON" --argjson pid "$$" \
+            '{timestamp:$ts, project:$prj, warnings:$warn, failed:$fail, reason:$reason, pid:$pid}' \
             >> "$QG_AUDIT_FILE"
         EXIT_CODE=0
     else

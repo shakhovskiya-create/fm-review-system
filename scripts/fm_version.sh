@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 # FM_VERSION.SH — Управление версиями ФМ
 # ═══════════════════════════════════════════════════════════════
@@ -7,6 +7,7 @@
 #   ./fm_version.sh bump   — создать новую версию
 #   ./fm_version.sh list   — список всех версий
 #   ./fm_version.sh log    — история изменений
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"

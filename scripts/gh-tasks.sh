@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # gh-tasks.sh — управление задачами через GitHub Issues
 # Используется оркестратором и агентами для persistent task tracking.
 #

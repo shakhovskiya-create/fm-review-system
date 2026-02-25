@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # DEPRECATED: use `python3 scripts/run_agent.py --agent 0 --project PROJECT --command /new` instead.
 # Интервью для Agent 0 (Creator) — создание новой ФМ
+set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 check_gum

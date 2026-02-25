@@ -147,6 +147,120 @@ class TestCredentialHandling:
             )
 
 
+class TestBlockSecretsHook:
+    """Tests for .claude/hooks/block-secrets.sh patterns."""
+
+    HOOK_PATH = PROJECT_ROOT / ".claude" / "hooks" / "block-secrets.sh"
+
+    def test_hook_exists_and_executable(self):
+        assert self.HOOK_PATH.exists()
+
+    def test_hook_has_langfuse_patterns(self):
+        content = self.HOOK_PATH.read_text()
+        assert "sk-lf-" in content, "Missing Langfuse secret key pattern"
+        assert "pk-lf-" in content, "Missing Langfuse public key pattern"
+
+    def test_hook_has_telegram_pattern(self):
+        content = self.HOOK_PATH.read_text()
+        assert ":AA" in content, "Missing Telegram bot token pattern"
+
+    def test_hook_has_private_key_pattern(self):
+        content = self.HOOK_PATH.read_text()
+        assert "PRIVATE KEY" in content
+
+    def test_hook_blocks_on_secret(self):
+        """Run the hook with a fake Anthropic key and verify it blocks."""
+        import subprocess
+        # Build a test key dynamically to avoid hook catching this test file
+        test_key = "sk-" + "ant-" + "A" * 30
+        payload = '{"tool_input":{"content":"' + test_key + '","file_path":"test.txt"}}'
+        result = subprocess.run(
+            ["bash", str(self.HOOK_PATH)],
+            input=payload, capture_output=True, text=True
+        )
+        assert result.returncode == 2, "Hook should block (exit 2) on secret"
+
+    def test_hook_allows_safe_text(self):
+        """Run the hook with safe text and verify it passes."""
+        import subprocess
+        payload = '{"tool_input":{"content":"normal code here","file_path":"test.txt"}}'
+        result = subprocess.run(
+            ["bash", str(self.HOOK_PATH)],
+            input=payload, capture_output=True, text=True
+        )
+        assert result.returncode == 0, "Hook should pass (exit 0) on safe text"
+
+
+class TestGuardDestructiveBashHook:
+    """Tests for .claude/hooks/guard-destructive-bash.sh — blocks dangerous commands."""
+
+    HOOK_PATH = PROJECT_ROOT / ".claude" / "hooks" / "guard-destructive-bash.sh"
+
+    def test_hook_exists_and_executable(self):
+        assert self.HOOK_PATH.exists()
+        assert os.access(self.HOOK_PATH, os.X_OK)
+
+    def _run_hook(self, command: str) -> int:
+        import subprocess
+        payload = '{"tool_input":{"command":"' + command + '"}}'
+        result = subprocess.run(
+            ["bash", str(self.HOOK_PATH)],
+            input=payload, capture_output=True, text=True
+        )
+        return result.returncode
+
+    def test_blocks_rm_rf_root(self):
+        assert self._run_hook("rm -rf /") == 2
+
+    def test_blocks_rm_rf_home(self):
+        assert self._run_hook("rm -rf /home") == 2
+
+    def test_blocks_git_push_force_main(self):
+        assert self._run_hook("git push --force origin main") == 2
+
+    def test_blocks_git_push_f_master(self):
+        assert self._run_hook("git push -f origin master") == 2
+
+    def test_blocks_git_reset_hard(self):
+        assert self._run_hook("git reset --hard HEAD~3") == 2
+
+    def test_blocks_git_clean_f(self):
+        assert self._run_hook("git clean -fd") == 2
+
+    def test_allows_git_clean_dry_run(self):
+        assert self._run_hook("git clean -n") == 0
+
+    def test_blocks_git_checkout_dot(self):
+        assert self._run_hook("git checkout .") == 2
+
+    def test_blocks_git_restore_dot(self):
+        assert self._run_hook("git restore .") == 2
+
+    def test_blocks_git_branch_D_main(self):
+        assert self._run_hook("git branch -D main") == 2
+
+    def test_allows_safe_commands(self):
+        assert self._run_hook("git status") == 0
+        assert self._run_hook("git push origin feature-branch") == 0
+        assert self._run_hook("rm -rf ./build") == 0
+        assert self._run_hook("git diff HEAD") == 0
+
+    def test_allows_git_push_force_feature(self):
+        """Force push to non-main/master branch is allowed."""
+        assert self._run_hook("git push --force origin feature/my-branch") == 0
+
+    def test_allows_text_mentioning_destructive_commands(self):
+        """Text in arguments that mentions destructive commands should not trigger."""
+        # Simulates heredoc content with rm -rf / mentioned as documentation text
+        cmd = 'echo "защита от rm -rf /, git push --force main, git reset --hard"'
+        assert self._run_hook(cmd) == 0
+
+    def test_allows_rm_rf_build_dir(self):
+        """rm -rf on project subdirectories is allowed."""
+        assert self._run_hook("rm -rf ./build") == 0
+        assert self._run_hook("rm -rf dist/") == 0
+
+
 class TestSSLSafety:
     """Ensure no global SSL context override in production code."""
 

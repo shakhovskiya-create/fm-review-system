@@ -30,23 +30,18 @@ from typing import Optional, Dict, Any, Tuple
 from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
 
 def _make_ssl_context():
-    """Create a per-request SSL context that skips certificate verification.
+    """Create a per-request SSL context for Confluence API.
 
-    Rationale (HIGH-S4): Corporate Confluence (confluence.ekf.su) uses a
-    self-signed certificate. Full CA verification is not possible until the
-    corporate CA root is installed on the host (see infra/README.md).
-
-    Scope: per-request only — does NOT set ssl._create_default_https_context,
-    so Anthropic API, Langfuse, GitHub and all other HTTPS connections remain
-    fully verified. Only Confluence REST API calls use this context.
-
-    TODO: Install corporate CA cert and switch to full verification:
-        ctx.load_verify_locations("/etc/ssl/certs/ekf-confluence-ca.pem")
+    Uses full certificate verification by default (GlobalSign AlphaSSL CA).
+    Set CONFLUENCE_SSL_VERIFY=0 to disable verification (e.g. for local dev
+    behind a corporate proxy with cert replacement).
     """
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    return ctx
+    if os.environ.get("CONFLUENCE_SSL_VERIFY", "1") == "0":
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+    return ssl.create_default_context()
 
 # Lock settings
 LOCK_DIR = Path(__file__).parent.parent / ".locks"

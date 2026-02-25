@@ -142,7 +142,14 @@ class TestApiRequest:
 # ── _make_ssl_context / setup_weasyprint_env ─────────
 
 class TestSetupFunctions:
-    def test_make_ssl_context_returns_context(self):
+    def test_make_ssl_context_returns_verified(self):
+        ctx = _make_ssl_context()
+        import ssl
+        assert isinstance(ctx, ssl.SSLContext)
+        assert ctx.check_hostname is True
+
+    def test_make_ssl_context_insecure(self, monkeypatch):
+        monkeypatch.setenv("CONFLUENCE_SSL_VERIFY", "0")
         ctx = _make_ssl_context()
         import ssl
         assert isinstance(ctx, ssl.SSLContext)

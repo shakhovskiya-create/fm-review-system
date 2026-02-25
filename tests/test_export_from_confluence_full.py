@@ -50,7 +50,13 @@ class TestGetPageIdFull:
 # ── _make_ssl_context ──────────────────────────────────────────────────────
 
 class TestMakeSslContext:
-    def test_verify_mode_is_none(self):
+    def test_verify_mode_default(self):
+        ctx = mod._make_ssl_context()
+        import ssl
+        assert ctx.verify_mode == ssl.CERT_REQUIRED
+
+    def test_verify_mode_insecure(self, monkeypatch):
+        monkeypatch.setenv("CONFLUENCE_SSL_VERIFY", "0")
         ctx = mod._make_ssl_context()
         assert ctx.verify_mode == 0  # ssl.CERT_NONE
 

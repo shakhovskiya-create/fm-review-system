@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
 # NEW_PROJECT.SH — Создание нового проекта ФМ
 # ═══════════════════════════════════════════════════════════════
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
