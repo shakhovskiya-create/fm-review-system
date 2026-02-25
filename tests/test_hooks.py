@@ -29,6 +29,9 @@ EXPECTED_HOOKS = [
     "precompact-save-context.sh",
     "session-log.sh",
     "guard-agent-write-scope.sh",
+    "block-secrets.sh",
+    "guard-destructive-bash.sh",
+    "guard-mcp-confluence-write.sh",
 ]
 
 
@@ -212,6 +215,120 @@ class TestValidateSummary:
             "CLAUDE_PROJECT_DIR": str(tmp_path)
         })
         assert result.returncode == 0
+
+
+class TestValidateSummaryEnforcement:
+    """Tests for GitHub Issues enforcement in validate-summary.sh."""
+
+    def _make_gh_mock(self, tmp_path, script_body):
+        """Create a mock 'gh' script that returns controlled data."""
+        mock_dir = tmp_path / "mock_bin"
+        mock_dir.mkdir(exist_ok=True)
+        mock_gh = mock_dir / "gh"
+        mock_gh.write_text(script_body)
+        mock_gh.chmod(0o755)
+        return str(mock_dir)
+
+    def test_blocks_when_open_issues_exist(self, tmp_path):
+        """Agent with open issues should be BLOCKED (exit 2)."""
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"--state all"*)
+        echo '[{"number":42}]'
+        ;;
+    *"--state open"*)
+        echo '[{"number":42,"title":"Test issue"}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 2
+        assert "BLOCKED" in result.stdout
+        assert "#42" in result.stdout
+
+    def test_passes_when_no_open_issues(self, tmp_path):
+        """Agent with all issues closed should pass (exit 0)."""
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"--state all"*)
+        echo '[{"number":42}]'
+        ;;
+    *"--state open"*)
+        echo '[]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+
+    def test_warns_when_no_issues_at_all(self, tmp_path):
+        """Agent with zero issues gets WARNING (not BLOCK)."""
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"--state all"*)
+        echo '[]'
+        ;;
+    *"--state open"*)
+        echo '[]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-2-simulator"})
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0  # WARNING, not BLOCK
+        assert "WARNING" in result.stdout
+
+    def test_graceful_when_gh_unavailable(self, tmp_path):
+        """Without gh CLI, hook should pass gracefully."""
+        # Mock gh that always fails (simulating unavailable gh)
+        mock_path = self._make_gh_mock(tmp_path, '#!/bin/bash\nexit 1\n')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "WARNING" in result.stdout
+
+    def test_no_enforcement_without_agent_name(self):
+        """Without subagent_name in stdin, no enforcement."""
+        result = run_hook("validate-summary.sh", stdin_data="{}")
+        assert result.returncode == 0
+
+    def test_blocks_multiple_open_issues(self, tmp_path):
+        """Multiple open issues all listed in BLOCKED message."""
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"--state all"*)
+        echo '[{"number":10},{"number":20},{"number":30}]'
+        ;;
+    *"--state open"*)
+        echo '[{"number":10,"title":"First task"},{"number":20,"title":"Second task"}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-4-qa-tester"})
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 2
+        assert "#10" in result.stdout
+        assert "#20" in result.stdout
+        assert "2 незакрытых" in result.stdout
 
 
 class TestGuardAgentWriteScope:

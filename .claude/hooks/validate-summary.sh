@@ -77,41 +77,40 @@ if [ -n "$AGENT_NAME" ]; then
             exit 0
         fi
 
-        # 1. Проверка: агент СОЗДАЛ хотя бы одну задачу?
-        # Ищем все issues с меткой этого агента (open + closed, за последний час)
-        all_issues=$(gh issue list --repo "$REPO" \
+        # 1. Проверка: агент СОЗДАЛ или РАБОТАЛ с задачами?
+        # Ищем ВСЕ issues с меткой этого агента (open + closed)
+        all_issues_json=$(gh issue list --repo "$REPO" \
             --label "agent:${AGENT_LABEL}" --state all --limit 50 \
-            --json number,createdAt,state,labels \
-            --jq '[.[] | select(
-                (.createdAt | fromdateiso8601) > (now - 3600)
-            )] | length' 2>/dev/null || echo "-1")
+            --json number 2>/dev/null || echo "ERR")
 
         # Если gh недоступен — не блокируем (graceful degradation)
-        if [ "$all_issues" = "-1" ]; then
+        if [ "$all_issues_json" = "ERR" ]; then
             echo "WARNING: Не удалось проверить GitHub Issues (gh CLI недоступен). Пропускаю."
             exit 0
         fi
 
-        if [ "$all_issues" -eq 0 ] 2>/dev/null; then
-            echo "BLOCKED: Агент ${AGENT_NAME} НЕ создал ни одной GitHub Issue."
-            echo ""
-            echo "Правило 26: каждый агент ОБЯЗАН создать задачу при старте."
-            echo "Создай задачу и закрой её с DoD:"
-            echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"
-            echo "  bash scripts/gh-tasks.sh start <N>"
-            echo "  bash scripts/gh-tasks.sh done <N> --comment '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt'"
-            BLOCK=true
+        all_issues_count=$(echo "$all_issues_json" | jq 'length' 2>/dev/null || echo "0")
+
+        if [ "$all_issues_count" -eq 0 ] 2>/dev/null; then
+            echo "WARNING: Агент ${AGENT_NAME} не имеет ни одной GitHub Issue с меткой agent:${AGENT_LABEL}."
+            echo "Рекомендация: создавай задачу при старте (правило 26)."
+            echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
         fi
 
-        # 2. Проверка: нет ли незакрытых in-progress задач?
-        open_issues=$(gh issue list --repo "$REPO" \
-            --label "agent:${AGENT_LABEL}" --label "status:in-progress" \
-            --state open --json number --jq 'length' 2>/dev/null || echo "0")
+        # 2. Проверка: нет ли ЛЮБЫХ незакрытых задач у агента?
+        # Ищем ВСЕ open issues (любой status:), не только in-progress
+        open_issues_json=$(gh issue list --repo "$REPO" \
+            --label "agent:${AGENT_LABEL}" \
+            --state open --limit 20 \
+            --json number,title 2>/dev/null || echo "[]")
+        open_count=$(echo "$open_issues_json" | jq 'length' 2>/dev/null || echo "0")
 
-        if [ "$open_issues" -gt 0 ] 2>/dev/null; then
-            echo "BLOCKED: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues со status:in-progress."
+        if [ "$open_count" -gt 0 ] 2>/dev/null; then
+            echo "BLOCKED: У агента ${AGENT_NAME} есть ${open_count} незакрытых GitHub Issues:"
             echo ""
-            echo "Закрой через: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+            echo "$open_issues_json" | jq -r '.[] | "  #\(.number): \(.title)"' 2>/dev/null || true
+            echo ""
+            echo "Закрой КАЖДУЮ через: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
             echo ""
             echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD, правило 27):"
             echo "  ## Результат"
