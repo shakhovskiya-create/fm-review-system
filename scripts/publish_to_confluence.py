@@ -295,276 +295,185 @@ def should_skip_paragraph(text, skip_mode):
     return False
 
 
-def main():
-    TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
-    if not TOKEN and os.environ.get("CONFLUENCE_PERSONAL_TOKEN"):
+def _get_token():
+    """Retrieve Confluence token from environment."""
+    token = os.environ.get("CONFLUENCE_TOKEN", "")
+    if not token and os.environ.get("CONFLUENCE_PERSONAL_TOKEN"):
         import warnings
         warnings.warn("CONFLUENCE_PERSONAL_TOKEN is deprecated, use CONFLUENCE_TOKEN", DeprecationWarning, stacklevel=2)
-        TOKEN = os.environ["CONFLUENCE_PERSONAL_TOKEN"]
+        token = os.environ["CONFLUENCE_PERSONAL_TOKEN"]
+    return token
 
-    # Парсинг аргументов: --from-file (Confluence-only) или путь к docx (legacy)
+
+def _parse_args():
+    """Parse CLI arguments for publish_to_confluence."""
     parser = argparse.ArgumentParser(description="Публикация/обновление ФМ в Confluence")
     parser.add_argument("path", nargs="?", help="Путь к .docx (legacy)")
     parser.add_argument("--from-file", metavar="XHTML", help="Путь к файлу с XHTML тела страницы (Confluence-only)")
     parser.add_argument("--project", metavar="PROJECT", help="Имя проекта (для PAGE_ID из projects/PROJECT/CONFLUENCE_PAGE_ID)")
     parser.add_argument("--message", metavar="TEXT", default="Update from script", help="Комментарий версии (version.message)")
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # Token check ПОСЛЕ argparse, чтобы --help работал без токена
-    if not TOKEN:
-        print("ERROR: CONFLUENCE_TOKEN environment variable not set")
-        print("Run: export CONFLUENCE_TOKEN='your-token-here'")
-        sys.exit(1)
 
-    FROM_FILE_MODE = bool(args.from_file)
-    if FROM_FILE_MODE:
-        project = (args.project or os.environ.get("PROJECT") or "").strip()
-        if not project:
-            print("ERROR: в режиме --from-file нужен --project или env PROJECT")
-            sys.exit(1)
-        PAGE_ID = _get_page_id(project)
-        with open(args.from_file, encoding="utf-8") as f:
-            content = f.read()
-        version_message = args.message or "Update from XHTML (Confluence-only)"
-        print("=" * 60)
-        print("FM PUBLISHER - CONFLUENCE (режим --from-file)")
-        print("=" * 60)
-        print(f"Проект: {project}, PAGE_ID: {PAGE_ID}")
-        print(f"XHTML: {len(content)} символов")
-        # Переход к обновлению Confluence (ниже: общий блок GET + PUT)
-        FM_NAME = None
-    else:
-        if not args.path:
-            print("Usage: python3 publish_to_confluence.py <path-to-docx>")
-            print("   или: python3 publish_to_confluence.py --from-file body.xhtml --project PROJECT_NAME")
-            sys.exit(1)
-        # python-docx нужен только для режима DOCX-импорта
-        if docx is None:
-            print("ERROR: python-docx не установлен. Установите: pip install python-docx")
-            print("(python-docx нужен только для импорта .docx, для --from-file не требуется)")
-            sys.exit(1)
-        DOC_PATH = args.path
-        _project_from_path = None
-        _norm = os.path.normpath(DOC_PATH)
-        if os.sep + "projects" + os.sep in _norm or _norm.startswith("projects" + os.sep):
-            parts = _norm.replace(os.sep, "/").split("projects/")
-            if len(parts) > 1:
-                _project_from_path = parts[1].split("/")[0]
-        PAGE_ID = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
-        print("=" * 60)
-        print("FM PUBLISHER - CONFLUENCE v3.0")
-        print("=" * 60)
-        doc = docx.Document(DOC_PATH)
-        print(f"Документ: {DOC_PATH.split('/')[-1]}")
+def _build_content_from_docx(doc, fm_code):
+    """Convert a python-docx Document to Confluence XHTML content string."""
+    print("\n=== ПОСТРОЕНИЕ КОНТЕНТА ===")
 
-    # Extract metadata from filename (только в режиме docx)
-    if not FROM_FILE_MODE:
-        filename = os.path.basename(DOC_PATH)
-        match = re.match(r'(FM-[A-Z-]+)-v(\d+\.\d+\.\d+)\.docx', filename)
-        if match:
-            FM_CODE = match.group(1)
-        else:
-            FM_CODE = "FM-UNKNOWN"
-        FM_NAME = ""
-        for para in doc.paragraphs[:5]:
-            if para.style and 'Title' in para.style.name:
-                FM_NAME = para.text.strip()
-                break
-        if not FM_NAME:
-            FM_NAME = FM_CODE
-        print(f"Код: {FM_CODE}, Версия: {FM_VERSION}")
-        print(f"Название: {FM_NAME[:50]}...")
+    html_parts = []
+    in_list = False
+    skip_code_system_descriptions = False
+    in_code_system_section = False
+    code_system_items = []
 
-    # === Build content (только в режиме docx) ===
-    if not FROM_FILE_MODE:
-        print("\n=== ПОСТРОЕНИЕ КОНТЕНТА ===")
-
-        html_parts = []
-        in_list = False
-        skip_code_system_descriptions = False
-        in_code_system_section = False
-        code_system_items = []  # Собираем пары (код, описание)
-
-        # Add header with metadata
-        today = datetime.now().strftime("%d.%m.%Y")
-        header = f'''<p><strong>Код:</strong> {FM_CODE} | <strong>Версия:</strong> {FM_VERSION} | <strong>Дата:</strong> {today}</p>
+    today = datetime.now().strftime("%d.%m.%Y")
+    header = f'''<p><strong>Код:</strong> {fm_code} | <strong>Версия:</strong> {FM_VERSION} | <strong>Дата:</strong> {today}</p>
 <hr/>'''
-        html_parts.append(header)
+    html_parts.append(header)
 
-        # Iterate through document body in order
-        for element in doc.element.body:
-            if isinstance(element, CT_P):
-                para = Paragraph(element, doc)
-                text = para.text.strip()
+    for element in doc.element.body:
+        if isinstance(element, CT_P):
+            para = Paragraph(element, doc)
+            text = para.text.strip()
 
-                if not text:
-                    if in_list:
-                        html_parts.append('</ul>')
-                        in_list = False
-                    continue
-
-                # Skip date line
-                if text.startswith("Дата последнего изменения"):
-                    continue
-
-                style = para.style.name if para.style else "Normal"
-
-                # === Система кодов: собираем в таблицу ===
-                # Начало секции
-                if "система кодов" in text.lower() and style in ["Heading 2", "Heading 3"]:
-                    in_code_system_section = True
-                    skip_code_system_descriptions = True
-                    html_parts.append(para_to_html(para))  # Заголовок
-                    continue
-
-                # Конец секции - генерируем таблицу из собранных items
-                if in_code_system_section and style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
-                    in_code_system_section = False
-                    skip_code_system_descriptions = False
-                    # Генерируем таблицу из собранных кодов
-                    if code_system_items:
-                        tbl = '<table class="confluenceTable"><tbody>'
-                        tbl += '<tr><th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Код</strong></th>'
-                        tbl += '<th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Описание</strong></th></tr>'
-                        for code_name, desc in code_system_items:
-                            tbl += f'<tr><td class="confluenceTd"><strong>{escape_html(code_name)}</strong></td>'
-                            tbl += f'<td class="confluenceTd">{escape_html(desc)}</td></tr>'
-                        tbl += '</tbody></table>'
-                        html_parts.append(tbl)
-                        code_system_items = []
-                    # Продолжаем обработку текущего заголовка (не continue!)
-
-                # Внутри секции - собираем пары
-                if in_code_system_section:
-                    # Пропускаем вводный текст "В документе используется..."
-                    if text.startswith('В документе') or text.startswith('в документе'):
-                        continue
-                    # Строка с кодом: "• LS-BR-XXX - Описание"
-                    code_match = re.match(r'^[•\-]\s*(LS-\w+-XXX)\s*[-–]\s*(.+)', text)
-                    if code_match:
-                        code_system_items.append((code_match.group(1), code_match.group(2)))
-                        continue
-                    # Строка с описанием (продолжение предыдущего кода)
-                    if code_system_items and not text.startswith('•'):
-                        # Добавляем к описанию последнего кода
-                        last_code, last_desc = code_system_items[-1]
-                        # Убираем двойную точку при конкатенации
-                        sep = ' ' if last_desc.rstrip().endswith('.') else '. '
-                        code_system_items[-1] = (last_code, last_desc.rstrip() + sep + text)
-                        continue
-                    continue  # Пропускаем остальное в этой секции
-
-                # Skip descriptions that are already in code system table (after table 24)
-                if skip_code_system_descriptions and should_skip_paragraph(text, skip_code_system_descriptions):
-                    continue
-
-                # Reset skip mode on new major section
-                if style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
-                    skip_code_system_descriptions = False
-
-                # ⚠️ параграфы - оборачиваем в note panel (ЖЁЛТАЯ в Confluence)
-                # Убираем эмодзи - Confluence note panel уже имеет иконку !
-                if text.startswith('⚠') and style == 'Normal':
-                    if in_list:
-                        html_parts.append('</ul>')
-                        in_list = False
-                    # Убираем ⚠️ из начала текста
-                    clean = re.sub(r'^[⚠️\ufe0f]+\s*', '', text)
-                    warning_text = escape_html(clean)
-                    html_parts.append(f'''<ac:structured-macro ac:name="note">
-<ac:rich-text-body><p>{warning_text}</p></ac:rich-text-body>
-</ac:structured-macro>''')
-                    continue
-
-                # Handle lists
-                if "List" in style or text.startswith("*") or text.startswith("-"):
-                    if not in_list:
-                        html_parts.append('<ul>')
-                        in_list = True
-                    clean_text = re.sub(r'^[*\-]\s*', '', text)
-                    html_parts.append(f'<li>{escape_html(clean_text)}</li>')
-                else:
-                    if in_list:
-                        html_parts.append('</ul>')
-                        in_list = False
-                    html_parts.append(para_to_html(para))
-
-            elif isinstance(element, CT_Tbl):
+            if not text:
                 if in_list:
                     html_parts.append('</ul>')
                     in_list = False
+                continue
 
-                table = Table(element, doc)
+            if text.startswith("Дата последнего изменения"):
+                continue
 
-                # 1) Мета-таблица (Версия/Дата/Статус/Автор) - подменяем дату
-                if is_meta_table(table):
-                    html_parts.append(meta_table_to_html(table))
+            style = para.style.name if para.style else "Normal"
+
+            # === Система кодов: собираем в таблицу ===
+            if "система кодов" in text.lower() and style in ["Heading 2", "Heading 3"]:
+                in_code_system_section = True
+                skip_code_system_descriptions = True
+                html_parts.append(para_to_html(para))
+                continue
+
+            if in_code_system_section and style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
+                in_code_system_section = False
+                skip_code_system_descriptions = False
+                if code_system_items:
+                    tbl = '<table class="confluenceTable"><tbody>'
+                    tbl += '<tr><th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Код</strong></th>'
+                    tbl += '<th class="confluenceTh" style="background-color: #f4f5f7;"><strong>Описание</strong></th></tr>'
+                    for code_name, desc in code_system_items:
+                        tbl += f'<tr><td class="confluenceTd"><strong>{escape_html(code_name)}</strong></td>'
+                        tbl += f'<td class="confluenceTd">{escape_html(desc)}</td></tr>'
+                    tbl += '</tbody></table>'
+                    html_parts.append(tbl)
+                    code_system_items = []
+
+            if in_code_system_section:
+                if text.startswith('В документе') or text.startswith('в документе'):
+                    continue
+                code_match = re.match(r'^[•\-]\s*(LS-\w+-XXX)\s*[-–]\s*(.+)', text)
+                if code_match:
+                    code_system_items.append((code_match.group(1), code_match.group(2)))
+                    continue
+                if code_system_items and not text.startswith('•'):
+                    last_code, last_desc = code_system_items[-1]
+                    sep = ' ' if last_desc.rstrip().endswith('.') else '. '
+                    code_system_items[-1] = (last_code, last_desc.rstrip() + sep + text)
+                    continue
+                continue
+
+            if skip_code_system_descriptions and should_skip_paragraph(text, skip_code_system_descriptions):
+                continue
+
+            if style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
+                skip_code_system_descriptions = False
+
+            if text.startswith('⚠') and style == 'Normal':
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                clean = re.sub(r'^[⚠️\ufe0f]+\s*', '', text)
+                warning_text = escape_html(clean)
+                html_parts.append(f'''<ac:structured-macro ac:name="note">
+<ac:rich-text-body><p>{warning_text}</p></ac:rich-text-body>
+</ac:structured-macro>''')
+                continue
+
+            if "List" in style or text.startswith("*") or text.startswith("-"):
+                if not in_list:
+                    html_parts.append('<ul>')
+                    in_list = True
+                clean_text = re.sub(r'^[*\-]\s*', '', text)
+                html_parts.append(f'<li>{escape_html(clean_text)}</li>')
+            else:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                html_parts.append(para_to_html(para))
+
+        elif isinstance(element, CT_Tbl):
+            if in_list:
+                html_parts.append('</ul>')
+                in_list = False
+
+            table = Table(element, doc)
+
+            if is_meta_table(table):
+                html_parts.append(meta_table_to_html(table))
+                continue
+
+            if is_history_table(table) and len(table.rows) > 2:
+                html_parts.append(history_table_to_html(table))
+                continue
+
+            if len(table.rows) == 1 and len(table.rows[0].cells) == 1:
+                panel_type = is_warning_table(table)
+                if panel_type:
+                    html_parts.append(table_to_html(table, panel_type))
                     continue
 
-                # 2) История версий - обнуляем, оставляем 1 запись
-                if is_history_table(table) and len(table.rows) > 2:
-                    html_parts.append(history_table_to_html(table))
-                    continue
+            html_parts.append(table_to_html(table))
 
-                # 3) Warning/Note panel (1x1 colored)
-                if len(table.rows) == 1 and len(table.rows[0].cells) == 1:
-                    panel_type = is_warning_table(table)
-                    if panel_type:
-                        html_parts.append(table_to_html(table, panel_type))
-                        continue
+            first_row_text = ' '.join([c.text for c in table.rows[0].cells]).lower() if table.rows else ''
+            if 'код' in first_row_text and ('наименование' in first_row_text or 'описание' in first_row_text):
+                skip_code_system_descriptions = True
 
-                # 4) Regular table
-                html_parts.append(table_to_html(table))
+    if in_list:
+        html_parts.append('</ul>')
 
-                # Mark code system table
-                first_row_text = ' '.join([c.text for c in table.rows[0].cells]).lower() if table.rows else ''
-                if 'код' in first_row_text and ('наименование' in first_row_text or 'описание' in first_row_text):
-                    skip_code_system_descriptions = True
+    content = '\n'.join(html_parts)
+    print(f"  Сгенерировано: {len(content)} символов HTML")
+    return content
 
-        if in_list:
-            html_parts.append('</ul>')
 
-        # Join all parts
-        content = '\n'.join(html_parts)
-        print(f"  Сгенерировано: {len(content)} символов HTML")
-
-    # === Update Confluence page (via confluence_utils: lock + backup + retry) ===
+def _publish_to_confluence(content, page_id, token, version_message):
+    """Sanitize XHTML and publish to Confluence with lock + backup + retry."""
     print("\n=== ОБНОВЛЕНИЕ CONFLUENCE (safe_publish) ===")
 
-    # Import safe Confluence client (FC-01: activated confluence_utils)
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
     from fm_review.confluence_utils import ConfluenceAPIError, ConfluenceClient, ConfluenceLockError
     from fm_review.xhtml_sanitizer import sanitize_xhtml
 
-    # Sanitize XHTML before publishing
     content, sanitizer_warnings = sanitize_xhtml(content)
     if sanitizer_warnings:
         print("  XHTML Sanitizer warnings:")
         for w in sanitizer_warnings:
             print(f"    ⚠ {w}")
 
-    client = ConfluenceClient(CONFLUENCE_URL, TOKEN, PAGE_ID)
+    client = ConfluenceClient(CONFLUENCE_URL, token, page_id)
 
     try:
-        # Acquire lock to prevent concurrent writes from other agents
         with client.lock():
             print("  Lock acquired")
 
-            # Get current page info
             page_info = client.get_page(expand="version")
             page_title = page_info['title']
             current_version = page_info['version']['number']
             print(f"  Страница: {page_title}")
             print(f"  Текущая версия: {current_version}")
 
-            # Version message
-            version_msg = version_message if FROM_FILE_MODE else "Import from docx"
-
-            # Update with backup + retry (automatic)
-            # FC-20: передаем agent_name для журнала аудита (FC-12B)
             result, backup_path = client.update_page(
                 new_body=content,
-                version_message=version_msg,
+                version_message=version_message,
                 agent_name="Agent7_Publisher"
             )
 
@@ -573,7 +482,7 @@ def main():
             if backup_path:
                 print(f"  Бекап: {backup_path.name}")
             print("\n  ГОТОВО!")
-            print(f"URL: {CONFLUENCE_URL}/pages/viewpage.action?pageId={PAGE_ID}")
+            print(f"URL: {CONFLUENCE_URL}/pages/viewpage.action?pageId={page_id}")
 
     except ConfluenceLockError as e:
         print(f"  ОШИБКА БЛОКИРОВКИ: {e}")
@@ -586,6 +495,75 @@ def main():
             print(f"  HTTP код: {e.code}")
         print("  Бекап доступен для отката (если был создан).")
         sys.exit(1)
+
+
+def main():
+    token = _get_token()
+    args = _parse_args()
+
+    if not token:
+        print("ERROR: CONFLUENCE_TOKEN environment variable not set")
+        print("Run: export CONFLUENCE_TOKEN='your-token-here'")
+        sys.exit(1)
+
+    if args.from_file:
+        # --- XHTML update mode (Confluence-only) ---
+        project = (args.project or os.environ.get("PROJECT") or "").strip()
+        if not project:
+            print("ERROR: в режиме --from-file нужен --project или env PROJECT")
+            sys.exit(1)
+        page_id = _get_page_id(project)
+        with open(args.from_file, encoding="utf-8") as f:
+            content = f.read()
+        version_message = args.message or "Update from XHTML (Confluence-only)"
+        print("=" * 60)
+        print("FM PUBLISHER - CONFLUENCE (режим --from-file)")
+        print("=" * 60)
+        print(f"Проект: {project}, PAGE_ID: {page_id}")
+        print(f"XHTML: {len(content)} символов")
+    else:
+        # --- DOCX import mode (legacy) ---
+        if not args.path:
+            print("Usage: python3 publish_to_confluence.py <path-to-docx>")
+            print("   или: python3 publish_to_confluence.py --from-file body.xhtml --project PROJECT_NAME")
+            sys.exit(1)
+        if docx is None:
+            print("ERROR: python-docx не установлен. Установите: pip install python-docx")
+            print("(python-docx нужен только для импорта .docx, для --from-file не требуется)")
+            sys.exit(1)
+
+        doc_path = args.path
+        _project_from_path = None
+        _norm = os.path.normpath(doc_path)
+        if os.sep + "projects" + os.sep in _norm or _norm.startswith("projects" + os.sep):
+            parts = _norm.replace(os.sep, "/").split("projects/")
+            if len(parts) > 1:
+                _project_from_path = parts[1].split("/")[0]
+        page_id = _get_page_id(_project_from_path or os.environ.get("PROJECT"))
+
+        print("=" * 60)
+        print("FM PUBLISHER - CONFLUENCE v3.0")
+        print("=" * 60)
+        doc = docx.Document(doc_path)
+        print(f"Документ: {doc_path.split('/')[-1]}")
+
+        filename = os.path.basename(doc_path)
+        match = re.match(r'(FM-[A-Z-]+)-v(\d+\.\d+\.\d+)\.docx', filename)
+        fm_code = match.group(1) if match else "FM-UNKNOWN"
+        fm_name = ""
+        for para in doc.paragraphs[:5]:
+            if para.style and 'Title' in para.style.name:
+                fm_name = para.text.strip()
+                break
+        if not fm_name:
+            fm_name = fm_code
+        print(f"Код: {fm_code}, Версия: {FM_VERSION}")
+        print(f"Название: {fm_name[:50]}...")
+
+        content = _build_content_from_docx(doc, fm_code)
+        version_message = "Import from docx"
+
+    _publish_to_confluence(content, page_id, token, version_message)
 
 
 if __name__ == "__main__":

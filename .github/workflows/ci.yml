@@ -30,7 +30,7 @@ jobs:
           shellcheck -S error scripts/*.sh scripts/lib/*.sh .claude/hooks/*.sh
 
       - name: Run tests with coverage
-        run: pytest --cov=scripts --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=35
+        run: pytest --cov=scripts --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=50
 
       - name: Security scan (bandit)
         run: bandit -r scripts/ src/ -c pyproject.toml -ll --format json --output bandit-report.json
