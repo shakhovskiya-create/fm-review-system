@@ -52,7 +52,7 @@ class TestPipelineTracerInit:
     @patch.dict(os.environ, {"LANGFUSE_PUBLIC_KEY": "pk"})
     def test_init_handles_import_error(self):
         """Tracer stays disabled when langfuse import fails."""
-        with patch("scripts.run_agent.PipelineTracer._init") as mock_init:
+        with patch("scripts.run_agent.PipelineTracer._init"):
             from scripts.run_agent import PipelineTracer
 
             tracer = PipelineTracer.__new__(PipelineTracer)
@@ -472,7 +472,7 @@ class TestRunPipeline:
     @pytest.mark.asyncio
     async def test_budget_exceeded_stops(self, tmp_path):
         """Budget exceeded stops pipeline before running more agents."""
-        from scripts.run_agent import AgentResult, run_pipeline, PIPELINE_BUDGET_USD
+        from scripts.run_agent import AgentResult, run_pipeline
 
         proj = tmp_path / "projects" / "BUDGET_PROJECT"
         proj.mkdir(parents=True)
@@ -545,7 +545,7 @@ class TestRunPipeline:
 class TestPipelineTracerFinishFlush:
     def test_finish_flush_exception_suppressed(self):
         """Exception during flush is suppressed."""
-        from scripts.run_agent import AgentResult, PipelineTracer
+        from scripts.run_agent import PipelineTracer
 
         tracer = PipelineTracer.__new__(PipelineTracer)
         tracer.enabled = True
@@ -754,7 +754,7 @@ asyncio.run(async_main())
                 with patch("scripts.run_agent._load_dotenv"):
                     from scripts.run_agent import async_main
 
-                    with patch("sys.exit") as mock_exit:
+                    with patch("sys.exit"):
                         try:
                             await async_main()
                         except SystemExit as e:

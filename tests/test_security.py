@@ -333,6 +333,7 @@ class TestSSLHandling:
 # Helper context manager for env patching
 import contextlib
 
+
 @contextlib.contextmanager
 def patch_env(env_vars):
     """Temporarily replace all CONFLUENCE_* env vars."""

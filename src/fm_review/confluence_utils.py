@@ -16,18 +16,19 @@ Usage:
         client.update_page(new_body, "Description of changes")
 """
 
-import os
-import json
-import time
 import fcntl
-import urllib.request
-import urllib.error
+import json
+import os
 import ssl
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
+
 
 def _make_ssl_context():
     """Create a per-request SSL context for Confluence API.
@@ -42,6 +43,34 @@ def _make_ssl_context():
         ctx.verify_mode = ssl.CERT_NONE
         return ctx
     return ssl.create_default_context()
+
+
+# Project root: src/fm_review/confluence_utils.py → ../../.. = repo root
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+
+def _get_page_id(project_name=None):
+    """Get Confluence PAGE_ID.
+
+    Priority: 1) projects/PROJECT/CONFLUENCE_PAGE_ID file,
+              2) CONFLUENCE_PAGE_ID env var.
+    Raises ValueError if not found.
+    """
+    if project_name:
+        path = _PROJECT_ROOT / "projects" / project_name / "CONFLUENCE_PAGE_ID"
+        if path.is_file():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and line.isdigit():
+                    return line
+    pid = os.environ.get("CONFLUENCE_PAGE_ID")
+    if pid:
+        return pid
+    raise ValueError(
+        "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
+        "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
+    )
+
 
 # Lock settings
 LOCK_DIR = Path(__file__).parent.parent / ".locks"

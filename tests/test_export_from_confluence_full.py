@@ -5,7 +5,7 @@ Target: 95-100% coverage. Mocks external deps (weasyprint, subprocess, API).
 import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,36 +14,34 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import export_from_confluence as mod
 
-
 # ── _get_page_id (additional coverage) ──────────────────────────────────────
+import fm_review.confluence_utils as cu
+
 
 class TestGetPageIdFull:
-    def test_returns_first_digit_line_from_project_file(self):
+    def test_returns_first_digit_line_from_project_file(self, tmp_path):
         """When project file exists with valid ID, returns it."""
-        with patch("export_from_confluence.os.path.dirname", return_value="/fake/scripts"):
-            with patch("export_from_confluence.os.path.abspath", return_value="/fake/scripts/x.py"):
-                with patch("export_from_confluence.os.path.join", side_effect=lambda *a: "/fake/projects/PROJ/CONFLUENCE_PAGE_ID"):
-                    with patch("export_from_confluence.os.path.isfile", return_value=True):
-                        with patch("builtins.open", mock_open(read_data="77777777\n")):
-                            result = mod._get_page_id("PROJ")
+        proj_dir = tmp_path / "projects" / "PROJ"
+        proj_dir.mkdir(parents=True)
+        (proj_dir / "CONFLUENCE_PAGE_ID").write_text("77777777\n")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("PROJ")
         assert result == "77777777"
 
-    def test_skips_comments_and_empty_lines(self):
-        with patch("export_from_confluence.os.path.dirname", return_value="/fake/scripts"):
-            with patch("export_from_confluence.os.path.abspath", return_value="/fake/scripts/x.py"):
-                with patch("export_from_confluence.os.path.join", side_effect=lambda *a: "/fake/projects/PROJ/CONFLUENCE_PAGE_ID"):
-                    with patch("export_from_confluence.os.path.isfile", return_value=True):
-                        with patch("builtins.open", mock_open(read_data="# comment\n\n\n12345678\n")):
-                            result = mod._get_page_id("PROJ")
+    def test_skips_comments_and_empty_lines(self, tmp_path):
+        proj_dir = tmp_path / "projects" / "PROJ"
+        proj_dir.mkdir(parents=True)
+        (proj_dir / "CONFLUENCE_PAGE_ID").write_text("# comment\n\n\n12345678\n")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("PROJ")
         assert result == "12345678"
 
-    def test_skips_non_digit_lines(self):
-        with patch("export_from_confluence.os.path.dirname", return_value="/fake/scripts"):
-            with patch("export_from_confluence.os.path.abspath", return_value="/fake/scripts/x.py"):
-                with patch("export_from_confluence.os.path.join", side_effect=lambda *a: "/fake/projects/PROJ/CONFLUENCE_PAGE_ID"):
-                    with patch("export_from_confluence.os.path.isfile", return_value=True):
-                        with patch("builtins.open", mock_open(read_data="abc\n99999999\n")):
-                            result = mod._get_page_id("PROJ")
+    def test_skips_non_digit_lines(self, tmp_path):
+        proj_dir = tmp_path / "projects" / "PROJ"
+        proj_dir.mkdir(parents=True)
+        (proj_dir / "CONFLUENCE_PAGE_ID").write_text("abc\n99999999\n")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("PROJ")
         assert result == "99999999"
 
 
@@ -51,13 +49,13 @@ class TestGetPageIdFull:
 
 class TestMakeSslContext:
     def test_verify_mode_default(self):
-        ctx = mod._make_ssl_context()
+        ctx = cu._make_ssl_context()
         import ssl
         assert ctx.verify_mode == ssl.CERT_REQUIRED
 
     def test_verify_mode_insecure(self, monkeypatch):
         monkeypatch.setenv("CONFLUENCE_SSL_VERIFY", "0")
-        ctx = mod._make_ssl_context()
+        ctx = cu._make_ssl_context()
         assert ctx.verify_mode == 0  # ssl.CERT_NONE
 
 

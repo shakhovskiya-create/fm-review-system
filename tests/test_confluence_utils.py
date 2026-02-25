@@ -6,21 +6,18 @@ Covers: locking, backup, retry, audit log, client operations.
 import json
 import os
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from fm_review.confluence_utils import (
-    ConfluenceClient,
+    RETRYABLE_CODES,
+    ConfluenceAPIError,
     ConfluenceBackup,
+    ConfluenceClient,
     ConfluenceLock,
     ConfluenceLockError,
-    ConfluenceAPIError,
-    MAX_RETRIES,
-    RETRYABLE_CODES,
 )
-
 
 # ── Lock Tests ──────────────────────────────────────────────
 
@@ -38,7 +35,7 @@ class TestConfluenceLock:
     def test_context_manager(self, tmp_path):
         """Lock works as context manager."""
         with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
-            with ConfluenceLock("test_page", timeout=5) as lock:
+            with ConfluenceLock("test_page", timeout=5):
                 lock_file = tmp_path / "confluence_test_page.lock"
                 assert lock_file.exists()
             # After exit, lock file removed

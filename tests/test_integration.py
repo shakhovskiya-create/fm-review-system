@@ -133,7 +133,6 @@ class TestContractSchema:
 
     def test_schema_has_agent_summary(self):
         schema_file = PROJECT_ROOT / "schemas" / "agent-contracts.json"
-        data = json.loads(schema_file.read_text())
         # Schema should define agentSummary
         schema_text = schema_file.read_text()
         assert "agentSummary" in schema_text or "agent" in schema_text

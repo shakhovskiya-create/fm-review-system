@@ -4,10 +4,9 @@ Tests for export_from_confluence.py — Confluence page exporter.
 Now imports the module directly (after refactoring to remove module-level side effects).
 """
 import os
-import re
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,32 +15,24 @@ SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from export_from_confluence import (
-    _get_page_id,
-    confluence_to_clean_html,
-    api_request,
     _urlopen_with_retry,
-    _make_ssl_context,
+    api_request,
+    confluence_to_clean_html,
     setup_weasyprint_env,
 )
 
+from fm_review.confluence_utils import _get_page_id, _make_ssl_context
 
 # ── _get_page_id ─────────────────────────────────────
 
 class TestGetPageId:
     def test_reads_from_project_file(self, tmp_path):
-        scripts_dir = tmp_path / "scripts"
-        scripts_dir.mkdir()
         projects_dir = tmp_path / "projects" / "PROJECT_TEST"
         projects_dir.mkdir(parents=True)
         (projects_dir / "CONFLUENCE_PAGE_ID").write_text("12345678\n")
 
-        with patch("export_from_confluence.os.path.abspath", return_value=str(scripts_dir / "export_from_confluence.py")):
-            result = _get_page_id("PROJECT_TEST")
-
-        # Can't easily test this because root is computed from __file__
-        # Use env fallback
-        with patch.dict(os.environ, {"CONFLUENCE_PAGE_ID": "12345678"}):
-            assert _get_page_id(None) == "12345678"
+        with patch("fm_review.confluence_utils._PROJECT_ROOT", tmp_path):
+            assert _get_page_id("PROJECT_TEST") == "12345678"
 
     def test_falls_back_to_env(self):
         with patch.dict(os.environ, {"CONFLUENCE_PAGE_ID": "99887766"}):

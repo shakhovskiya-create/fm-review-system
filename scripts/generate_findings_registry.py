@@ -10,7 +10,6 @@ Usage:
 """
 
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -33,21 +32,6 @@ UX_FINDING_PATTERN = re.compile(
 )
 
 SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
-
-
-def extract_findings_from_summary(summary_path: Path, source: str) -> list:
-    """Extract findings from _summary.json counts."""
-    findings = []
-    try:
-        with open(summary_path, encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return findings
-
-    counts = data.get("counts", {})
-    # Summary-level findings don't have individual IDs; they provide totals.
-    # We note them but prefer Markdown extraction for details.
-    return findings
 
 
 def extract_findings_from_markdown(md_path: Path, source: str) -> list:

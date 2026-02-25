@@ -18,6 +18,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "bandit>=1.9",
     "pip-audit>=2.10",
+    "ruff>=0.11",
 ]
 
 [tool.bandit]
@@ -25,6 +26,31 @@ dev = [
 # not user-controlled input. False positive for internal API client.
 skips = ["B310"]
 exclude_dirs = ["tests/"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "S", "B"]
+ignore = [
+    "E501",   # line-too-long — handled by formatter
+    "E402",   # module-import-not-at-top — sys.path setup before imports
+    "E741",   # ambiguous-variable-name — l/O used in short loops
+    "S101",   # assert used — needed in scripts
+    "S310",   # audit-url-open — internal Confluence/Langfuse API calls
+    "S603",   # subprocess-without-shell-check — internal scripts
+    "S606",   # start-process-without-shell — os.execve for re-exec
+    "S607",   # start-process-with-partial-path — trusted binaries
+    "S108",   # hardcoded-tmp — temp dirs in scripts
+    "S110",   # try-except-pass — intentional in resilient code
+    "S314",   # xml-bad-etree-parse — internal trusted XML
+    "B904",   # raise-without-from-inside-except — too noisy for scripts
+    "B905",   # zip-without-explicit-strict — zip used safely
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

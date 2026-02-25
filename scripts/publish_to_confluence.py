@@ -17,10 +17,8 @@ FM Publisher for Confluence v3.0
   - Повторы с экспоненциальным отступом при транзиентных ошибках
 """
 import argparse
-import json
 import os
 import re
-import ssl
 import sys
 from datetime import datetime
 
@@ -39,7 +37,7 @@ except ImportError:
     Table = None
     Paragraph = None
 
-# Note: SSL context is handled per-request in confluence_utils.py (_make_ssl_context)
+from fm_review.confluence_utils import _get_page_id
 
 # Config - set CONFLUENCE_TOKEN environment variable before running
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
@@ -57,26 +55,6 @@ SKIP_AFTER_CODE_SYSTEM = [
     "Документы",
     "Автоматические проверки",
 ]
-
-
-def _get_page_id(project_name=None):
-    """PAGE_ID: 1) файл projects/PROJECT/CONFLUENCE_PAGE_ID, 2) env CONFLUENCE_PAGE_ID, 3) fallback только для совместимости."""
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_name:
-        path = os.path.join(root, "projects", project_name, "CONFLUENCE_PAGE_ID")
-        if os.path.isfile(path):
-            with open(path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and line.isdigit():
-                        return line
-    pid = os.environ.get("CONFLUENCE_PAGE_ID")
-    if pid:
-        return pid
-    raise ValueError(
-        "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
-        "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
-    )
 
 
 # === Color mapping ===
@@ -168,7 +146,7 @@ def is_warning_table(table):
     """Check if table is a warning/note callout - only for real warnings with keywords"""
     if len(table.rows) == 1 and len(table.rows[0].cells) == 1:
         text = table.rows[0].cells[0].text.strip().lower()
-        color = get_cell_color(table.rows[0].cells[0])
+        get_cell_color(table.rows[0].cells[0])  # may be used in future color-based detection
 
         # Keywords for critical (warning = КРАСНАЯ панель в Confluence Server)
         critical_keywords = ['критич', 'зависимость', 'critical']
@@ -242,10 +220,10 @@ def history_table_to_html(table):
         html += f'<th class="confluenceTh" style="background-color: #f4f5f7;"><strong>{h}</strong></th>'
     html += '</tr>'
     # Одна чистая запись
-    html += f'<tr><td class="confluenceTd">1.0.0</td>'
+    html += '<tr><td class="confluenceTd">1.0.0</td>'
     html += f'<td class="confluenceTd">{today}</td>'
-    html += f'<td class="confluenceTd">Шаховский А.С.</td>'
-    html += f'<td class="confluenceTd">Первая публикация в Confluence</td></tr>'
+    html += '<td class="confluenceTd">Шаховский А.С.</td>'
+    html += '<td class="confluenceTd">Первая публикация в Confluence</td></tr>'
     html += '</tbody></table>'
     return html
 
@@ -404,7 +382,6 @@ def main():
         html_parts = []
         in_list = False
         skip_code_system_descriptions = False
-        seen_code_system_table = False
         in_code_system_section = False
         code_system_items = []  # Собираем пары (код, описание)
 
@@ -482,7 +459,7 @@ def main():
                     continue
 
                 # Reset skip mode on new major section
-                if style in ["Heading 1", "Heading 2"] and not "система кодов" in text.lower():
+                if style in ["Heading 1", "Heading 2"] and "система кодов" not in text.lower():
                     skip_code_system_descriptions = False
 
                 # ⚠️ параграфы - оборачиваем в note panel (ЖЁЛТАЯ в Confluence)
@@ -542,7 +519,6 @@ def main():
                 # Mark code system table
                 first_row_text = ' '.join([c.text for c in table.rows[0].cells]).lower() if table.rows else ''
                 if 'код' in first_row_text and ('наименование' in first_row_text or 'описание' in first_row_text):
-                    seen_code_system_table = True
                     skip_code_system_descriptions = True
 
         if in_list:
@@ -557,7 +533,7 @@ def main():
 
     # Import safe Confluence client (FC-01: activated confluence_utils)
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
-    from fm_review.confluence_utils import ConfluenceClient, ConfluenceAPIError, ConfluenceLockError
+    from fm_review.confluence_utils import ConfluenceAPIError, ConfluenceClient, ConfluenceLockError
     from fm_review.xhtml_sanitizer import sanitize_xhtml
 
     # Sanitize XHTML before publishing
@@ -596,7 +572,7 @@ def main():
             print(f"  Новая версия: {new_version}")
             if backup_path:
                 print(f"  Бекап: {backup_path.name}")
-            print(f"\n  ГОТОВО!")
+            print("\n  ГОТОВО!")
             print(f"URL: {CONFLUENCE_URL}/pages/viewpage.action?pageId={PAGE_ID}")
 
     except ConfluenceLockError as e:

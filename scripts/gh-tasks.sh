@@ -13,8 +13,8 @@
 
 set -euo pipefail
 
-REPO="shakhovskiya-create/fm-review-system"
-PROJECT_OWNER="shakhovskiya-create"
+REPO="${GH_REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "shakhovskiya-create/fm-review-system")}"
+PROJECT_OWNER="${REPO%%/*}"
 PROJECT_NUM=1
 
 # Синхронизация статуса в GitHub Project Kanban

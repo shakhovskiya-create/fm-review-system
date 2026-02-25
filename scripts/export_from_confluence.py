@@ -5,44 +5,21 @@ FM Exporter from Confluence v1.0
 - Confluence XHTML -> Word (.docx, python-docx)
 - Полный контроль шрифтов и форматирования
 """
-import json, urllib.request, ssl, re, sys, os
+import json
+import os
+import re
+import sys
+import urllib.request
 from datetime import datetime
+
 from bs4 import BeautifulSoup
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from fm_review.confluence_utils import _get_page_id, _make_ssl_context
 
 # Config - safe module-level defaults (no side effects; validation in main())
 CONFLUENCE_URL = os.environ.get("CONFLUENCE_URL", "https://confluence.ekf.su")
 TOKEN = os.environ.get("CONFLUENCE_TOKEN", "")
-
-
-def _get_page_id(project_name=None):
-    """PAGE_ID: 1) файл projects/PROJECT/CONFLUENCE_PAGE_ID, 2) env CONFLUENCE_PAGE_ID, 3) fallback для совместимости."""
-    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-    if project_name:
-        path = os.path.join(root, "projects", project_name, "CONFLUENCE_PAGE_ID")
-        if os.path.isfile(path):
-            with open(path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and line.isdigit():
-                        return line
-    pid = os.environ.get("CONFLUENCE_PAGE_ID")
-    if not pid:
-        raise ValueError(
-            "PAGE_ID not found. Set CONFLUENCE_PAGE_ID env var or create "
-            "projects/<PROJECT>/CONFLUENCE_PAGE_ID file."
-        )
-    return pid
-
-
-def _make_ssl_context():
-    """Per-request SSL context for Confluence API (delegates to confluence_utils)."""
-    if os.environ.get("CONFLUENCE_SSL_VERIFY", "1") == "0":
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    return ssl.create_default_context()
 
 
 def setup_weasyprint_env():
@@ -303,9 +280,8 @@ def export_pdf(html, output_path):
 def export_docx(raw_html, title, output_path):
     """Export Confluence HTML to Word .docx using python-docx"""
     from docx import Document
-    from docx.shared import Pt, Inches, Cm, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.shared import Cm, Pt, RGBColor
 
     doc = Document()
 
@@ -426,8 +402,8 @@ def export_docx(raw_html, title, output_path):
                         r"background-color:\s*([#\w]+)", style_attr
                     )
                     if bg_match:
-                        from docx.oxml.ns import qn
                         from docx.oxml import OxmlElement
+                        from docx.oxml.ns import qn
 
                         color = bg_match.group(1).lstrip("#")
                         if len(color) == 6:
@@ -466,8 +442,8 @@ def export_docx(raw_html, title, output_path):
                 run.font.size = Pt(10)
 
                 # Set background color
-                from docx.oxml.ns import qn
                 from docx.oxml import OxmlElement
+                from docx.oxml.ns import qn
 
                 colors = {
                     "warning": "FFEBE6",

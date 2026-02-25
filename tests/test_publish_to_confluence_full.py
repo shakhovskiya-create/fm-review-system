@@ -6,7 +6,7 @@ Target: 95-100% coverage. Mocks external deps (docx, ConfluenceClient, network).
 import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -68,44 +68,30 @@ class TestGetPageIdFromFile:
     """Test _get_page_id reading from projects/PROJECT/CONFLUENCE_PAGE_ID."""
 
     def test_reads_from_project_file_when_exists(self, tmp_path):
-        from publish_to_confluence import _get_page_id
+        import fm_review.confluence_utils as cu
         project_dir = tmp_path / "projects" / "MY_PROJECT"
         project_dir.mkdir(parents=True)
         (project_dir / "CONFLUENCE_PAGE_ID").write_text("12345678\n")
-        script_path = tmp_path / "scripts" / "publish_to_confluence.py"
-        script_path.parent.mkdir(parents=True, exist_ok=True)
-        with patch.dict(os.environ, {"CONFLUENCE_PAGE_ID": ""}, clear=False):
-            with patch("publish_to_confluence.__file__", str(script_path)):
-                with patch("publish_to_confluence.os.path.dirname") as mock_dirname:
-                    with patch("publish_to_confluence.os.path.abspath", return_value=str(script_path)):
-                        def dirname_side_effect(p):
-                            if p == str(script_path):
-                                return str(tmp_path / "scripts")
-                            if "scripts" in str(p):
-                                return str(tmp_path)
-                            return os.path.dirname(p)
-                        mock_dirname.side_effect = dirname_side_effect
-                        result = _get_page_id("MY_PROJECT")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("MY_PROJECT")
         assert result == "12345678"
 
-    def test_skips_comment_lines_in_page_id_file(self):
-        from publish_to_confluence import _get_page_id
-        with patch("publish_to_confluence.os.path.dirname") as mock_dn:
-            with patch("publish_to_confluence.os.path.abspath"):
-                with patch("publish_to_confluence.os.path.isfile", return_value=True):
-                    with patch("builtins.open", mock_open(read_data="# comment\n\n55555555\n")):
-                        mock_dn.return_value = "/tmp"
-                        result = _get_page_id("PROJ")
+    def test_skips_comment_lines_in_page_id_file(self, tmp_path):
+        import fm_review.confluence_utils as cu
+        proj_dir = tmp_path / "projects" / "PROJ"
+        proj_dir.mkdir(parents=True)
+        (proj_dir / "CONFLUENCE_PAGE_ID").write_text("# comment\n\n55555555\n")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("PROJ")
         assert result == "55555555"
 
-    def test_skips_non_digit_lines(self):
-        from publish_to_confluence import _get_page_id
-        with patch("publish_to_confluence.os.path.dirname") as mock_dn:
-            with patch("publish_to_confluence.os.path.abspath"):
-                with patch("publish_to_confluence.os.path.isfile", return_value=True):
-                    with patch("builtins.open", mock_open(read_data="abc\n99999999\n")):
-                        mock_dn.return_value = "/tmp"
-                        result = _get_page_id("X")
+    def test_skips_non_digit_lines(self, tmp_path):
+        import fm_review.confluence_utils as cu
+        proj_dir = tmp_path / "projects" / "X"
+        proj_dir.mkdir(parents=True)
+        (proj_dir / "CONFLUENCE_PAGE_ID").write_text("abc\n99999999\n")
+        with patch.object(cu, "_PROJECT_ROOT", tmp_path):
+            result = cu._get_page_id("X")
         assert result == "99999999"
 
 
@@ -431,7 +417,7 @@ class TestConfluenceAPIErrorWithCode:
 class TestHistoryTableEdgeCase:
     def test_history_table_with_two_rows_not_shortened(self):
         """When len(table.rows) <= 2, history_table_to_html is not used in main loop."""
-        from publish_to_confluence import is_history_table, history_table_to_html
+        from publish_to_confluence import history_table_to_html, is_history_table
         row1 = MagicMock()
         row1.cells = [MagicMock()]
         row1.cells[0].text = "Версия"
@@ -465,7 +451,7 @@ class TestMainDocxMode:
     def test_main_docx_mode_full_flow(self, tmp_path, capsys):
         """Test docx import mode with a real docx file."""
         try:
-            import docx
+            import docx  # noqa: F401
             from docx import Document
         except ImportError:
             pytest.skip("python-docx not installed")

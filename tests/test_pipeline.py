@@ -8,9 +8,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 # Add scripts to path for imports
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
@@ -302,7 +300,7 @@ class TestPipelineTracer:
     def test_enabled_with_env(self):
         """Tracer attempts to initialize when env is set."""
         # Will fail to connect but should try
-        with patch("scripts.run_agent.PipelineTracer._init") as mock_init:
+        with patch("scripts.run_agent.PipelineTracer._init"):
             tracer = PipelineTracer.__new__(PipelineTracer)
             tracer.project = "TEST"
             tracer.model = "sonnet"

@@ -21,6 +21,14 @@ jobs:
       - name: Install dependencies
         run: pip install ".[dev]"
 
+      - name: Lint (ruff)
+        run: ruff check scripts/ src/ tests/
+
+      - name: ShellCheck
+        run: |
+          sudo apt-get install -y -qq shellcheck > /dev/null 2>&1
+          shellcheck -S error scripts/*.sh scripts/lib/*.sh .claude/hooks/*.sh
+
       - name: Run tests with coverage
         run: pytest --cov=scripts --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=35
 

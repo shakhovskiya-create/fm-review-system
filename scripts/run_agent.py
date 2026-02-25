@@ -26,6 +26,7 @@ Requirements:
   - pip install claude-code-sdk
   - Optional: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY for tracing
 """
+import argparse
 import asyncio
 import json
 import os
@@ -34,18 +35,16 @@ import shutil
 import subprocess
 import sys
 import time
-import argparse
-from pathlib import Path
 from datetime import datetime, timezone
-from dataclasses import dataclass, field
+from pathlib import Path
 
 from claude_code_sdk import (
-    query,
     ClaudeCodeOptions,
     ResultMessage,
-    AssistantMessage,
-    TextBlock,
+    query,
 )
+
+from fm_review.pipeline_tracer import AgentResult, PipelineTracer  # noqa: F401
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
@@ -63,144 +62,6 @@ AGENT_REGISTRY = {int(k): v for k, v in _CONFIG["AGENT_REGISTRY"].items()}
 PIPELINE_BUDGET_USD = _CONFIG.get("PIPELINE_BUDGET_USD", 60.0)
 PIPELINE_ORDER = _CONFIG.get("PIPELINE_ORDER", [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6])
 PARALLEL_STAGES = _CONFIG.get("PARALLEL_STAGES", [])
-
-
-@dataclass
-class AgentResult:
-    agent_id: int
-    status: str  # completed | partial | failed | dry_run | timeout | budget_exceeded | injection_detected
-    summary_path: Path | None = None
-    duration_seconds: float = 0.0
-    exit_code: int = 0
-    cost_usd: float = 0.0
-    num_turns: int = 0
-    session_id: str = ""
-    error: str = ""
-
-
-# --- Langfuse Pipeline Tracer ---
-
-class PipelineTracer:
-    """Optional Langfuse tracing for pipeline runs.
-
-    Creates a root trace for the pipeline with child spans for each agent.
-    Disabled silently if LANGFUSE_PUBLIC_KEY is not set.
-    """
-
-    def __init__(self, project: str, model: str, parallel: bool = False):
-        self.project = project
-        self.model = model
-        self.parallel = parallel
-        self.enabled = False
-        self.langfuse = None
-        self.root = None
-        self._init()
-
-    def _init(self):
-        if not os.environ.get("LANGFUSE_PUBLIC_KEY"):
-            return
-        # Ensure LANGFUSE_HOST is set (SDK v3 uses HOST, not BASE_URL)
-        if not os.environ.get("LANGFUSE_HOST") and os.environ.get("LANGFUSE_BASE_URL"):
-            os.environ["LANGFUSE_HOST"] = os.environ["LANGFUSE_BASE_URL"]
-        try:
-            from langfuse import get_client
-            self.langfuse = get_client()
-            self.enabled = True
-        except ImportError:
-            pass
-
-    def start_pipeline(self) -> None:
-        """Create root trace for the pipeline run."""
-        if not self.enabled:
-            return
-        mode = "parallel" if self.parallel else "sequential"
-        self.root = self.langfuse.start_span(name=f"pipeline-{self.project}")
-        self.root.update_trace(
-            name=f"pipeline-{self.project}",
-            user_id=os.environ.get("USER", "unknown"),
-            metadata={
-                "project": self.project,
-                "model": self.model,
-                "mode": mode,
-            },
-            tags=[f"project:{self.project}", f"model:{self.model}", "pipeline", mode],
-        )
-
-    def start_agent(self, agent_id: int, agent_name: str):
-        """Create a child span for an agent run. Returns span or None."""
-        if not self.enabled or not self.root:
-            return None
-        span = self.root.start_span(
-            name=f"agent-{agent_id}-{agent_name}",
-            metadata={"agent_id": agent_id, "agent_name": agent_name},
-        )
-        return span
-
-    def end_agent(self, span, result: AgentResult) -> None:
-        """End an agent span with result metadata."""
-        if not span:
-            return
-        status_level = "ERROR" if result.status in ("failed", "timeout", "budget_exceeded") else "DEFAULT"
-        span.update(
-            metadata={
-                "status": result.status,
-                "cost_usd": result.cost_usd,
-                "duration_seconds": result.duration_seconds,
-                "num_turns": result.num_turns,
-                "session_id": result.session_id,
-                "error": result.error or None,
-            },
-            level=status_level,
-        )
-        # Add generation for cost tracking
-        if result.cost_usd > 0:
-            gen = span.start_generation(
-                name=f"agent-{result.agent_id}-llm",
-                model=self.model,
-                metadata={"total_cost_usd": result.cost_usd},
-            )
-            gen.end()
-        span.end()
-
-    def start_quality_gate(self):
-        """Create a child span for Quality Gate."""
-        if not self.enabled or not self.root:
-            return None
-        return self.root.start_span(
-            name="quality-gate",
-            metadata={"type": "quality_gate"},
-        )
-
-    def end_quality_gate(self, span, exit_code: int, status: str) -> None:
-        """End Quality Gate span."""
-        if not span:
-            return
-        level = "ERROR" if exit_code == 1 else "WARNING" if exit_code == 2 else "DEFAULT"
-        span.update(
-            metadata={"exit_code": exit_code, "status": status},
-            level=level,
-        )
-        span.end()
-
-    def finish(self, total_cost: float, total_duration: float, results: dict) -> None:
-        """End root trace and flush."""
-        if not self.enabled or not self.root:
-            return
-        completed = sum(1 for r in results.values() if r.get("status") == "completed")
-        failed = sum(1 for r in results.values() if r.get("status") == "failed")
-        self.root.update(
-            metadata={
-                "total_cost_usd": total_cost,
-                "total_duration_seconds": total_duration,
-                "agents_completed": completed,
-                "agents_failed": failed,
-            },
-        )
-        self.root.end()
-        try:
-            self.langfuse.flush()
-        except Exception:
-            pass
 
 
 # --- Prompt Injection Protection ---
@@ -1135,11 +996,11 @@ def _load_dotenv():
                     env = dict(os.environ)
                     if api_url:
                         env["INFISICAL_API_URL"] = api_url
-                    
+
                     # Pass credentials via environment variables instead of process args
                     env["INFISICAL_CLIENT_ID"] = client_id
                     env["INFISICAL_CLIENT_SECRET"] = client_secret
-                    
+
                     login_result = subprocess.run(
                         ["infisical", "login", "--method=universal-auth", "--silent"],
                         capture_output=True, text=True, timeout=15, env=env,

@@ -8,7 +8,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -17,22 +17,21 @@ SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from publish_to_confluence import (
+    FM_VERSION,
+    SKIP_AFTER_CODE_SYSTEM,
     escape_html,
     hex_to_confluence_color,
-    _get_page_id,
-    should_skip_paragraph,
+    history_table_to_html,
     is_history_table,
     is_meta_table,
     is_warning_table,
-    para_to_html,
-    table_to_html,
     meta_table_to_html,
-    history_table_to_html,
-    get_cell_color,
-    FM_VERSION,
-    SKIP_AFTER_CODE_SYSTEM,
+    para_to_html,
+    should_skip_paragraph,
+    table_to_html,
 )
 
+from fm_review.confluence_utils import _get_page_id
 
 # ── escape_html ──────────────────────────────────────
 
@@ -132,23 +131,8 @@ class TestGetPageId:
         project_dir.mkdir(parents=True)
         (project_dir / "CONFLUENCE_PAGE_ID").write_text("99999999\n")
 
-        with patch("publish_to_confluence.os.path.dirname", return_value=str(tmp_path / "scripts")):
-            with patch("publish_to_confluence.os.path.abspath", return_value=str(tmp_path / "scripts" / "publish_to_confluence.py")):
-                # The function computes root as dirname(dirname(abspath(__file__)))
-                # We need to override the root calculation
-                pass
-
-        # Direct approach: create structure matching what function expects
-        scripts_dir = tmp_path / "scripts"
-        scripts_dir.mkdir()
-
-        # Monkey-patch the root calculation
-        original_func = _get_page_id.__code__
-        result = None
-        # Simplest: call with project, but the root won't match. Use env fallback.
-        with patch.dict(os.environ, {"CONFLUENCE_PAGE_ID": "99999999"}, clear=False):
-            result = _get_page_id(None)
-        assert result == "99999999"
+        with patch("fm_review.confluence_utils._PROJECT_ROOT", tmp_path):
+            assert _get_page_id("PROJECT_TEST") == "99999999"
 
     def test_falls_back_to_env(self):
         with patch.dict(os.environ, {"CONFLUENCE_PAGE_ID": "77777"}, clear=False):
@@ -437,8 +421,10 @@ class TestMetaTableToHtml:
         rows = []
         for key, val in [("Версия", "0.1"), ("Дата", "old"), ("Статус", "DRAFT")]:
             row = MagicMock()
-            c1 = MagicMock(); c1.text = key
-            c2 = MagicMock(); c2.text = val
+            c1 = MagicMock()
+            c1.text = key
+            c2 = MagicMock()
+            c2.text = val
             row.cells = [c1, c2]
             rows.append(row)
         table = MagicMock()
