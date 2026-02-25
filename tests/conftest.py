@@ -3,7 +3,6 @@ Fixtures for FM Review System tests.
 Mocks Confluence API, provides temporary project structures.
 """
 import json
-import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch

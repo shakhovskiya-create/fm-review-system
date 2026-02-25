@@ -9,16 +9,14 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR.parent))
 
 from scripts.seed_memory import (
     AGENTS,
     PIPELINE,
-    RELATIONS,
     PROJECT_ROOT,
+    RELATIONS,
     discover_projects,
     write_memory,
 )

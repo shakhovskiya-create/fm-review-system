@@ -1,22 +1,18 @@
 import json
-import os
-import sys
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from fm_review.langfuse_tracer import (
-    get_last_offset,
-    save_offset,
-    parse_transcript,
-    detect_agent,
-    calculate_cost,
-    send_to_langfuse,
+    DEFAULT_PRICING,
     SessionStats,
+    calculate_cost,
+    detect_agent,
+    get_last_offset,
     main,
-    STATE_DIR,
-    DEFAULT_PRICING
+    parse_transcript,
+    save_offset,
+    send_to_langfuse,
 )
 
 
@@ -239,12 +235,12 @@ class TestMain:
         transcript.write_text("")
         mock_read.return_value = json.dumps({"transcript_path": str(transcript)})
         mock_env_get.return_value = "key"
-        
+
         stats = SessionStats(turn_count=0)
         mock_parse.return_value = (stats, 5)
-        
+
         main()
-        
+
         mock_save.assert_called_with(str(transcript), 5)
         mock_exit.assert_called_with(0)
 

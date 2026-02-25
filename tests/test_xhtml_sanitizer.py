@@ -1,5 +1,5 @@
-import pytest
 from fm_review.xhtml_sanitizer import sanitize_xhtml
+
 
 def test_sanitize_clean_body():
     body = "<p>Clean content</p>"

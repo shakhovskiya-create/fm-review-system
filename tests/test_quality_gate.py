@@ -10,10 +10,7 @@ Validates that:
 import json
 import os
 import subprocess
-import sys
 from pathlib import Path
-
-import pytest
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"

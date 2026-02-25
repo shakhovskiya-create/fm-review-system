@@ -16,8 +16,8 @@ Usage:
 
 import re
 from typing import Tuple
-from xml.etree.ElementTree import ParseError as XMLParseError
 from xml.etree import ElementTree
+from xml.etree.ElementTree import ParseError as XMLParseError
 
 # Tags that are never allowed in Confluence storage format
 FORBIDDEN_TAGS = re.compile(

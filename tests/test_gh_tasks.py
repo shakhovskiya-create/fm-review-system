@@ -9,10 +9,7 @@ Validates enforcement rules:
 """
 import os
 import subprocess
-import tempfile
 from pathlib import Path
-
-import pytest
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT = PROJECT_ROOT / "scripts" / "gh-tasks.sh"
