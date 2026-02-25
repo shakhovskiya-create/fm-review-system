@@ -20,6 +20,7 @@ import fcntl
 import json
 import os
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -88,6 +89,83 @@ MAX_BACKUPS = 10
 
 # Audit log settings (FC-12B)
 AUDIT_LOG_DIR = Path(__file__).parent.parent / ".audit_log"
+
+# Rate limiter settings
+RATE_LIMIT_RPS = float(os.environ.get("CONFLUENCE_RATE_LIMIT_RPS", "5"))
+
+
+class _RateLimiter:
+    """Token bucket rate limiter for Confluence API.
+
+    Limits outgoing requests to CONFLUENCE_RATE_LIMIT_RPS (default 5).
+    Thread-safe. Blocks caller until a token is available.
+    """
+
+    def __init__(self, rps: float = RATE_LIMIT_RPS):
+        self._capacity = rps
+        self._tokens = rps
+        self._last = time.monotonic()
+        self._lock = threading.Lock()
+
+    def acquire(self):
+        """Block until a token is available, then consume it."""
+        while True:
+            with self._lock:
+                now = time.monotonic()
+                elapsed = now - self._last
+                self._tokens = min(self._capacity, self._tokens + elapsed * self._capacity)
+                self._last = now
+                if self._tokens >= 1.0:
+                    self._tokens -= 1.0
+                    return
+            time.sleep(1.0 / self._capacity)
+
+
+_rate_limiter = _RateLimiter()
+
+# TTL cache settings
+CACHE_TTL_SECONDS = int(os.environ.get("CONFLUENCE_CACHE_TTL", "60"))
+
+
+class _TTLCache:
+    """Simple TTL cache for Confluence page reads.
+
+    Avoids redundant GET requests within the TTL window (default 60s).
+    Thread-safe. Keyed by (page_id, expand).
+    """
+
+    def __init__(self, ttl: int = CACHE_TTL_SECONDS):
+        self._ttl = ttl
+        self._store: Dict[str, Tuple[float, Any]] = {}
+        self._lock = threading.Lock()
+
+    def get(self, key: str) -> Optional[Any]:
+        with self._lock:
+            entry = self._store.get(key)
+            if entry is None:
+                return None
+            ts, value = entry
+            if time.monotonic() - ts > self._ttl:
+                del self._store[key]
+                return None
+            return value
+
+    def put(self, key: str, value: Any):
+        with self._lock:
+            self._store[key] = (time.monotonic(), value)
+
+    def invalidate(self, prefix: str = ""):
+        """Remove entries matching prefix, or all if empty."""
+        with self._lock:
+            if not prefix:
+                self._store.clear()
+            else:
+                keys = [k for k in self._store if k.startswith(prefix)]
+                for k in keys:
+                    del self._store[k]
+
+
+_page_cache = _TTLCache()
 
 
 class ConfluenceLockError(Exception):
@@ -259,6 +337,7 @@ class ConfluenceClient:
         reraise=True
     )
     def _do_request(self, req: urllib.request.Request) -> Dict:
+        _rate_limiter.acquire()
         try:
             with urllib.request.urlopen(req, timeout=30, context=_make_ssl_context()) as resp:
                 return json.loads(resp.read().decode('utf-8'))
@@ -297,8 +376,14 @@ class ConfluenceClient:
             raise ConfluenceAPIError(f"Max retries exceeded or fatal error: {str(e)}") from e
 
     def get_page(self, expand: str = "body.storage,version") -> Dict:
-        """Get page content and metadata."""
-        return self._request("GET", f"/rest/api/content/{self.page_id}?expand={expand}")
+        """Get page content and metadata. Results cached for CONFLUENCE_CACHE_TTL seconds."""
+        cache_key = f"{self.page_id}:{expand}"
+        cached = _page_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        result = self._request("GET", f"/rest/api/content/{self.page_id}?expand={expand}")
+        _page_cache.put(cache_key, result)
+        return result
 
     def update_page(
         self,
@@ -358,6 +443,9 @@ class ConfluenceClient:
         try:
             result = self._request("PUT", f"/rest/api/content/{self.page_id}", update_data)
 
+            # Invalidate cache after write
+            _page_cache.invalidate(self.page_id)
+
             # Audit log (FC-12B)
             new_version = result.get("version", {}).get("number", current_version + 1)
             self._audit_log("update", agent_name, version_message, new_version)
@@ -415,6 +503,10 @@ class ConfluenceClient:
         }
 
         result = self._request("PUT", f"/rest/api/content/{self.page_id}", restore_data)
+
+        # Invalidate cache after rollback
+        _page_cache.invalidate(self.page_id)
+
         print(f"  Rollback complete. New version: {result.get('version', {}).get('number')}")
 
         # Audit log (FC-12B)

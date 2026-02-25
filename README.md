@@ -1,128 +1,152 @@
 # FM Review System
 
-Система из 9 AI-агентов для полного жизненного цикла Функциональных Моделей (ФМ) проектов 1С: создание, аудит, публикация в Confluence.
+Система из 12 AI-агентов для полного жизненного цикла Функциональных Моделей (ФМ) проектов 1С и Go-сервисов: создание, аудит, тестирование, публикация в Confluence.
 
-## Быстрый старт
+## Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Python | 3.11+ | Runtime |
+| Claude Code CLI | latest | Agent execution |
+| jq | 1.6+ | JSON processing |
+| gum | latest | Interactive TUI (scripts) |
+| Infisical CLI | latest | Secrets management |
+| ShellCheck | 0.9+ | Shell linting (CI) |
+| Node.js | 18+ | MCP servers |
+
+## Installation
 
 ```bash
-# Главное меню — единая точка входа
+# 1. Clone
+git clone git@github.com:anthropics/fm-review-system.git
+cd fm-review-system
+
+# 2. Python deps
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Secrets (Infisical → keyring → .env fallback)
+infisical login
+./scripts/check-secrets.sh --verbose
+
+# 4. Verify
+pytest tests/ -x -q
+```
+
+## Architecture
+
+```mermaid
+graph TD
+    U[User / Orchestrator] --> R{Router}
+    R --> A0[Agent 0: Creator]
+    R --> A1[Agent 1: Architect]
+    R --> A2[Agent 2: Simulator]
+    R --> A3[Agent 3: Defender]
+    R --> A4[Agent 4: QA Tester]
+    R --> A5[Agent 5: Tech Architect]
+    R --> A6[Agent 6: Presenter]
+    R --> A7[Agent 7: Publisher]
+    R --> A8[Agent 8: BPMN Designer]
+    R --> A9[Agent 9: SE Go+React]
+    R --> A10[Agent 10: SE 1C]
+    R --> HA[Helper: Architect]
+
+    A7 --> C[(Confluence)]
+    A8 --> C
+
+    subgraph Pipeline
+        A1 --> P24[A2 + A4]
+        P24 --> A5
+        A5 -.->|Go| A9
+        A5 -.->|1С| A10
+        A5 --> A3
+        A3 --> QG[Quality Gate]
+        QG --> A7
+        A7 --> P86[A8 + A6]
+    end
+
+    subgraph MCP Servers
+        MC[Confluence]
+        MM[Memory KG]
+        MG[GitHub]
+        ML[Langfuse]
+        MP[Playwright]
+        MA[Agentation]
+    end
+```
+
+## Agents (12)
+
+| # | Agent | Purpose | Key Command |
+|---|-------|---------|-------------|
+| 0 | Creator | Create FM from scratch | `/new` |
+| 1 | Architect | Full audit (business + 1C) | `/audit` |
+| 2 | Role Simulator | Role simulation / UX / business critique | `/simulate-all`, `/business` |
+| 3 | Defender | Defend FM against stakeholder feedback | `/respond` |
+| 4 | QA Tester | Generate test cases + traceability matrix | `/generate-all` |
+| 5 | Tech Architect | Architecture + TZ + estimation | `/full` |
+| 6 | Presenter | Presentations and reports | `/present` |
+| 7 | Publisher | Manage FM in Confluence (sole writer) | `/publish` |
+| 8 | BPMN Designer | BPMN diagrams in Confluence | `/bpmn` |
+| 9 | SE Go+React | Code review for Go/React projects | `/review` |
+| 10 | SE 1C | Code review for 1C extensions | `/review` |
+| - | Helper Architect | Infrastructure: hooks, scripts, MCP, CI/CD | (orchestrator) |
+
+Agents 9 and 10 are **conditional** — injected into pipeline based on project platform.
+
+## Pipeline
+
+```
+Agent 1 (Audit) → [Agent 2, Agent 4] → Agent 5 → Agent 9|10 (conditional) → Agent 3 → Quality Gate → Agent 7 → [Agent 8, Agent 6]
+```
+
+Run: `python3 scripts/run_agent.py --pipeline --project PROJECT_NAME`
+
+Options: `--parallel`, `--agents 1,2,4`, `--resume`, `--dry-run`
+
+## Quick Start
+
+```bash
+# Interactive menu
 ./scripts/orchestrate.sh
 
-# Или напрямую в Claude Code:
-# "Прочитай свою роль из AGENT_1_ARCHITECT.md и проведи /audit"
+# Or directly in Claude Code:
+# "Run audit on PROJECT_SHPMNT_PROFIT"  → routes to Agent 1
+# "Create test cases"                    → routes to Agent 4
+# "Publish to Confluence"                → routes to Agent 7
 ```
 
-## Агенты
+## Key Scripts
 
-| # | Агент | Назначение | Ключевая команда |
-|---|-------|-----------|-----------------|
-| 0 | Creator | Создание ФМ с нуля | `/new` |
-| 1 | Architect | Полный аудит (бизнес + 1С) | `/audit`, `/auto` |
-| 2 | Role Simulator | Симуляция ролей / UX | `/simulate-all`, `/auto` |
-| 3 | Defender | Защита от замечаний | `/respond-all`, `/auto` |
-| 4 | QA Tester | Генерация тест-кейсов | `/generate-all`, `/auto` |
-| 5 | Tech Architect | Архитектура + ТЗ + оценка | `/full`, `/auto` |
-| 6 | Presenter | Презентации и отчёты | `/present`, `/auto` |
-| 7 | Publisher | Управление ФМ в Confluence | `/publish`, `/verify` |
-| 8 | BPMN Designer | BPMN-диаграммы в Confluence | `/bpmn`, `/auto` |
+| Script | Purpose |
+|--------|---------|
+| `scripts/orchestrate.sh` | Main menu (14 options) |
+| `scripts/run_agent.py` | SDK pipeline runner (Claude Code SDK + Langfuse) |
+| `scripts/quality_gate.sh` | FM readiness check (9 sections) |
+| `scripts/gh-tasks.sh` | GitHub Issues CLI (create/start/done/block) |
+| `scripts/publish_to_confluence.py` | Confluence update (v3.0, lock+backup+retry) |
+| `scripts/check-secrets.sh` | Secrets verification (Infisical/keyring/.env) |
+| `scripts/cost-report.sh` | Monthly cost breakdown by agent |
+| `scripts/tg-report.py` | Telegram cost reports |
 
-## Pipeline (Конвейер)
+## Secrets
 
-```
-Agent 0 (Creator)     → создание ФМ
-       ↓
-Agent 1 (Architect)   → аудит → /apply → ФМ v+0.0.1
-       ↓
-Agent 2 (Simulator)   → UX → /apply → ФМ v+0.0.1
-       ↓
-Agent 4 (QA Tester)   → тесты → /apply → ФМ v+0.0.1
-       ↓
-Agent 5 (Tech Arch)   → архитектура + ТЗ
-       ↓
-Quality Gate          → проверка готовности
-       ↓
-Agent 7 (Publisher)   → обновление ФМ в Confluence
-       ↓
-Agent 8 (BPMN Designer) → BPMN-диаграммы
-       ↓
-Agent 6 (Presenter)   → финальная презентация
+Priority: **Infisical Universal Auth** → keyring → .env (fallback)
+
+```bash
+./scripts/check-secrets.sh --verbose  # verify all keys
 ```
 
-Agent 3 (Defender) вызывается по запросу при получении замечаний.
+## Observability
 
-Каждый агент поддерживает `/auto` — конвейерный режим без интервью, с автоматическим чтением результатов предыдущих агентов.
+- **Langfuse** (self-hosted v3): traces, costs, per-agent spans
+- **Telegram bot**: daily cost reports (`systemd: fm-tg-bot`)
+- **GitHub Issues**: task tracking with `agent:*`, `sprint:*`, `status:*` labels
 
-## Скрипты
+## Principles
 
-| Скрипт | Назначение |
-|--------|-----------|
-| `orchestrate.sh` | Главное меню - единая точка входа (9 агентов) |
-| `new_project.sh` | Создание нового проекта |
-| `quality_gate.sh` | Проверка готовности ФМ к передаче |
-| `fm_version.sh` | Управление версиями ФМ |
-| `agent[0-5]_*.sh` | Интервью для агентов 0-5 |
-| `publish_to_confluence.py` | Обновление Confluence (v3.0, lock+backup+retry) |
-| `import_docx.py` | Одноразовый импорт DOCX в Confluence (symlink) |
-| `export_from_confluence.py` | Экспорт ФМ из Confluence (PDF/Word) |
-| `src/fm_review/confluence_utils.py` | Confluence API клиент (блокировки, бекапы, retry) |
-| `run_agent.py` | Автономный запуск агентов через Claude Code SDK (`--pipeline`, `--parallel`) |
-
-## Структура проекта
-
-```
-fm-review-system/
-├── CLAUDE.md              ← Правила для всех агентов (9 агентов)
-├── .env.example           ← Шаблон переменных окружения
-├── agents/                ← Инструкции агентов (AGENT_0..8_*.md)
-├── docs/                  ← Документация (актуальная)
-│   ├── PROMPTS.md         ← Промпты для копирования
-│   ├── CHANGELOG.md       ← История изменений
-│   └── CONTRACT_CONFLUENCE_FM.md ← Контракт Confluence-only
-├── schemas/               ← JSON-схемы (agent-contracts.json v2.1)
-├── templates/             ← Шаблоны Confluence-страниц
-├── workflows/             ← Сквозные сценарии
-├── src/fm_review/         ← Основные Python-библиотеки
-│   ├── confluence_utils.py ← Confluence API клиент
-│   ├── langfuse_tracer.py  ← Интеграция с Langfuse
-│   └── xhtml_sanitizer.py  ← Санитайзер разметки
-├── scripts/               ← Скрипты и утилиты
-│   ├── publish_to_confluence.py ← Обновление Confluence (v3.0)
-│   ├── import_docx.py     ← Импорт DOCX (symlink)
-│   ├── lib/common.sh      ← Общие bash-функции
-│   └── experimental/      ← Неактивные модули
-├── projects/PROJECT_[NAME]/ ← Проекты с ФМ
-│   ├── CONFLUENCE_PAGE_ID ← ID страницы ФМ в Confluence
-│   ├── AGENT_*/           ← Результаты агентов
-│   └── CHANGES/           ← Логи изменений
-└── ...
-```
-
-## Режимы работы с ФМ
-
-**Confluence — единственный источник правды:** все читают ФМ оттуда, правки вносятся туда (через Agent 7), версионность и дата ведутся в Confluence; при каждом обновлении в таблицу «История версий» на странице добавляется строка с кратким описанием изменений.
-
-- **Confluence-only (рекомендуется):** ФМ живёт только в Confluence. Агенты читают из API; правки в Confluence вносит Agent 7. Версионность — встроенная Confluence; дата в мета-таблице — автоматически при обновлении. Папка `FM_DOCUMENTS/` необязательна; quality_gate при её отсутствии выдаёт предупреждение, но не блокирует.
-- **Confluence + FM_DOCUMENTS (legacy):** Дополнительно хранятся копии ФМ в Word/Markdown в `projects/PROJECT_*/FM_DOCUMENTS/`. Удобно для офлайн-экспорта и бэкапов. Источник истины для агентов — по-прежнему Confluence; файлы используются для экспорта и гейта (версия из имени файла).
-
-**Проверка контракта:** чеклист закрепления — `docs/CONTRACT_CONFLUENCE_FM.md`.
-
-**PAGE_ID:** Заполняется в `projects/PROJECT_*/CONFLUENCE_PAGE_ID` (одна строка — число). Скрипты `publish_to_confluence.py`, `export_from_confluence.py` берут PAGE_ID: 1) из файла проекта (если задан env `PROJECT` или аргумент `--project`), 2) из env `CONFLUENCE_PAGE_ID`, 3) fallback только для совместимости.
-
-**Обновление Confluence без docx (Confluence-only):** тело страницы можно обновить так: 1) Agent 7 в Claude Code (ручной шаг), или 2) подготовить XHTML и выполнить `python3 scripts/publish_to_confluence.py --from-file body.xhtml --project PROJECT`. Меню «Управление проектами → Публикация ФМ» при отсутствии docx выводит подсказку с этой командой.
-
-## Автономный режим
-
-1. Установить зависимости: `pip install -r requirements.txt` (claude-code-sdk, langfuse)
-2. Задать переменные: `export AUTONOMOUS=1` (ANTHROPIC_API_KEY не нужен - используется Claude Code SDK)
-3. Запустить полный цикл: `./scripts/orchestrate.sh` - пункт 1, выбрать этапы. Каждый этап будет выполнен через `scripts/run_agent.py`, результат сохранится в `projects/PROJECT/AGENT_X_*/`.
-4. При необходимости авто-/apply без запроса пользователя: в контексте проекта или env задать `APPLY_MODE=auto` и `APPLY_SCOPE=critical_high` (или `all`). Агенты 1, 2, 4 тогда применяют правки по этому правилу.
-
-> **Примечание:** `run_agent.py` использует Claude Code SDK (async). Поддерживает `--pipeline` (последовательный запуск), `--parallel` (параллельные этапы), `--agents 1,2,4` (выборочный), `--dry-run` (без выполнения). Langfuse-трейсинг включается при наличии `LANGFUSE_PUBLIC_KEY`.
-
-## Принципы
-
-- **Скорость > Контроль**: контроль не должен тормозить продажи
-- **Умный контроль**: авторправила вместо ручных согласований
-- **Молчание = согласие**: для позитивных сделок, отказ для негативных
-- **Дефолты на все**: таймауты, действия по умолчанию, эскалации
-- **Нулевой ручной труд**: `/auto` режим, конвейер, автоэкспорт
+- **Speed > Control**: controls must not slow down the core business process
+- **Smart controls**: auto-rules instead of manual approvals
+- **Zero manual labor**: `/auto` mode, pipeline, auto-export
+- **Silence = consent**: for positive deals; rejection for negative
+- **Defaults for everything**: timeouts, default actions, escalations

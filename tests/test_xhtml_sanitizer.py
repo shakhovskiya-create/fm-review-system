@@ -78,3 +78,49 @@ def test_sanitize_unclosed_tags():
     body = "<p>Unclosed <strong>tag</p>"
     result, warnings = sanitize_xhtml(body)
     assert any("well-formedness" in w.lower() for w in warnings)
+
+
+# ── Structural Validation Tests (D4) ──────────────────────
+
+
+def test_allowed_elements_no_warning():
+    """Standard Confluence elements produce no structural warnings."""
+    body = "<h2>Title</h2><p>Text with <strong>bold</strong> and <em>italic</em></p><ul><li>Item</li></ul>"
+    _, warnings = sanitize_xhtml(body)
+    assert not any("Non-whitelisted" in w for w in warnings)
+
+
+def test_table_elements_allowed():
+    """Table elements are in the whitelist."""
+    body = "<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>D</td></tr></tbody></table>"
+    _, warnings = sanitize_xhtml(body)
+    assert not any("Non-whitelisted" in w for w in warnings)
+
+
+def test_confluence_macros_allowed():
+    """Confluence ac: namespace elements are allowed."""
+    body = (
+        '<ac:structured-macro ac:name="warning">'
+        '<ac:parameter ac:name="title">Alert</ac:parameter>'
+        '<ac:rich-text-body><p>Content</p></ac:rich-text-body>'
+        '</ac:structured-macro>'
+    )
+    _, warnings = sanitize_xhtml(body)
+    assert not any("Non-whitelisted" in w for w in warnings)
+
+
+def test_unknown_element_warning():
+    """Non-whitelisted elements produce a warning."""
+    body = "<p>Text</p><video src='test.mp4'>Video</video>"
+    _, warnings = sanitize_xhtml(body)
+    assert any("Non-whitelisted elements: video" in w for w in warnings)
+
+
+def test_multiple_unknown_elements():
+    """Multiple unknown elements listed in warning."""
+    body = "<audio>Sound</audio><canvas>Draw</canvas><p>OK</p>"
+    _, warnings = sanitize_xhtml(body)
+    non_wl = [w for w in warnings if "Non-whitelisted" in w]
+    assert len(non_wl) == 1
+    assert "audio" in non_wl[0]
+    assert "canvas" in non_wl[0]

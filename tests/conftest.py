@@ -13,6 +13,15 @@ import pytest
 SRC_DIR = Path(__file__).parent.parent / "src"
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SRC_DIR))
+
+
+@pytest.fixture(autouse=True)
+def _clear_confluence_cache():
+    """Clear TTL cache before each test to avoid cross-test pollution."""
+    from fm_review.confluence_utils import _page_cache
+    _page_cache.invalidate()
+    yield
+    _page_cache.invalidate()
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 

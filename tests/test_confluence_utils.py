@@ -17,6 +17,8 @@ from fm_review.confluence_utils import (
     ConfluenceClient,
     ConfluenceLock,
     ConfluenceLockError,
+    _RateLimiter,
+    _TTLCache,
 )
 
 # ── Lock Tests ──────────────────────────────────────────────
@@ -368,3 +370,126 @@ class TestCreateClientFromEnv:
             client = create_client_from_env()
             assert client.url == "https://conf.example.com"
             assert client.page_id == "99999"
+
+
+# ── Rate Limiter Tests ─────────────────────────────────────
+
+
+class TestRateLimiter:
+    def test_first_acquire_instant(self):
+        """First acquire should be near-instant (bucket starts full)."""
+        limiter = _RateLimiter(rps=10.0)
+        t0 = time.monotonic()
+        limiter.acquire()
+        elapsed = time.monotonic() - t0
+        assert elapsed < 0.05
+
+    def test_burst_up_to_capacity(self):
+        """Can burst up to capacity tokens without delay."""
+        limiter = _RateLimiter(rps=5.0)
+        t0 = time.monotonic()
+        for _ in range(5):
+            limiter.acquire()
+        elapsed = time.monotonic() - t0
+        assert elapsed < 0.1  # 5 tokens should be near-instant
+
+    def test_throttles_beyond_capacity(self):
+        """Requests beyond capacity are delayed."""
+        limiter = _RateLimiter(rps=10.0)
+        # Exhaust all tokens
+        for _ in range(10):
+            limiter.acquire()
+        # Next one should take ~0.1s (1/10 RPS)
+        t0 = time.monotonic()
+        limiter.acquire()
+        elapsed = time.monotonic() - t0
+        assert elapsed >= 0.05  # at least half the expected wait
+
+    def test_tokens_refill(self):
+        """Tokens refill after waiting."""
+        limiter = _RateLimiter(rps=100.0)
+        # Exhaust tokens
+        for _ in range(100):
+            limiter.acquire()
+        # Wait for refill
+        time.sleep(0.05)  # 5 tokens should refill at 100 RPS
+        t0 = time.monotonic()
+        limiter.acquire()
+        elapsed = time.monotonic() - t0
+        assert elapsed < 0.05
+
+    def test_rate_limiter_called_in_do_request(self, mock_urllib):
+        """_do_request calls rate limiter before making request."""
+        with patch("fm_review.confluence_utils._rate_limiter") as mock_rl:
+            with patch("fm_review.confluence_utils._page_cache") as mock_cache:
+                mock_cache.get.return_value = None
+                client = ConfluenceClient("https://test.example.com", "token", "12345")
+                client.get_page()
+                assert mock_rl.acquire.called
+
+
+# ── TTL Cache Tests ────────────────────────────────────────
+
+
+class TestTTLCache:
+    def test_put_and_get(self):
+        """Cache returns stored value within TTL."""
+        cache = _TTLCache(ttl=10)
+        cache.put("key1", {"data": "value"})
+        assert cache.get("key1") == {"data": "value"}
+
+    def test_miss_returns_none(self):
+        """Cache returns None for missing key."""
+        cache = _TTLCache(ttl=10)
+        assert cache.get("nonexistent") is None
+
+    def test_expired_returns_none(self):
+        """Cache returns None for expired entry."""
+        cache = _TTLCache(ttl=0)  # 0s TTL = immediate expiry
+        cache.put("key1", "value")
+        time.sleep(0.01)
+        assert cache.get("key1") is None
+
+    def test_invalidate_by_prefix(self):
+        """invalidate removes entries matching prefix."""
+        cache = _TTLCache(ttl=60)
+        cache.put("page1:body", "data1")
+        cache.put("page1:version", "data2")
+        cache.put("page2:body", "data3")
+        cache.invalidate("page1")
+        assert cache.get("page1:body") is None
+        assert cache.get("page1:version") is None
+        assert cache.get("page2:body") == "data3"
+
+    def test_invalidate_all(self):
+        """invalidate with empty prefix clears all."""
+        cache = _TTLCache(ttl=60)
+        cache.put("a", 1)
+        cache.put("b", 2)
+        cache.invalidate()
+        assert cache.get("a") is None
+        assert cache.get("b") is None
+
+    def test_get_page_uses_cache(self, mock_urllib):
+        """Second get_page call returns cached result without API call."""
+        with patch("fm_review.confluence_utils._page_cache", _TTLCache(ttl=60)):
+            client = ConfluenceClient("https://test.example.com", "token", "12345")
+            result1 = client.get_page()
+            result2 = client.get_page()
+            assert result1 == result2
+            # Only one actual API call (mock_urllib called once)
+            assert mock_urllib.call_count == 1
+
+    def test_update_page_invalidates_cache(self, tmp_path, mock_urllib):
+        """update_page invalidates cache for that page."""
+        test_cache = _TTLCache(ttl=60)
+        with patch("fm_review.confluence_utils._page_cache", test_cache):
+            with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
+                with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+                    client = ConfluenceClient("https://test.example.com", "token", "12345")
+                    # Populate cache
+                    client.get_page()
+                    assert test_cache.get("12345:body.storage,version") is not None
+                    # Update should invalidate
+                    client.update_page("<p>New</p>", "test", agent_name="test")
+                    assert test_cache.get("12345:body.storage,version") is None

@@ -233,14 +233,50 @@ subheader "8. Документация"
 
 [[ -f "${PROJECT_DIR}/CHANGELOG.md" ]] && check_pass "CHANGELOG.md" || check_warn "CHANGELOG.md отсутствует"
 
-# ─── 8.5 VERSION COHERENCE ─────────────────────────────────
-subheader "8.5. Когерентность версий"
+# ─── 8.5 BUSINESS REVIEW TIMEOUT (D1) ─────────────────────
+subheader "8.5. Бизнес-ревью: лимиты"
+
+MAX_ITERATIONS=5
+MAX_DAYS=7
+CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
+
+if [[ -f "$CONTEXT_FILE" ]]; then
+    ITER_COUNT=$(grep -oP 'iteration_count:\s*\K[0-9]+' "$CONTEXT_FILE" 2>/dev/null | tail -1) || true
+    REVIEW_START=$(grep -oP 'review_start_date:\s*\K[0-9]{4}-[0-9]{2}-[0-9]{2}' "$CONTEXT_FILE" 2>/dev/null | tail -1) || true
+
+    if [[ -n "$ITER_COUNT" ]]; then
+        if [[ "$ITER_COUNT" -ge "$MAX_ITERATIONS" ]]; then
+            check_fail "Бизнес-ревью: ${ITER_COUNT}/${MAX_ITERATIONS} итераций — лимит исчерпан"
+        elif [[ "$ITER_COUNT" -ge $((MAX_ITERATIONS - 1)) ]]; then
+            check_warn "Бизнес-ревью: ${ITER_COUNT}/${MAX_ITERATIONS} итераций — осталась 1"
+        else
+            check_pass "Бизнес-ревью: ${ITER_COUNT}/${MAX_ITERATIONS} итераций"
+        fi
+    fi
+
+    if [[ -n "$REVIEW_START" ]]; then
+        START_EPOCH=$(date -d "$REVIEW_START" +%s 2>/dev/null) || true
+        if [[ -n "$START_EPOCH" ]]; then
+            NOW_EPOCH=$(date +%s)
+            DAYS_ELAPSED=$(( (NOW_EPOCH - START_EPOCH) / 86400 ))
+            if [[ "$DAYS_ELAPSED" -ge "$MAX_DAYS" ]]; then
+                check_fail "Бизнес-ревью: ${DAYS_ELAPSED}/${MAX_DAYS} дней — таймаут"
+            elif [[ "$DAYS_ELAPSED" -ge $((MAX_DAYS - 2)) ]]; then
+                check_warn "Бизнес-ревью: ${DAYS_ELAPSED}/${MAX_DAYS} дней — осталось $((MAX_DAYS - DAYS_ELAPSED))"
+            else
+                check_pass "Бизнес-ревью: ${DAYS_ELAPSED}/${MAX_DAYS} дней"
+            fi
+        fi
+    fi
+fi
+
+# ─── 8.6 VERSION COHERENCE ─────────────────────────────────
+subheader "8.6. Когерентность версий"
 
 # Собираем FM-версию из разных источников
 VER_CONTEXT=""
 VER_SUMMARY=""
 VER_CONFLUENCE=""
-CONTEXT_FILE="${PROJECT_DIR}/PROJECT_CONTEXT.md"
 if [[ -f "$CONTEXT_FILE" ]]; then
     VER_CONTEXT=$(grep -oP 'Версия ФМ:\s*\K[0-9]+\.[0-9]+\.[0-9]+' "$CONTEXT_FILE" 2>/dev/null | head -1) || true
 fi

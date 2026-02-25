@@ -64,6 +64,24 @@ ALLOWED_MACROS = {
     "status", "jira", "recently-updated", "page-tree",
 }
 
+# Allowed elements in Confluence Storage Format (XHTML subset + ac:/ri: namespaces)
+ALLOWED_ELEMENTS = {
+    # Standard XHTML block elements
+    "p", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+    "ul", "ol", "li", "dl", "dt", "dd",
+    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col",
+    "blockquote", "pre", "hr", "br",
+    # Standard XHTML inline elements
+    "a", "span", "strong", "em", "b", "i", "u", "s", "sub", "sup",
+    "code", "tt", "img",
+    # Confluence-specific (ac: namespace — stored without prefix after parse)
+    "structured-macro", "parameter", "rich-text-body", "plain-text-body",
+    "link", "image", "layout", "layout-section", "layout-cell",
+    "emoticon", "placeholder",
+    # Confluence resource identifiers (ri: namespace)
+    "page", "attachment", "url", "user", "space", "content-entity",
+}
+
 
 def sanitize_xhtml(body: str) -> Tuple[str, list]:
     """
@@ -125,7 +143,21 @@ def sanitize_xhtml(body: str) -> Tuple[str, list]:
         ' xmlns:ri="http://atlassian.com/resource-identifier">'
     )
     try:
-        ElementTree.fromstring(f"{_xml_wrapper}{result}</root>")  # nosec B314 — input is our own sanitized XHTML, not untrusted
+        tree = ElementTree.fromstring(f"{_xml_wrapper}{result}</root>")  # nosec B314 — input is our own sanitized XHTML, not untrusted
+
+        # 9. Structural validation: whitelist of allowed elements (D4)
+        unknown_elements = set()
+        for elem in tree.iter():
+            # Strip namespace URI, keep local name
+            tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+            if tag == "root":
+                continue
+            if tag not in ALLOWED_ELEMENTS:
+                unknown_elements.add(tag)
+        if unknown_elements:
+            warnings.append(
+                f"Non-whitelisted elements: {', '.join(sorted(unknown_elements))}"
+            )
     except XMLParseError as e:
         warnings.append(f"XHTML well-formedness error: {e}")
 

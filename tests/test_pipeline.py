@@ -16,6 +16,7 @@ sys.path.insert(0, str(SCRIPTS_DIR.parent))
 
 from scripts.run_agent import (
     AGENT_REGISTRY,
+    CONDITIONAL_STAGES,
     PARALLEL_STAGES,
     PIPELINE_BUDGET_USD,
     PIPELINE_ORDER,
@@ -23,6 +24,8 @@ from scripts.run_agent import (
     PipelineTracer,
     _build_parallel_stages,
     _build_sequential_stages,
+    _detect_platform,
+    _inject_conditional,
     build_prompt,
     check_agent_status,
     check_prompt_injection,
@@ -38,13 +41,13 @@ PROJECT_DIR = PROJECT_ROOT / "projects" / "PROJECT_SHPMNT_PROFIT"
 
 
 class TestAgentRegistry:
-    def test_nine_agents_registered(self):
-        """All 9 agents are in the registry."""
-        assert len(AGENT_REGISTRY) == 9
+    def test_eleven_agents_registered(self):
+        """All 11 agents (0-10) are in the registry."""
+        assert len(AGENT_REGISTRY) == 11
 
-    def test_agent_ids_0_to_8(self):
-        """Agent IDs are 0-8."""
-        assert sorted(AGENT_REGISTRY.keys()) == list(range(9))
+    def test_agent_ids_0_to_10(self):
+        """Agent IDs are 0-10."""
+        assert sorted(AGENT_REGISTRY.keys()) == list(range(11))
 
     def test_each_agent_has_required_fields(self):
         """Each agent entry has name, file, dir."""
@@ -76,10 +79,19 @@ class TestAgentRegistry:
         )
 
     def test_pipeline_budget_covers_agents(self):
-        """Total pipeline budget should cover sum of all agent budgets."""
-        total_agent_budget = sum(c["budget_usd"] for c in AGENT_REGISTRY.values())
-        assert PIPELINE_BUDGET_USD >= total_agent_budget, (
-            f"Pipeline budget ${PIPELINE_BUDGET_USD} < sum of agent budgets ${total_agent_budget}"
+        """Pipeline budget covers core agents + max one conditional."""
+        conditional_ids = set(CONDITIONAL_STAGES.keys())
+        core_budget = sum(
+            c["budget_usd"] for aid, c in AGENT_REGISTRY.items()
+            if aid not in conditional_ids
+        )
+        max_conditional = max(
+            (AGENT_REGISTRY[aid]["budget_usd"] for aid in conditional_ids if aid in AGENT_REGISTRY),
+            default=0,
+        )
+        needed = core_budget + max_conditional
+        assert PIPELINE_BUDGET_USD >= needed, (
+            f"Pipeline budget ${PIPELINE_BUDGET_USD} < core + max conditional ${needed}"
         )
 
 
@@ -169,6 +181,90 @@ class TestBuildStages:
         """Filtering removes stages with no matching agents."""
         stages = _build_parallel_stages([1])
         assert stages == [[1]]
+
+
+class TestConditionalStages:
+    def test_detect_platform_1c(self, tmp_path):
+        """Detects 1С platform from PROJECT_CONTEXT.md."""
+        project_dir = tmp_path / "projects" / "TEST_PROJECT"
+        project_dir.mkdir(parents=True)
+        (project_dir / "PROJECT_CONTEXT.md").write_text("Платформа: 1С:УТ\n")
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            assert _detect_platform("TEST_PROJECT") == "1c"
+
+    def test_detect_platform_go(self, tmp_path):
+        """Detects Go platform from PROJECT_CONTEXT.md."""
+        project_dir = tmp_path / "projects" / "TEST_PROJECT"
+        project_dir.mkdir(parents=True)
+        (project_dir / "PROJECT_CONTEXT.md").write_text("Platform: Go + React\n")
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            assert _detect_platform("TEST_PROJECT") == "go"
+
+    def test_detect_platform_unknown(self, tmp_path):
+        """Returns empty string for unknown platform."""
+        project_dir = tmp_path / "projects" / "TEST_PROJECT"
+        project_dir.mkdir(parents=True)
+        (project_dir / "PROJECT_CONTEXT.md").write_text("Some docs\n")
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            assert _detect_platform("TEST_PROJECT") == ""
+
+    def test_detect_platform_no_context(self, tmp_path):
+        """Returns empty string when PROJECT_CONTEXT.md missing."""
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            assert _detect_platform("NONEXISTENT") == ""
+
+    def test_inject_conditional_1c(self):
+        """Injects Agent 10 for 1С projects after Agent 5."""
+        stages = [[1], [2, 4], [5], [3], ["quality_gate"], [7], [8, 6]]
+        with patch("scripts.run_agent._detect_platform", return_value="1c"):
+            result = _inject_conditional(stages, "TEST")
+        # Agent 10 should be injected after stage containing 5
+        flat = [item for stage in result for item in stage]
+        assert 10 in flat
+        # Agent 10 should appear after Agent 5
+        idx_5 = next(i for i, s in enumerate(result) if 5 in s)
+        idx_10 = next(i for i, s in enumerate(result) if 10 in s)
+        assert idx_10 > idx_5
+
+    def test_inject_conditional_go(self):
+        """Injects Agent 9 for Go projects after Agent 5."""
+        stages = [[1], [2, 4], [5], [3], ["quality_gate"], [7], [8, 6]]
+        with patch("scripts.run_agent._detect_platform", return_value="go"):
+            result = _inject_conditional(stages, "TEST")
+        flat = [item for stage in result for item in stage]
+        assert 9 in flat
+        assert 10 not in flat
+
+    def test_inject_conditional_unknown_noop(self):
+        """No injection for unknown platform."""
+        stages = [[1], [2, 4], [5]]
+        with patch("scripts.run_agent._detect_platform", return_value=""):
+            result = _inject_conditional(stages, "TEST")
+        assert result == [[1], [2, 4], [5]]
+
+    def test_build_parallel_with_project_injects(self, tmp_path):
+        """_build_parallel_stages injects conditional agent for 1С project."""
+        project_dir = tmp_path / "projects" / "TEST_1C"
+        project_dir.mkdir(parents=True)
+        (project_dir / "PROJECT_CONTEXT.md").write_text("Платформа: 1С:ERP\n")
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            stages = _build_parallel_stages(None, "TEST_1C")
+        flat = [item for stage in stages for item in stage]
+        assert 10 in flat
+
+    def test_conditional_stages_config(self):
+        """CONDITIONAL_STAGES loaded from pipeline.json."""
+        assert 9 in CONDITIONAL_STAGES
+        assert 10 in CONDITIONAL_STAGES
+        assert CONDITIONAL_STAGES[9]["platform"] == "go"
+        assert CONDITIONAL_STAGES[10]["platform"] == "1c"
+
+    def test_agents_9_10_in_registry(self):
+        """Agents 9 and 10 are in AGENT_REGISTRY."""
+        assert 9 in AGENT_REGISTRY
+        assert 10 in AGENT_REGISTRY
+        assert AGENT_REGISTRY[9]["name"] == "SE_Go"
+        assert AGENT_REGISTRY[10]["name"] == "SE_1C"
 
 
 class TestBuildPrompt:

@@ -62,6 +62,7 @@ AGENT_REGISTRY = {int(k): v for k, v in _CONFIG["AGENT_REGISTRY"].items()}
 PIPELINE_BUDGET_USD = _CONFIG.get("PIPELINE_BUDGET_USD", 60.0)
 PIPELINE_ORDER = _CONFIG.get("PIPELINE_ORDER", [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6])
 PARALLEL_STAGES = _CONFIG.get("PARALLEL_STAGES", [])
+CONDITIONAL_STAGES = {int(k): v for k, v in _CONFIG.get("CONDITIONAL_STAGES", {}).items()}
 
 
 # --- Prompt Injection Protection ---
@@ -498,12 +499,12 @@ async def run_pipeline(
         if tracer.enabled:
             log("Langfuse: трейсинг активен")
 
-    # Build stages
+    # Build stages (inject conditional agents 9/10 based on platform)
     if parallel:
-        stages = _build_parallel_stages(agents_filter)
+        stages = _build_parallel_stages(agents_filter, project)
         mode_label = "ПАРАЛЛЕЛЬНЫЙ"
     else:
-        stages = _build_sequential_stages(agents_filter)
+        stages = _build_sequential_stages(agents_filter, project)
         mode_label = "ПОСЛЕДОВАТЕЛЬНЫЙ"
 
     # Calculate total pipeline budget
@@ -795,8 +796,53 @@ async def run_pipeline(
     return results
 
 
-def _build_parallel_stages(agents_filter: list[int] | None) -> list[list]:
-    """Build parallel stage list, applying agent filter."""
+def _detect_platform(project: str) -> str:
+    """Detect project platform from PROJECT_CONTEXT.md.
+
+    Returns normalized platform: 'go', '1c', or '' (unknown).
+    """
+    ctx_path = ROOT_DIR / "projects" / project / "PROJECT_CONTEXT.md"
+    if not ctx_path.is_file():
+        return ""
+    try:
+        text = ctx_path.read_text(encoding="utf-8").lower()
+    except OSError:
+        return ""
+    if "1с" in text or "1c" in text:
+        return "1c"
+    if "go" in text or "golang" in text:
+        return "go"
+    return ""
+
+
+def _inject_conditional(stages: list[list], project: str) -> list[list]:
+    """Inject conditional agents (9, 10) into stages based on platform."""
+    if not CONDITIONAL_STAGES:
+        return stages
+    platform = _detect_platform(project)
+    if not platform:
+        return stages
+    for agent_id, cond in CONDITIONAL_STAGES.items():
+        if cond.get("platform", "").lower() != platform:
+            continue
+        if agent_id not in AGENT_REGISTRY:
+            continue
+        after = cond.get("after")
+        # Find the stage index containing the 'after' agent
+        insert_idx = None
+        for i, stage in enumerate(stages):
+            if after in stage:
+                insert_idx = i + 1
+                break
+        if insert_idx is not None:
+            stages.insert(insert_idx, [agent_id])
+        else:
+            stages.append([agent_id])
+    return stages
+
+
+def _build_parallel_stages(agents_filter: list[int] | None, project: str = "") -> list[list]:
+    """Build parallel stage list, applying agent filter and conditionals."""
     stages = []
     for stage in PARALLEL_STAGES:
         if agents_filter:
@@ -810,10 +856,12 @@ def _build_parallel_stages(agents_filter: list[int] | None) -> list[list]:
                 stages.append(filtered)
         else:
             stages.append(list(stage))
+    if project:
+        stages = _inject_conditional(stages, project)
     return stages
 
 
-def _build_sequential_stages(agents_filter: list[int] | None) -> list[list]:
+def _build_sequential_stages(agents_filter: list[int] | None, project: str = "") -> list[list]:
     """Build sequential stage list (each step in its own stage)."""
     pipeline = list(PIPELINE_ORDER)
     if agents_filter:
@@ -823,7 +871,10 @@ def _build_sequential_stages(agents_filter: list[int] | None) -> list[list]:
         ]
         if 7 not in agents_filter:
             pipeline = [s for s in pipeline if s != "quality_gate"]
-    return [[step] for step in pipeline]
+    stages = [[step] for step in pipeline]
+    if project:
+        stages = _inject_conditional(stages, project)
+    return stages
 
 
 # --- CLI ---
@@ -846,8 +897,8 @@ async def async_main():
         help="Project name (or env PROJECT)",
     )
     parser.add_argument(
-        "--agent", type=int, choices=range(9), metavar="0-8",
-        help="Run a single agent (0-8)",
+        "--agent", type=int, choices=range(11), metavar="0-10",
+        help="Run a single agent (0-10)",
     )
     parser.add_argument(
         "--command", default="/auto",
