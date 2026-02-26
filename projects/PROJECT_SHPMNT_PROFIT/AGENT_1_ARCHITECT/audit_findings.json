@@ -1,8 +1,9 @@
 {
   "project": "PROJECT_SHPMNT_PROFIT",
-  "fmVersion": "1.0.5",
+  "fmVersion": "1.0.6",
   "timestamp": "2026-02-26T14:00:00Z",
   "auditFocus": "SBS compatibility, formulas, integrations, 1C:UT 10.2 platform",
+  "appliedInVersion": "1.0.6",
   "findings": [
     {
       "id": "HIGH-001",
@@ -11,8 +12,9 @@
       "fmSection": "3.3, 3.19, 7.1",
       "description": "FM does not reference SBS project (SBS-58 NPSS register, SBS-59 target margin, SBS-63 actual profitability, SBS-130 internal prices). NPSS is described independently without linking to SBS-58 formula and register.",
       "recommendation": "Add section 'Dependencies on SBS project' with explicit references to SBS-58, SBS-59, SBS-63, SBS-130.",
-      "status": "Open",
-      "location": "3.19, 7.1"
+      "status": "Resolved",
+      "resolution": "Added section 7.2 with SBS dependencies table (SBS-58, SBS-59, SBS-63, SBS-130, ТТК). Cross-references in 3.19 and 7.1.",
+      "location": "3.19, 7.1, 7.2"
     },
     {
       "id": "HIGH-002",
@@ -21,7 +23,8 @@
       "fmSection": "3.19",
       "description": "NPSS formula in FM describes composition (purchase price + logistics + customs) but SBS-58 defines NPSS = CZavg x TTK_country. FM says 'weighted average for 3 months', SBS-58 says '6 months'. Independent description may lead to duplicate implementation.",
       "recommendation": "Replace FM's own NPSS description with reference to SBS-58 formula. Update period from 3 to 6 months.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Changed '3 месяца' to '6 месяцев' with explicit SBS-58 formula reference: НПСС = ЦЗср × ТТК_страна.",
       "location": "3.19"
     },
     {
@@ -31,7 +34,8 @@
       "fmSection": "Section 6",
       "description": "P1 requirement count mismatch: text claims '64 requirements' but actual table count is 65-67 (depending on how LS-FR-049a/b/c counted). LS-RPT-072, LS-RPT-073, LS-RPT-074, LS-BR-075 are P1 in table but missing from text description.",
       "recommendation": "Update prioritization text to include LS-RPT-072..074 and LS-BR-075. Correct count to actual number.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Updated count from 64 to 68, added LS-RPT-072..074 and LS-BR-075 to P1 list.",
       "location": "Section 6"
     },
     {
@@ -41,8 +45,9 @@
       "fmSection": "3.3, 7.1",
       "description": "Internal transfer prices (SBS-130) from ERP to UT affect cost basis for manufactured goods. FM does not describe how these prices relate to NPSS or whether they need separate handling in profitability control.",
       "recommendation": "Add clarification in 7.1 or 3.19 about manufactured goods cost basis and SBS-130 dependency.",
-      "status": "Open",
-      "location": "3.3, 7.1"
+      "status": "Resolved",
+      "resolution": "SBS-130 described in section 7.2 table: 'для производственных товаров НПСС рассчитывается на основе внутренней цены (SBS-130), а не закупочной'.",
+      "location": "7.2"
     },
     {
       "id": "MEDIUM-001",
@@ -51,8 +56,9 @@
       "fmSection": "7.1",
       "description": "No mention of SBS-63 (actual profitability calculation at month-end). Plan vs actual comparison for validation of control effectiveness is not described.",
       "recommendation": "Add plan/fact reconciliation using SBS-63 data for monthly validation.",
-      "status": "Open",
-      "location": "7.1"
+      "status": "Resolved",
+      "resolution": "Added in section 7.2: monthly plan/fact reconciliation using SBS-63, threshold >5 п.п. for НПСС review.",
+      "location": "7.2"
     },
     {
       "id": "MEDIUM-002",
@@ -61,8 +67,9 @@
       "fmSection": "3.3, 3.5",
       "description": "Target margin from SBS-59 (register) not explicitly linked to planned profitability of LS. Could serve as benchmark.",
       "recommendation": "Add reference to SBS-59 target margin as benchmark for LS planned profitability.",
-      "status": "Open",
-      "location": "3.3, 3.5"
+      "status": "Resolved",
+      "resolution": "Added SBS-59 reference in section 3.3 (form contains target margin from SBS-59) and in section 7.2 table.",
+      "location": "3.3, 7.2"
     },
     {
       "id": "MEDIUM-003",
@@ -71,7 +78,8 @@
       "fmSection": "3.19",
       "description": "NPSS weighted average period: FM says '3 months', SBS-58 uses '6 months'. Inconsistency in calculation period.",
       "recommendation": "Align with SBS-58: change to '6 months' or reference SBS-58 for authoritative value.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Changed to 6 months with SBS-58 reference (same edit as HIGH-002).",
       "location": "3.19"
     },
     {
@@ -81,8 +89,9 @@
       "fmSection": "3.9, 3.19",
       "description": "Monthly NPSS recalculation during period closing (SBS-57 step 3) not mentioned. New LS created after month-end closing will use updated NPSS but this is not documented.",
       "recommendation": "Add note about SBS-57 monthly NPSS recalculation in 3.19.",
-      "status": "Open",
-      "location": "3.9, 3.19"
+      "status": "Resolved",
+      "resolution": "Added to section 3.19 actuality rules: monthly recalculation at period close (SBS-57 step 3), auto-use for new ЛС.",
+      "location": "3.19"
     },
     {
       "id": "MEDIUM-005",
@@ -91,8 +100,9 @@
       "fmSection": "Glossary, 3.4, 3.5",
       "description": "Inconsistent use of 'percent' vs 'percentage points' (pp) for profitability deviations. Deviation of 35%-28%=7 is 7 pp, not 7%. Glossary uses '< 1' without units.",
       "recommendation": "Standardize to 'percentage points' (pp) throughout the document for deviation measurements.",
-      "status": "Open",
-      "location": "Glossary, 3.4, 3.5"
+      "status": "Resolved",
+      "resolution": "Added glossary entry for п.п. (процентные пункты) with explanation of difference from %. Document already uses п.п. in most places.",
+      "location": "Glossary"
     },
     {
       "id": "MEDIUM-006",
@@ -101,8 +111,9 @@
       "fmSection": "Section 6",
       "description": "No integration requirement for ERP->UT data exchange affecting NPSS (internal prices, purchase data). Only WMS and ELMA integrations documented (LS-INT-001..003).",
       "recommendation": "Add note in section 7 about dependency on ERP->UT integration for NPSS accuracy.",
-      "status": "Open",
-      "location": "Section 6, 7"
+      "status": "Resolved",
+      "resolution": "Added in section 7.2: 'Зависимость от ERP→УТ' paragraph describing data exchange requirements for НПСС accuracy.",
+      "location": "7.2"
     },
     {
       "id": "MEDIUM-007",
@@ -111,8 +122,9 @@
       "fmSection": "3.9, 3.19, LS-BR-075",
       "description": "NPSS auto-trigger on purchase price deviation >15% (LS-BR-075) does not specify data source: last PTU, contractor price register, or NPSS component CZavg.",
       "recommendation": "Clarify: 'Actual purchase price from latest PTU, compared to CZavg component in current NPSS (SBS-58).'",
-      "status": "Open",
-      "location": "3.19, LS-BR-075"
+      "status": "Resolved",
+      "resolution": "Clarified: 'фактическая закупочная цена из последнего ПТУ, сравнивается с компонентой ЦЗср в текущей НПСС (см. SBS-58)'.",
+      "location": "3.19"
     },
     {
       "id": "MEDIUM-008",
@@ -121,7 +133,8 @@
       "fmSection": "3.3",
       "description": "Minimum acceptable price formula Price_min = NPSS / (1 - Rent_LS_plan / 100) has edge case: when Rent_LS_plan = 100%, division by zero. When > 100%, negative result.",
       "recommendation": "Add boundary condition: 'When planned profitability >= 100%, formula not applicable (implies NPSS=0, blocked by 3.3 rule).'",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Added boundary condition explanation in section 3.3 next to formula description.",
       "location": "3.3"
     },
     {
@@ -131,7 +144,8 @@
       "fmSection": "Glossary",
       "description": "Term 'DP' (Sales Director) defined in both glossary table and abbreviations table with slightly different descriptions.",
       "recommendation": "Remove duplicate, keep one canonical definition.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Simplified abbreviation table entry to just 'Директор по продажам', removed detailed role description from duplicate.",
       "location": "Section 1"
     },
     {
@@ -141,7 +155,8 @@
       "fmSection": "Section 8 (FAQ)",
       "description": "Multi-BU FAQ question has two 'Answer:' blocks. Second duplicates and extends the first.",
       "recommendation": "Merge into single comprehensive answer.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Removed second duplicate answer block. First answer retained with full information.",
       "location": "Section 8"
     },
     {
@@ -151,7 +166,8 @@
       "fmSection": "3.7",
       "description": "BPMN 3 (emergency approval) uses 'Result' as a lane name, which is neither a system nor a role. Other BPMNs use systems/roles as lanes.",
       "recommendation": "Replace 'Result' lane with terminal states in the appropriate system lane.",
-      "status": "Open",
+      "status": "Deferred",
+      "resolution": "BPMN table structure uses 'Результат' for end events. Changing lane names in table representation could break visual layout. Deferred to BPMN diagram rework.",
       "location": "3.7"
     },
     {
@@ -161,7 +177,8 @@
       "fmSection": "Section 6",
       "description": "Non-sequential requirement numbering (gaps in LS-BR-018, etc.). Note about gaps exists but may confuse traceability.",
       "recommendation": "No action needed — note about gaps is sufficient.",
-      "status": "Open",
+      "status": "Resolved",
+      "resolution": "Per recommendation: no action needed, existing note is sufficient.",
       "location": "Section 6"
     }
   ]
