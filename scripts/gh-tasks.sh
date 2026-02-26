@@ -3,13 +3,14 @@
 # Используется оркестратором и агентами для persistent task tracking.
 #
 # Usage:
-#   gh-tasks.sh create --title "..." --agent 1-architect --sprint 13 --body "..." [--priority high] [--type infra]
-#   gh-tasks.sh start <issue_number>          # status:planned -> status:in-progress
-#   gh-tasks.sh done <issue_number> --comment "..."      # close issue (comment REQUIRED)
-#   gh-tasks.sh block <issue_number> --reason "..."      # status:blocked
-#   gh-tasks.sh list [--agent X] [--sprint N] [--status S]
-#   gh-tasks.sh my-tasks --agent X            # open tasks for agent
-#   gh-tasks.sh sprint [N]                    # sprint dashboard
+#   gh-tasks.sh create --title "..." --agent 1-architect --sprint 13 --body "..." [--priority high] [--type T] [--parent N]
+#   gh-tasks.sh start    <issue_number>           # status:planned -> status:in-progress
+#   gh-tasks.sh done     <issue_number> --comment "..."  # close issue (comment REQUIRED)
+#   gh-tasks.sh block    <issue_number> --reason "..."   # status:blocked
+#   gh-tasks.sh list     [--agent X] [--sprint N] [--status S]
+#   gh-tasks.sh my-tasks --agent <name>           # open tasks for agent
+#   gh-tasks.sh sprint   [N]                      # sprint dashboard
+#   gh-tasks.sh children <epic_number>            # list child issues of an epic
 
 set -euo pipefail
 
@@ -17,26 +18,49 @@ REPO="${GH_REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/nu
 PROJECT_OWNER="${REPO%%/*}"
 PROJECT_NUM=1
 
-# Синхронизация статуса в GitHub Project Kanban
-_sync_project_status() {
-    local issue_url="$1" target_status="$2"
-    # Находим item ID в проекте
-    local item_id
-    item_id=$(gh project item-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
-        --jq ".items[] | select(.content.number == ${issue_url}) | .id" 2>/dev/null || true)
-    [ -z "$item_id" ] && return 0
+# Cache project metadata (avoids repeated API calls within one script run)
+_PROJECT_ID=""
+_STATUS_FIELD_ID=""
 
-    # Находим Status field ID и option ID
-    local field_id option_id
-    field_id=$(gh project field-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
-        --jq '.fields[] | select(.name == "Status") | .id' 2>/dev/null || true)
+_get_project_id() {
+    if [ -z "$_PROJECT_ID" ]; then
+        _PROJECT_ID=$(gh project list --owner "$PROJECT_OWNER" --format json \
+            --jq ".projects[] | select(.number == $PROJECT_NUM) | .id" 2>/dev/null || true)
+    fi
+    echo "$_PROJECT_ID"
+}
+
+_get_status_field_id() {
+    if [ -z "$_STATUS_FIELD_ID" ]; then
+        _STATUS_FIELD_ID=$(gh project field-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+            --jq '.fields[] | select(.name == "Status") | .id' 2>/dev/null || true)
+    fi
+    echo "$_STATUS_FIELD_ID"
+}
+
+# Синхронизация статуса в GitHub Project Kanban
+# Maps: "Todo" = Planned, "In Progress", "Done"
+_sync_project_status() {
+    local issue_num="$1" target_status="$2"
+    local project_id field_id option_id item_id
+
+    project_id=$(_get_project_id)
+    [ -z "$project_id" ] && return 0
+
+    field_id=$(_get_status_field_id)
     [ -z "$field_id" ] && return 0
 
+    # Find item by issue number (numeric comparison)
+    item_id=$(gh project item-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+        --jq ".items[] | select(.content.number == ${issue_num}) | .id" 2>/dev/null || true)
+    [ -z "$item_id" ] && return 0
+
+    # Find option ID for target status
     option_id=$(gh project field-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
-        --jq ".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$target_status\") | .id" 2>/dev/null || true)
+        --jq ".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"${target_status}\") | .id" 2>/dev/null || true)
     [ -z "$option_id" ] && return 0
 
-    gh project item-edit --project-id "$(gh project list --owner "$PROJECT_OWNER" --format json --jq ".projects[] | select(.number == $PROJECT_NUM) | .id")" \
+    gh project item-edit --project-id "$project_id" \
         --id "$item_id" --field-id "$field_id" --single-select-option-id "$option_id" 2>/dev/null || true
 }
 
@@ -44,13 +68,14 @@ _usage() {
     echo "Usage: gh-tasks.sh <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T]"
+    echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T] [--parent N]"
     echo "  start    <issue_number>"
     echo "  done     <issue_number> --comment '...'   (REQUIRED: DoD + результат)"
     echo "  block    <issue_number> --reason '...'"
     echo "  list     [--agent X] [--sprint N] [--status S]"
     echo "  my-tasks --agent <name>"
     echo "  sprint   [N]"
+    echo "  children <epic_number>                    (list child tasks of an epic)"
     exit 1
 }
 
@@ -62,16 +87,17 @@ _remove_status_labels() {
 }
 
 cmd_create() {
-    local title="" agent="" sprint="" priority="medium" type="infra" body=""
+    local title="" agent="" sprint="" priority="medium" type="infra" body="" parent=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --title)   title="$2"; shift 2 ;;
-            --agent)   agent="$2"; shift 2 ;;
-            --sprint)  sprint="$2"; shift 2 ;;
+            --title)    title="$2"; shift 2 ;;
+            --agent)    agent="$2"; shift 2 ;;
+            --sprint)   sprint="$2"; shift 2 ;;
             --priority) priority="$2"; shift 2 ;;
-            --type)    type="$2"; shift 2 ;;
-            --body)    body="$2"; shift 2 ;;
+            --type)     type="$2"; shift 2 ;;
+            --body)     body="$2"; shift 2 ;;
+            --parent)   parent="$2"; shift 2 ;;
             *) echo "Unknown option: $1"; exit 1 ;;
         esac
     done
@@ -81,6 +107,13 @@ cmd_create() {
     [[ -z "$sprint" ]] && { echo "ERROR: --sprint required"; exit 1; }
     [[ -z "$body" ]] && { echo "ERROR: --body required (образ результата + Acceptance Criteria)"; echo "Template: '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"; exit 1; }
 
+    # If parent specified, prepend "Part of #N" to body
+    if [[ -n "$parent" ]]; then
+        body="Part of #${parent}
+
+${body}"
+    fi
+
     local labels="agent:${agent},sprint:${sprint},priority:${priority},type:${type},status:planned"
 
     local args=(--repo "$REPO" --title "$title" --label "$labels")
@@ -88,10 +121,17 @@ cmd_create() {
 
     local url
     url=$(gh issue create "${args[@]}")
+    local issue_num="${url##*/}"
     echo "$url"
 
-    # Добавляем в Project board
+    # Добавляем в Project board + ставим статус Todo
     gh project item-add "$PROJECT_NUM" --owner "$PROJECT_OWNER" --url "$url" 2>/dev/null || true
+    _sync_project_status "$issue_num" "Todo"
+
+    # If parent exists, add task-list reference to epic body
+    if [[ -n "$parent" ]]; then
+        _add_child_to_epic "$parent" "$issue_num" "$title"
+    fi
 }
 
 cmd_start() {
@@ -142,6 +182,15 @@ cmd_done() {
     # Cross-check: warn about changed files not mentioned in comment
     _validate_artifacts "$comment"
 
+    # Epic check: if this issue has child tasks, all must be closed first
+    local issue_labels
+    issue_labels=$(gh issue view "$issue" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || true)
+    if echo "$issue_labels" | grep -q "type:epic"; then
+        if ! _check_epic_children "$issue"; then
+            exit 1
+        fi
+    fi
+
     _remove_status_labels "$issue"
     gh issue comment "$issue" --repo "$REPO" --body "$comment"
     gh issue close "$issue" --repo "$REPO"
@@ -178,6 +227,89 @@ _validate_artifacts() {
     fi
 }
 
+# Add child issue reference to epic's body (task list)
+_add_child_to_epic() {
+    local epic="$1" child_num="$2" child_title="$3"
+    local current_body
+    current_body=$(gh issue view "$epic" --repo "$REPO" --json body --jq '.body' 2>/dev/null || true)
+    [[ -z "$current_body" ]] && return 0
+
+    # Append task list item
+    local new_body="${current_body}
+- [ ] #${child_num} ${child_title}"
+    gh issue edit "$epic" --repo "$REPO" --body "$new_body" 2>/dev/null || true
+}
+
+# Check that all children of an epic are closed before allowing epic close
+_check_epic_children() {
+    local epic="$1"
+    local body
+    body=$(gh issue view "$epic" --repo "$REPO" --json body --jq '.body' 2>/dev/null || true)
+    [[ -z "$body" ]] && return 0
+
+    # Extract child issue numbers from "- [ ] #N" or "- [x] #N" patterns
+    local child_nums
+    child_nums=$(echo "$body" | grep -oP '#\K[0-9]+' | sort -u || true)
+    [[ -z "$child_nums" ]] && return 0
+
+    local open_children=()
+    while IFS= read -r num; do
+        [[ -z "$num" ]] && continue
+        local state
+        state=$(gh issue view "$num" --repo "$REPO" --json state --jq '.state' 2>/dev/null || true)
+        if [[ "$state" == "OPEN" ]]; then
+            local child_title
+            child_title=$(gh issue view "$num" --repo "$REPO" --json title --jq '.title' 2>/dev/null || true)
+            open_children+=("#${num}: ${child_title}")
+        fi
+    done <<< "$child_nums"
+
+    if [[ ${#open_children[@]} -gt 0 ]]; then
+        echo ""
+        echo "ERROR: Нельзя закрыть epic #${epic} — есть незакрытые подзадачи:"
+        for c in "${open_children[@]}"; do
+            echo "  - $c"
+        done
+        echo ""
+        echo "Сначала закройте подзадачи, потом epic."
+        return 1
+    fi
+    return 0
+}
+
+cmd_children() {
+    local epic="${1:?ERROR: epic issue number required}"
+    local body
+    body=$(gh issue view "$epic" --repo "$REPO" --json body,title --jq '.title + "\n" + .body' 2>/dev/null || true)
+    [[ -z "$body" ]] && { echo "Issue #${epic} not found"; exit 1; }
+
+    echo "=== Epic #${epic}: $(echo "$body" | head -1) ==="
+    echo ""
+
+    # Extract child issue numbers from body
+    local child_nums
+    child_nums=$(echo "$body" | grep -oP '(?<=#)\d+' | sort -un || true)
+    [[ -z "$child_nums" ]] && { echo "No child issues found in epic body."; exit 0; }
+
+    local total=0 done_count=0
+    while IFS= read -r num; do
+        [[ -z "$num" ]] && continue
+        [[ "$num" == "$epic" ]] && continue  # skip self-references
+        local info
+        info=$(gh issue view "$num" --repo "$REPO" --json number,title,state,labels \
+            --jq '"#\(.number) [\(.state)] \(.title) [\([.labels[].name | select(startswith("agent:") or startswith("status:"))] | join(", "))]"' 2>/dev/null || true)
+        [[ -z "$info" ]] && continue
+        echo "  $info"
+        total=$((total + 1))
+        if echo "$info" | grep -q "CLOSED"; then
+            done_count=$((done_count + 1))
+        fi
+    done <<< "$child_nums"
+
+    echo ""
+    echo "Progress: ${done_count}/${total} done"
+}
+
 cmd_block() {
     local issue="${1:?ERROR: issue number required}"
     shift
@@ -191,6 +323,7 @@ cmd_block() {
 
     _remove_status_labels "$issue"
     gh issue edit "$issue" --repo "$REPO" --add-label "status:blocked"
+    _sync_project_status "$issue" "In Progress"  # blocked stays visible on board
     [[ -n "$reason" ]] && gh issue comment "$issue" --repo "$REPO" --body "BLOCKED: $reason"
     echo "Issue #${issue}: status:blocked"
 }
@@ -287,5 +420,6 @@ case "$CMD" in
     list)     cmd_list "$@" ;;
     my-tasks) cmd_my_tasks "$@" ;;
     sprint)   cmd_sprint "$@" ;;
+    children) cmd_children "$@" ;;
     *)        _usage ;;
 esac

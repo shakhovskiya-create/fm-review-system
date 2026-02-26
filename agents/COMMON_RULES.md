@@ -45,6 +45,7 @@
 24. **Plan → Implement → Fix**: подробнее `.claude/rules/agent-workflow.md`.
 25. **Knowledge Graph + Episodic Memory**: подробнее `.claude/rules/knowledge-graph.md`.
 26. **GitHub Issues**: подробнее `.claude/rules/agent-workflow.md`.
+29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
 
 ## База знаний компании
 27. **`knowledge-base/`** — справочник о компании, проектах, процессах EKF. Читай при необходимости:

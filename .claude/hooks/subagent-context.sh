@@ -62,7 +62,7 @@ if [ -n "$AGENT_NAME" ]; then
       --jq '.[] | "#\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("priority:"))] | join(", "))]"' 2>/dev/null || true)
 
     echo ""
-    echo "=== GitHub Issues (ОБЯЗАТЕЛЬНО, правило 26) ==="
+    echo "=== GitHub Issues (ОБЯЗАТЕЛЬНО, правило 26+29) ==="
     if [ -n "$issues" ]; then
       echo "Твои задачи:"
       echo "$issues"
@@ -70,14 +70,18 @@ if [ -n "$AGENT_NAME" ]; then
       echo "ДЕЙСТВИЯ:"
       echo "  1. Возьми задачу: bash scripts/gh-tasks.sh start <N>"
       echo "  2. По завершении закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+      echo "  3. Составная задача? Декомпозируй: --parent N (правило 29)"
+      echo "============================================="
     else
-      echo "У тебя нет назначенных задач."
+      echo "BLOCKED: Нет задач для agent:${AGENT_LABEL}."
       echo ""
-      echo "ДЕЙСТВИЕ: Создай задачу для текущей работы:"
-      echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '## Образ результата\n...\n## Acceptance Criteria\n- [ ] AC1'"
+      echo "СОЗДАЙ задачу ПЕРЕД началом работы:"
+      echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
+      echo ""
+      echo "Составная задача (2+ шагов)? Создай epic + подзадачи (--parent N, правило 29)."
+      echo "============================================="
+      exit 2
     fi
-    echo "Подробнее: agents/COMMON_RULES.md, правила 26-28"
-    echo "============================================="
   fi
 fi
 

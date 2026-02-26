@@ -1,5 +1,5 @@
 ---
-globs: scripts/gh-tasks.sh, .claude/agents/**
+description: Definition of Done checklist, closing templates, and epic decomposition rules
 ---
 
 # Definition of Done (DoD) — Universal Checklist
@@ -66,6 +66,41 @@ Agents include DoD checklist in the closing comment (`gh-tasks.sh done <N> --com
 Если файлы из diff не упомянуты в комментарии — выводит WARNING со списком пропущенных.
 Это не блокирует закрытие, но напоминает агенту перечислить все артефакты.
 
+## Epic (type:epic) — декомпозиция
+
+**Правило:** Задача с 2+ самостоятельными шагами = epic + подзадачи.
+
+### Создание epic
+```bash
+# 1. Создать epic
+gh-tasks.sh create --title "Аудит ФМ v1.0.6" --agent 1-architect --sprint 23 --type epic --body "..."
+# 2. Создать подзадачи (--parent связывает с epic)
+gh-tasks.sh create --title "Проверить бизнес-правила" --agent 1-architect --sprint 23 --parent 90 --body "..."
+gh-tasks.sh create --title "Проверить интеграции" --agent 1-architect --sprint 23 --parent 90 --body "..."
+```
+
+### Закрытие
+- Подзадачи закрываются по одной с полным DoD
+- Epic закрывается ПОСЛЕДНИМ — скрипт проверяет что все children closed
+- Если есть незакрытые подзадачи → `gh-tasks.sh done` блокирует закрытие epic
+
+### DoD для epic
+```markdown
+## Результат
+[Итог по всем подзадачам]
+
+## Подзадачи
+- [x] #91: Проверить бизнес-правила
+- [x] #92: Проверить интеграции
+- [x] #93: Написать отчёт
+
+## DoD
+- [x] All children closed
+- [x] AC met (по совокупности подзадач)
+- [x] Artifacts: [итоговые артефакты]
+- [x] No hidden debt
+```
+
 ## Anti-patterns (НЕ делать)
 
 - "Всё сделано" без деталей — бесполезный комментарий
@@ -73,3 +108,5 @@ Agents include DoD checklist in the closing comment (`gh-tasks.sh done <N> --com
 - DoD без конкретных артефактов — "Artifacts: да" вместо списка файлов
 - Пропуск пунктов DoD без объяснения — если пункт N/A, написать почему
 - Checkbox-ticking: проставить все [x] без реальной проверки — cross-check ловит это
+- **Монолитная issue**: 5+ AC в одной задаче вместо epic + подзадач — декомпозируй
+- Закрытие epic при открытых children — скрипт блокирует (exit 1)
