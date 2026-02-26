@@ -50,8 +50,8 @@ _sync_project_status() {
     field_id=$(_get_status_field_id)
     [ -z "$field_id" ] && return 0
 
-    # Find item by issue number (numeric comparison)
-    item_id=$(gh project item-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --format json \
+    # Find item by issue number (numeric comparison, --limit 200 to cover all items)
+    item_id=$(gh project item-list "$PROJECT_NUM" --owner "$PROJECT_OWNER" --limit 200 --format json \
         --jq ".items[] | select(.content.number == ${issue_num}) | .id" 2>/dev/null || true)
     [ -z "$item_id" ] && return 0
 
