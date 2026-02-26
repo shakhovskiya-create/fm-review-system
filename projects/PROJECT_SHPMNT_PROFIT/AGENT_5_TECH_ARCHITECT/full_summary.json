@@ -1,7 +1,7 @@
 {
   "agent": "Agent5_TechArchitect",
-  "command": "/full (v1.0.5 update)",
-  "timestamp": "2026-02-25T18:00:00Z",
+  "command": "/full (v3.0 platform deep rework)",
+  "timestamp": "2026-02-26T16:00:00Z",
   "fmVersion": "1.0.5",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
@@ -22,12 +22,13 @@
     "totalObjects": 143
   },
   "estimate": {
-    "p1Hours": 2350,
-    "p2Hours": 408,
-    "totalHours": 2758,
+    "p1Hours": 3037,
+    "p2Hours": 638,
+    "totalHours": 3675,
     "teamSize": "3 dev + 1 analyst + 1 tester",
-    "timelineMonths": 6,
-    "deltaFromPrevious": "0h (0%) vs v1.0.4 estimate -- правки документарные"
+    "timelineMonths": 8,
+    "deltaFromPrevious": "+917h (+33%) vs base estimate -- platform factor +35% for ordinary forms 1C:UT 10.2",
+    "platformFactor": "+35% (ordinary forms 1C:UT 10.2: no auto-UI-testing, manual form element management, no declarative binding)"
   },
   "feasibilityReview": {
     "totalReviewed": 17,
@@ -36,18 +37,21 @@
     "needsAlternative": 0,
     "infeasible": 0
   },
-  "deltaFromV104": {
+  "deltaFromV22": {
     "newObjects": 0,
-    "modifiedObjects": 0,
+    "modifiedObjects": 6,
     "removedObjects": 0,
     "keyChanges": [
-      "Все открытые вопросы Q1-Q3 закрыты (таймаут 5 мин, 64 требования, race condition покрыта)",
-      "ФМ v1.0.5: таблица требований LS-BR-035 исправлена (15->5 мин)",
-      "ФМ v1.0.5: приоритизация исправлена (61->64)",
-      "ФМ v1.0.5: пороги нагрузки 30/50 пояснены",
-      "ФМ v1.0.5: LS-RPT-072 содержит оба порога",
-      "ФМ v1.0.5: условие дефолт-решения уточнено",
-      "ФМ v1.0.5: 6 грамматических исправлений"
+      "Section 0: complete rework -- detailed ordinary forms platform description (event model, modal calls, form elements, timer, blocking strategy)",
+      "Section 8.2: common modules reworked -- Server + Global instead of ClientServer. Removed VyzovServera module (meaningless in ordinary application)",
+      "Section 8.5: complete rework -- ordinary form wireframes, buttons instead of commands, labels instead of notifications, programmatic visibility, ПриВыводеСтроки for row highlighting",
+      "Section 6.3: performance section expanded for ordinary application (70 thick client sessions, server memory)",
+      "TZ section 1.7: full rework of platform constraints (3 subsections: mode, development impact, recommendations)",
+      "TZ section 7: estimate reworked with per-object-type platform coefficients. Total: 3675h (was 3679h -- minor recalculation)",
+      "TZ section 8: acceptance criteria updated -- manual testing for all UI tests, xUnitFor1C for server logic",
+      "TZ section 9: NEW -- technical limitations and risks (6 platform limitations, 6 project risks)",
+      "TZ version: v2.2 -> v3.0",
+      "Notification mechanism: modal dialogs + form labels + notifications register instead of OpovestheniePolzovatelya"
     ]
   },
   "inputFindings": {
@@ -62,5 +66,5 @@
     "feasibility_review.json"
   ],
   "appliedChanges": 0,
-  "notes": "Обновление архитектуры и ТЗ с v1.0.4 до v1.0.5. Правки v1.0.5 -- исключительно документарные: исправление текстовых расхождений в ФМ (таймаут 15->5, счет P1 61->64, пояснение порогов 30/50, грамматика). Архитектура объектов 1С не изменилась: 143 объекта, оценка 2758ч. Все 3 открытых вопроса из v2.0 закрыты. 0 infeasible findings."
+  "notes": "Deep rework of Architecture and TZ for 1C:UT 10.2 ordinary forms. Key changes: (1) Section 0 rewritten with detailed platform description including pseudocode for form element creation, modal dialogs, timer, blocking via register. (2) Common modules: removed ClientServer context, added Global module, added Privileged module. (3) Section 8.5: complete form wireframes for ordinary forms with buttons, labels, programmatic visibility, row highlighting via PriVyvodeStroki. (4) TZ v3.0: reworked estimate with per-object-type coefficients (3675h total), added section 9 with 6 platform limitations and 6 project risks, acceptance criteria updated for manual testing. (5) All references to managed forms concepts verified and replaced."
 }

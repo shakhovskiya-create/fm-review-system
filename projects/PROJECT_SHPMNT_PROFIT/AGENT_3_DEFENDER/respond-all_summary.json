@@ -1,64 +1,88 @@
 {
   "agent": "Agent3_Defender",
-  "command": "/respond-all (pipeline v1.0.4)",
-  "timestamp": "2026-02-25T20:00:00Z",
-  "fmVersion": "1.0.4",
+  "command": "/respond-all (pipeline v1.0.5)",
+  "timestamp": "2026-02-26T20:00:00Z",
+  "fmVersion": "1.0.5",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
-  "githubIssue": 30,
+  "githubIssue": 73,
   "counts": {
-    "total": 20,
-    "accepted": 9,
-    "rejected": 3,
+    "total": 13,
+    "accepted": 4,
+    "rejected": 1,
     "backlog": 4,
-    "duplicates": 3,
-    "alreadyCovered": 1
+    "informational": 3,
+    "consciousChoice": 1
   },
   "classification": {
-    "C_gap": 5,
-    "G_grammar": 4,
+    "C_gap": 2,
+    "G_formatting": 2,
     "D_backlog": 4,
-    "B_consciousChoice": 3,
+    "B_consciousChoice": 1,
     "A_accounted": 1,
-    "I_duplicate": 3
+    "informational": 3
   },
   "inputFindings": {
-    "agent1_audit": 13,
-    "agent2_ux": 4,
-    "agent4_questions": 3,
-    "agent5_feasibility": 17
+    "agent1_audit": 6,
+    "agent4_testCases": 80,
+    "agent4_risks": 3,
+    "agent5_feasibility": 17,
+    "agent5_estimate": "3675h"
   },
-  "deduplication": {
-    "rawFindings": 20,
-    "uniqueAfterDedup": 17,
-    "duplicates": [
-      {"duplicate": "UX-LOW-002", "original": "CRIT-001", "reason": "Agent 2 explicitly states it matches CRIT-001"},
-      {"duplicate": "Q1", "original": "CRIT-001", "reason": "Question about 5 vs 15 min = same as CRIT-001"},
-      {"duplicate": "Q2", "original": "HIGH-001", "reason": "Question about 61 vs 64 = same as HIGH-001"}
+  "resolvedInV105": {
+    "total": 9,
+    "details": [
+      "CRITICAL-001: таймаут 15->5 мин",
+      "HIGH-001: P1-требований 61->64",
+      "HIGH-002: пояснение порогов 30/50",
+      "HIGH-003: LS-RPT-072 оба порога",
+      "MEDIUM-001: дефолт-решение ГД",
+      "MEDIUM-002..005: 6 грамматических правок"
     ]
   },
   "changesForApply": {
-    "total": 11,
-    "businessLogic": 5,
-    "grammar": 6,
+    "total": 4,
+    "businessLogic": 2,
+    "formatting": 2,
     "details": [
-      {"section": "6, LS-BR-035", "finding": "CRIT-001", "change": "15 мин -> 5 мин"},
-      {"section": "6, приоритизация", "finding": "HIGH-001", "change": "61 -> 64 требования"},
-      {"section": "5, пороги нагрузки", "finding": "HIGH-002", "change": "Пояснение: 30=перелив, 50=назначение"},
-      {"section": "6, LS-RPT-072", "finding": "HIGH-003", "change": "Добавить оба порога 30 и 50"},
-      {"section": "3.6, дефолт-решение", "finding": "MED-001", "change": "Добавить: на момент наступления дефолт-решения"},
-      {"section": "3.8 + FAQ", "finding": "MED-002", "change": "ручного согласования (2 места)"},
-      {"section": "3.8", "finding": "MED-002", "change": "не является отдельным уровнем"},
-      {"section": "3.6", "finding": "MED-002", "change": "НЕ является триггером"},
-      {"section": "3.5.2", "finding": "MED-003", "change": "автоматического отказа"},
-      {"section": "3.11, 3.14", "finding": "MED-004", "change": "специалист документооборота (3 места)"},
-      {"section": "3.12", "finding": "MED-005", "change": "Ссылка: см. п. 3.18, схема Санкции за невыкуп"}
+      {"section": "1 (Общие сведения)", "finding": "PLAT-001", "change": "Добавить указание платформы: расширение .cfe, 1С:УТ 10.2, платформа 8.3, обычные формы"},
+      {"section": "3.7 (BPMN экстренного)", "finding": "LOW-001", "change": "Добавить ссылку: пиковые периоды -- см. глоссарий"},
+      {"section": "8 (FAQ)", "finding": "LOW-002", "change": "Объединить два ответа о мульти-БЮ в один"},
+      {"section": "2.6", "finding": "LOW-004", "change": "Уточнить: LS-RPT-067 на Этапе 1 расчетный"}
     ]
   },
-  "speedImpact": "+0 мин на сделку. Все правки — текстовые/документарные, без изменения процесса.",
+  "backlog": [
+    {"finding": "LOW-003", "description": "Унификация кавычек по документу", "priority": "LOW"},
+    {"finding": "Risk-regression", "description": "Регрессия 80 TC: 2-3 дня вручную", "coveredBy": "ТЗ v3.0 раздел 9.2"},
+    {"finding": "Risk-automation", "description": "Автоматизация UI невозможна", "coveredBy": "ТЗ v3.0 раздел 9.1"},
+    {"finding": "Risk-staffing", "description": "Нехватка специалистов УТ 10.2", "coveredBy": "ТЗ v3.0 раздел 9.2"}
+  ],
+  "speedImpact": "+0 мин на сделку. Все правки документарные, без изменения процесса.",
+  "estimateReview": {
+    "totalHours": 3675,
+    "previousHours": 2758,
+    "delta": "+917h (+33%)",
+    "platformFactor": "+35% (обычные формы 1С:УТ 10.2)",
+    "verdict": "Обоснованно. Коэффициент подтвержден ограничениями платформы."
+  },
+  "feasibility": {
+    "totalReviewed": 17,
+    "feasible": 9,
+    "notApplicable": 8,
+    "infeasible": 0,
+    "verdict": "Все требования реализуемы на платформе."
+  },
+  "testCoverage": {
+    "totalTests": 80,
+    "coveragePercent": 100,
+    "openQuestions": 0,
+    "closedInV105": 5,
+    "newPlatform": 8,
+    "verdict": "Тест-план согласован с ФМ v1.0.5."
+  },
   "outputFiles": [
-    "DEFENSE-PIPELINE-v1.0.4-2026-02-25.md",
+    "DEFENSE-PIPELINE-v1.0.5-2026-02-26.md",
     "respond-all_summary.json"
   ],
-  "notes": "20 findings от 4 агентов (Agent 1: 13, Agent 2: 4, Agent 4: 3 вопроса, Agent 5: 17 feasibility-оценок). После дедупликации: 17 уникальных. Классификация: 5C (пробел, правки ФМ) + 4G (грамматика) + 4D (бэклог) + 3B (осознанный выбор, отклонено) + 1A (покрыто) + 3I (дубликаты). 11 правок для /apply в v1.0.5. 0 infeasible (Agent 5). 0 минут дополнительной нагрузки на менеджера."
+  "notes": "Защита ФМ v1.0.5 от findings 3 агентов (Agent 1: 6, Agent 4: 80 TC + 3 risks, Agent 5: 17 feasibility + estimate). Все CRIT/HIGH из v1.0.4 закрыты. Новых CRIT/HIGH нет. 4 правки для /apply (2 пробела + 2 оформление). 4 бэклог-элемента (кавычки + 3 платформенных риска, уже зафиксированы в ТЗ). Оценка 3675ч обоснованна (+35% обычные формы). 0 infeasible. 0 минут дополнительной нагрузки на менеджера."
 }

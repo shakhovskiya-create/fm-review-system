@@ -1,20 +1,21 @@
 {
   "agent": "Agent1_Architect",
   "command": "/audit",
-  "timestamp": "2026-02-25T14:00:00Z",
-  "fmVersion": "1.0.4",
+  "timestamp": "2026-02-26T12:00:00Z",
+  "fmVersion": "1.0.5",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
+  "platform": "1С:УТ 10.2 на платформе 8.3 (обычные формы)",
   "counts": {
-    "critical": 1,
-    "high": 3,
-    "medium": 5,
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
     "low": 4,
-    "total": 13
+    "total": 6,
+    "resolvedFromV104": 9
   },
   "outputFiles": [
-    "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/AUDIT-REPORT-v1.0.4-2026-02-25.md",
     "projects/PROJECT_SHPMNT_PROFIT/AGENT_1_ARCHITECT/audit_findings.json"
   ],
-  "notes": "Re-audit of v1.0.4 after fixes from v1.0.3 audit (25 findings). 21/25 fully fixed, 3 downgraded, 1 relocated. Remaining CRITICAL: LS-BR-035 has stale 15min timeout (should be 5min). FM ready for development after CRIT-001 fix."
+  "notes": "Re-audit v1.0.5 with platform focus (1C:UT 10.2 ordinary forms). All 9 findings from v1.0.4 (1C/3H/5M) resolved. 2 new MEDIUM platform findings + 4 LOW carried from v1.0.4. TZ v3.0 and Architecture fully reworked for ordinary forms — verified consistent with FM."
 }
