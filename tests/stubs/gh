@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Stub for gh CLI — does nothing, exits 0.
+# Used by tests to avoid real GitHub API calls.
+echo ""
+exit 0

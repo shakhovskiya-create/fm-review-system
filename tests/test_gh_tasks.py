@@ -202,3 +202,104 @@ class TestArtifactCrossCheck:
         )
         output = result.stdout + result.stderr
         assert "НЕ упомянуты" not in output
+
+
+class TestGhTasksDoneGitCheck:
+    """Tests for pre-close git state checks (uncommitted changes, unpushed commits)."""
+
+    @staticmethod
+    def _create_clean_repo(tmpdir: Path) -> Path:
+        """Create a temp git repo with initial commit and a fake remote (for @{u})."""
+        repo = tmpdir / "repo"
+        repo.mkdir()
+        bare = tmpdir / "bare.git"
+        subprocess.run(["git", "init", "--bare", str(bare)], capture_output=True)
+        subprocess.run(["git", "init"], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=str(repo), capture_output=True)
+        (repo / "README.md").write_text("init")
+        subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "remote", "add", "origin", str(bare)], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "push", "-u", "origin", "main"], cwd=str(repo), capture_output=True)
+        # Fallback: if default branch is master
+        subprocess.run(["git", "push", "-u", "origin", "master"], cwd=str(repo), capture_output=True)
+        return repo
+
+    def test_blocks_on_uncommitted_changes(self, tmp_path):
+        """done should exit 1 when there are uncommitted tracked changes."""
+        repo = self._create_clean_repo(tmp_path)
+        # Modify a tracked file without committing
+        (repo / "README.md").write_text("modified")
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] All good",
+            cwd=str(repo),
+        )
+        assert result.returncode == 1
+        assert "незакоммиченные" in result.stdout.lower() or "uncommitted" in result.stdout.lower()
+
+    def test_blocks_on_unpushed_commits(self, tmp_path):
+        """done should exit 1 when there are unpushed commits."""
+        repo = self._create_clean_repo(tmp_path)
+        # Make a new commit but don't push
+        (repo / "README.md").write_text("new change")
+        subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "commit", "-m", "unpushed"], cwd=str(repo), capture_output=True)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] All good\n- [x] Artifacts: README.md",
+            cwd=str(repo),
+        )
+        assert result.returncode == 1
+        assert "незапушенные" in result.stdout.lower() or "unpushed" in result.stdout.lower()
+
+    def test_force_bypasses_uncommitted_check(self, tmp_path):
+        """--force should bypass the uncommitted changes check."""
+        repo = self._create_clean_repo(tmp_path)
+        (repo / "README.md").write_text("modified")
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] All good",
+            "--force",
+            cwd=str(repo),
+        )
+        # Should NOT contain the git-check error (may fail later on gh calls, that's fine)
+        assert "незакоммиченные" not in result.stdout.lower()
+
+    def test_force_bypasses_unpushed_check(self, tmp_path):
+        """--force should bypass the unpushed commits check."""
+        repo = self._create_clean_repo(tmp_path)
+        (repo / "README.md").write_text("new change")
+        subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
+        subprocess.run(["git", "commit", "-m", "unpushed"], cwd=str(repo), capture_output=True)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] All good\n- [x] Artifacts: README.md",
+            "--force",
+            cwd=str(repo),
+        )
+        assert "незапушенные" not in result.stdout.lower()
+
+    def test_clean_repo_passes_git_check(self, tmp_path):
+        """done on a clean repo (everything committed and pushed) should pass git checks."""
+        repo = self._create_clean_repo(tmp_path)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] All good\n- [x] Artifacts: README.md",
+            cwd=str(repo),
+        )
+        # Should not contain git-check errors (may fail later on gh, but not on git checks)
+        assert "незакоммиченные" not in result.stdout.lower()
+        assert "незапушенные" not in result.stdout.lower()
+
+    def test_error_suggests_force_flag(self, tmp_path):
+        """Error message should suggest --force as a workaround."""
+        repo = self._create_clean_repo(tmp_path)
+        (repo / "README.md").write_text("modified")
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone",
+            cwd=str(repo),
+        )
+        assert "--force" in result.stdout

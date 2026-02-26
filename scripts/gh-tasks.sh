@@ -105,15 +105,39 @@ cmd_start() {
 cmd_done() {
     local issue="${1:?ERROR: issue number required}"
     shift
-    local comment=""
+    local comment="" force=false
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --comment) comment="$2"; shift 2 ;;
+            --force)   force=true; shift ;;
             *) shift ;;
         esac
     done
 
     [[ -z "$comment" ]] && { echo "ERROR: --comment required (DoD checklist + результат)"; echo "Template: '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: ...\n- [x] No hidden debt'"; exit 1; }
+
+    # Pre-close check: uncommitted changes and unpushed commits
+    if [[ "$force" != true ]]; then
+        local dirty
+        dirty=$(git status --porcelain 2>/dev/null | grep -v '^??' | head -5 || true)
+        if [[ -n "$dirty" ]]; then
+            echo "ERROR: Есть незакоммиченные изменения. Сначала закоммитьте."
+            echo "$dirty"
+            echo ""
+            echo "Используйте --force для обхода (только для задач без кода)."
+            exit 1
+        fi
+
+        local unpushed
+        unpushed=$(git log @{u}..HEAD --oneline 2>/dev/null || true)
+        if [[ -n "$unpushed" ]]; then
+            echo "ERROR: Есть незапушенные коммиты. Сначала запушьте."
+            echo "$unpushed"
+            echo ""
+            echo "Используйте --force для обхода (только для задач без кода)."
+            exit 1
+        fi
+    fi
 
     # Cross-check: warn about changed files not mentioned in comment
     _validate_artifacts "$comment"
