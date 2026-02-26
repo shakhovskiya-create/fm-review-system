@@ -122,8 +122,18 @@
    - Если не найдена - создаю новую через POST
 4. Выполняю публикацию: генерация XHTML → PUT/POST в Confluence
 5. Автоматически запускаю /verify
-6. Сохраняю Confluence URL в PROJECT_CONTEXT.md (для Agent 6)
-7. Формирую машиночитаемый отчет для следующих агентов
+6. **Публикация артефактов Agent 5 (ТЗ и Архитектура):**
+   - Если существует файл `AGENT_5_TECH_ARCHITECT/TZ-v{VERSION}.md`:
+     - Читаю PAGE_ID из `CONFLUENCE_PAGE_ID_TS` (или создаю страницу TS-FM-[NAME])
+     - Публикую markdown → Confluence (content_format: markdown)
+     - version_message: бизнес-язык, что изменилось
+   - Если существует файл `AGENT_5_TECH_ARCHITECT/ARCHITECTURE-v{VERSION}.md`:
+     - Читаю PAGE_ID из `CONFLUENCE_PAGE_ID_ARC` (или создаю страницу ARC-FM-[NAME])
+     - Публикую markdown → Confluence (content_format: markdown)
+     - version_message: бизнес-язык, что изменилось
+   - Верифицирую обе страницы: GET + проверка версии ФМ в контенте
+7. Сохраняю Confluence URL в PROJECT_CONTEXT.md (для Agent 6)
+8. Формирую машиночитаемый отчет для следующих агентов (включая ссылки на ТЗ/Архитектуру)
 
 ### Команда /read - чтение ФМ из Confluence
 

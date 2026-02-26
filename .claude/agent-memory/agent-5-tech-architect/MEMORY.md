@@ -5,10 +5,11 @@
 ### Architecture versions
 - v1.0.6: 77 objects, estimate 2293h, 10-50 users
 - v1.0.4: 143 objects, estimate 2758h, 50-70 users (+66 objects, +20% effort)
+- v1.0.5: 143 objects, estimate 2758h, 50-70 users (documentary fixes only, no arch changes)
 
-### Key files
-- Architecture: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/ARCHITECTURE-v1.0.4.md`
-- TZ: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/TZ-v1.0.4.md`
+### Key files (current: v1.0.5)
+- Architecture: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/ARCHITECTURE-v1.0.5.md`
+- TZ: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/TZ-v1.0.5.md`
 - Feasibility: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/feasibility_review.json`
 - Summary: `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/full_summary.json`
 
@@ -18,6 +19,8 @@
 - feasibility_review.json is a separate artifact from full_summary.json
 - Not all findings need architectural changes -- document "not_applicable" for editorial/doc issues
 - Confluence PAGE_IDs: FM=83951683, TZ=86048834, Architecture=86048854
+- When FM version bump is purely documentary (grammar, text fixes), architecture stays identical -- only version headers and delta section change
+- Open questions (Q1-Q3) from previous TZ versions should be tracked and explicitly closed in new versions
 
 ### Schema compliance
 - full_summary.json follows `agentSummary` schema from `schemas/agent-contracts.json`

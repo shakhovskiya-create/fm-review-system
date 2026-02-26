@@ -1,0 +1,640 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://ekf.ru/fm-ls-profit"
+             id="FM-LS-PROFIT-APPROVAL">
+
+  <!--
+    BPMN 2.0: Процесс согласования отрицательной рентабельности
+    FM: FM-LS-PROFIT v1.0.5
+    Раздел ФМ: 3.4, 3.5.1, 3.5.2, 3.6
+    Диаграмма: (упрощенная)
+    Создано: 25.02.2026
+    Матрица согласования:
+      Отклонение < 1%     -> автосогласование системой
+      Отклонение 1-15%    -> РБЮ (SLA P1: 4ч, P2: 24ч) -> Директор ДРП -> ДП
+      Отклонение 15.01-25%-> ДП (SLA P1: 8ч, P2: 48ч)  -> ГД
+      Отклонение > 25%    -> ГД (SLA P1: 24ч, авто-отказ 48ч)
+  -->
+
+  <collaboration id="collab-approval">
+    <participant id="pool-approval" name="Согласование Заказа с отклонением рентабельности (упрощенная)" processRef="proc-approval"/>
+  </collaboration>
+
+  <process id="proc-approval" name="Согласование отрицательной рентабельности" isExecutable="false">
+
+    <laneSet id="laneSet-approval">
+      <lane id="lane-system-appr" name="1С:УТ / ELMA">
+        <flowNodeRef>start-appr</flowNodeRef>
+        <flowNodeRef>task-form-request</flowNodeRef>
+        <flowNodeRef>task-notify-approver</flowNodeRef>
+        <flowNodeRef>task-determine-level</flowNodeRef>
+        <flowNodeRef>gw-deviation-level</flowNodeRef>
+        <flowNodeRef>task-fix-decision</flowNodeRef>
+        <flowNodeRef>end-approved-appr</flowNodeRef>
+        <flowNodeRef>end-rejected-appr</flowNodeRef>
+        <flowNodeRef>timer-sla-escalation</flowNodeRef>
+        <flowNodeRef>task-escalate</flowNodeRef>
+        <flowNodeRef>gw-decision-after-correction</flowNodeRef>
+      </lane>
+      <lane id="lane-rbu" name="РБЮ (Руководитель бизнес-юнита)">
+        <flowNodeRef>task-rbu-review</flowNodeRef>
+        <flowNodeRef>gw-rbu-decision</flowNodeRef>
+        <flowNodeRef>task-rbu-approve</flowNodeRef>
+        <flowNodeRef>task-rbu-correct</flowNodeRef>
+        <flowNodeRef>task-rbu-reject</flowNodeRef>
+      </lane>
+      <lane id="lane-dp" name="ДП (Директор по продажам)">
+        <flowNodeRef>task-dp-review</flowNodeRef>
+        <flowNodeRef>gw-dp-decision</flowNodeRef>
+        <flowNodeRef>task-dp-approve</flowNodeRef>
+        <flowNodeRef>task-dp-reject</flowNodeRef>
+      </lane>
+      <lane id="lane-gd" name="ГД (Генеральный директор)">
+        <flowNodeRef>task-gd-review</flowNodeRef>
+        <flowNodeRef>gw-gd-decision</flowNodeRef>
+        <flowNodeRef>task-gd-approve</flowNodeRef>
+        <flowNodeRef>task-gd-reject</flowNodeRef>
+        <flowNodeRef>timer-gd-48h</flowNodeRef>
+        <flowNodeRef>task-gd-auto-reject</flowNodeRef>
+      </lane>
+      <lane id="lane-manager-appr" name="Менеджер">
+        <flowNodeRef>task-manager-corrects-price</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- ===== СТАРТ ===== -->
+    <startEvent id="start-appr" name="Отклонение&#10;рентабельности&#10;выявлено">
+      <outgoing>sf-start-formrequest</outgoing>
+    </startEvent>
+
+    <!-- Формирование запроса -->
+    <serviceTask id="task-form-request" name="Формирование запроса&#10;на согласование в ELMA">
+      <incoming>sf-start-formrequest</incoming>
+      <outgoing>sf-formrequest-notify</outgoing>
+    </serviceTask>
+
+    <!-- Уведомление -->
+    <serviceTask id="task-notify-approver" name="Уведомление согласующего&#10;(Push + e-mail)">
+      <incoming>sf-formrequest-notify</incoming>
+      <outgoing>sf-notify-determinelevel</outgoing>
+    </serviceTask>
+
+    <!-- Определение уровня согласования -->
+    <serviceTask id="task-determine-level" name="Определить уровень&#10;согласования (матрица п. 3.4)">
+      <incoming>sf-notify-determinelevel</incoming>
+      <outgoing>sf-determinelevel-gwlevel</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw-deviation-level" name="Уровень&#10;согласования?">
+      <incoming>sf-determinelevel-gwlevel</incoming>
+      <outgoing>sf-level-rbu</outgoing>
+      <outgoing>sf-level-dp</outgoing>
+      <outgoing>sf-level-gd</outgoing>
+    </exclusiveGateway>
+
+    <!-- ===== УРОВЕНЬ РБЮ (отклонение 1-15%) ===== -->
+    <userTask id="task-rbu-review" name="Рассмотреть Заказ&#10;(данные, рентабельность, история ЛС)">
+      <incoming>sf-level-rbu</incoming>
+      <outgoing>sf-rbu-review-gwdecision</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-rbu-decision" name="Решение РБЮ?">
+      <incoming>sf-rbu-review-gwdecision</incoming>
+      <outgoing>sf-rbu-approve</outgoing>
+      <outgoing>sf-rbu-correct</outgoing>
+      <outgoing>sf-rbu-reject</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task-rbu-approve" name="Согласовать&#10;с комментарием">
+      <incoming>sf-rbu-approve</incoming>
+      <outgoing>sf-rbu-approved-fix</outgoing>
+    </userTask>
+
+    <userTask id="task-rbu-correct" name="Рекомендовать&#10;корректировку цены">
+      <incoming>sf-rbu-correct</incoming>
+      <outgoing>sf-rbu-correct-manager</outgoing>
+    </userTask>
+
+    <userTask id="task-rbu-reject" name="Отклонить&#10;с указанием причины">
+      <incoming>sf-rbu-reject</incoming>
+      <outgoing>sf-rbu-rejected-fix</outgoing>
+    </userTask>
+
+    <!-- Таймер SLA РБЮ (P1: 4ч, P2: 24ч) -->
+    <boundaryEvent id="timer-sla-escalation" name="SLA истек&#10;(P1: 4ч, P2: 24ч)" attachedToRef="task-rbu-review" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT4H</timeDuration>
+      </timerEventDefinition>
+      <outgoing>sf-timer-escalate</outgoing>
+    </boundaryEvent>
+
+    <serviceTask id="task-escalate" name="Автоэскалация&#10;к Директору ДРП">
+      <incoming>sf-timer-escalate</incoming>
+      <outgoing>sf-escalate-dp</outgoing>
+    </serviceTask>
+
+    <!-- ===== УРОВЕНЬ ДП (отклонение 15.01-25%) ===== -->
+    <userTask id="task-dp-review" name="Рассмотреть Заказ&#10;(Директор по продажам)">
+      <incoming>sf-level-dp</incoming>
+      <incoming>sf-escalate-dp</incoming>
+      <outgoing>sf-dp-review-gwdecision</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-dp-decision" name="Решение ДП?">
+      <incoming>sf-dp-review-gwdecision</incoming>
+      <outgoing>sf-dp-approve</outgoing>
+      <outgoing>sf-dp-reject</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task-dp-approve" name="Согласовать&#10;(ДП)">
+      <incoming>sf-dp-approve</incoming>
+      <outgoing>sf-dp-approved-fix</outgoing>
+    </userTask>
+
+    <userTask id="task-dp-reject" name="Отклонить&#10;(ДП, с причиной)">
+      <incoming>sf-dp-reject</incoming>
+      <outgoing>sf-dp-rejected-fix</outgoing>
+    </userTask>
+
+    <!-- ===== УРОВЕНЬ ГД (отклонение > 25%) ===== -->
+    <userTask id="task-gd-review" name="Рассмотреть Заказ&#10;(Генеральный директор)">
+      <incoming>sf-level-gd</incoming>
+      <outgoing>sf-gd-review-gwdecision</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-gd-decision" name="Решение ГД?">
+      <incoming>sf-gd-review-gwdecision</incoming>
+      <outgoing>sf-gd-approve</outgoing>
+      <outgoing>sf-gd-reject</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task-gd-approve" name="Согласовать&#10;(ГД)">
+      <incoming>sf-gd-approve</incoming>
+      <outgoing>sf-gd-approved-fix</outgoing>
+    </userTask>
+
+    <userTask id="task-gd-reject" name="Отклонить&#10;(ГД, с причиной)">
+      <incoming>sf-gd-reject</incoming>
+      <outgoing>sf-gd-rejected-fix</outgoing>
+    </userTask>
+
+    <!-- Таймер ГД 48ч -> автоотказ -->
+    <boundaryEvent id="timer-gd-48h" name="48ч без ответа&#10;ГД" attachedToRef="task-gd-review" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT48H</timeDuration>
+      </timerEventDefinition>
+      <outgoing>sf-timer-gd-autoreject</outgoing>
+    </boundaryEvent>
+
+    <serviceTask id="task-gd-auto-reject" name="Автоматический отказ&#10;(превышение SLA 48ч)&#10;+ уведомление ФД">
+      <incoming>sf-timer-gd-autoreject</incoming>
+      <outgoing>sf-gd-autoreject-fix</outgoing>
+    </serviceTask>
+
+    <!-- Корректировка цены менеджером -->
+    <userTask id="task-manager-corrects-price" name="Скорректировать цену&#10;(по рекомендации РБЮ)&#10;не более 5 итераций">
+      <incoming>sf-rbu-correct-manager</incoming>
+      <outgoing>sf-manager-correction-check</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-decision-after-correction" name="Рентабельность&#10;в норме?">
+      <incoming>sf-manager-correction-check</incoming>
+      <outgoing>sf-correction-ok-autoapprove</outgoing>
+      <outgoing>sf-correction-notok-rbu</outgoing>
+    </exclusiveGateway>
+
+    <!-- Фиксация результата -->
+    <serviceTask id="task-fix-decision" name="Фиксация решения&#10;в 1С:УТ + ELMA">
+      <incoming>sf-rbu-approved-fix</incoming>
+      <incoming>sf-rbu-rejected-fix</incoming>
+      <incoming>sf-dp-approved-fix</incoming>
+      <incoming>sf-dp-rejected-fix</incoming>
+      <incoming>sf-gd-approved-fix</incoming>
+      <incoming>sf-gd-rejected-fix</incoming>
+      <incoming>sf-gd-autoreject-fix</incoming>
+      <incoming>sf-correction-ok-autoapprove</incoming>
+      <outgoing>sf-fix-gw-final</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw-final" name="Итоговое&#10;решение?">
+      <incoming>sf-fix-gw-final</incoming>
+      <outgoing>sf-final-approved</outgoing>
+      <outgoing>sf-final-rejected</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end-approved-appr" name="Заказ согласован">
+      <incoming>sf-final-approved</incoming>
+    </endEvent>
+
+    <endEvent id="end-rejected-appr" name="Заказ отклонен">
+      <incoming>sf-final-rejected</incoming>
+      <terminateEventDefinition/>
+    </endEvent>
+
+    <!-- ===== ПОТОКИ УПРАВЛЕНИЯ ===== -->
+    <sequenceFlow id="sf-start-formrequest"       sourceRef="start-appr"             targetRef="task-form-request"/>
+    <sequenceFlow id="sf-formrequest-notify"       sourceRef="task-form-request"      targetRef="task-notify-approver"/>
+    <sequenceFlow id="sf-notify-determinelevel"    sourceRef="task-notify-approver"   targetRef="task-determine-level"/>
+    <sequenceFlow id="sf-determinelevel-gwlevel"   sourceRef="task-determine-level"   targetRef="gw-deviation-level"/>
+
+    <sequenceFlow id="sf-level-rbu" sourceRef="gw-deviation-level" targetRef="task-rbu-review"
+                  name="1-15% (РБЮ)"/>
+    <sequenceFlow id="sf-level-dp"  sourceRef="gw-deviation-level" targetRef="task-dp-review"
+                  name="15.01-25% (ДП)"/>
+    <sequenceFlow id="sf-level-gd"  sourceRef="gw-deviation-level" targetRef="task-gd-review"
+                  name="Более 25% (ГД)"/>
+
+    <sequenceFlow id="sf-rbu-review-gwdecision"   sourceRef="task-rbu-review"        targetRef="gw-rbu-decision"/>
+    <sequenceFlow id="sf-rbu-approve"             sourceRef="gw-rbu-decision"        targetRef="task-rbu-approve"
+                  name="Одобрить"/>
+    <sequenceFlow id="sf-rbu-correct"             sourceRef="gw-rbu-decision"        targetRef="task-rbu-correct"
+                  name="Корректировка цены"/>
+    <sequenceFlow id="sf-rbu-reject"              sourceRef="gw-rbu-decision"        targetRef="task-rbu-reject"
+                  name="Отклонить"/>
+    <sequenceFlow id="sf-rbu-approved-fix"        sourceRef="task-rbu-approve"       targetRef="task-fix-decision"/>
+    <sequenceFlow id="sf-rbu-correct-manager"     sourceRef="task-rbu-correct"       targetRef="task-manager-corrects-price"/>
+    <sequenceFlow id="sf-rbu-rejected-fix"        sourceRef="task-rbu-reject"        targetRef="task-fix-decision"/>
+
+    <sequenceFlow id="sf-timer-escalate"          sourceRef="timer-sla-escalation"   targetRef="task-escalate"/>
+    <sequenceFlow id="sf-escalate-dp"             sourceRef="task-escalate"          targetRef="task-dp-review"/>
+
+    <sequenceFlow id="sf-dp-review-gwdecision"    sourceRef="task-dp-review"         targetRef="gw-dp-decision"/>
+    <sequenceFlow id="sf-dp-approve"              sourceRef="gw-dp-decision"         targetRef="task-dp-approve"
+                  name="Одобрить"/>
+    <sequenceFlow id="sf-dp-reject"               sourceRef="gw-dp-decision"         targetRef="task-dp-reject"
+                  name="Отклонить"/>
+    <sequenceFlow id="sf-dp-approved-fix"         sourceRef="task-dp-approve"        targetRef="task-fix-decision"/>
+    <sequenceFlow id="sf-dp-rejected-fix"         sourceRef="task-dp-reject"         targetRef="task-fix-decision"/>
+
+    <sequenceFlow id="sf-gd-review-gwdecision"    sourceRef="task-gd-review"         targetRef="gw-gd-decision"/>
+    <sequenceFlow id="sf-gd-approve"              sourceRef="gw-gd-decision"         targetRef="task-gd-approve"
+                  name="Одобрить"/>
+    <sequenceFlow id="sf-gd-reject"               sourceRef="gw-gd-decision"         targetRef="task-gd-reject"
+                  name="Отклонить"/>
+    <sequenceFlow id="sf-gd-approved-fix"         sourceRef="task-gd-approve"        targetRef="task-fix-decision"/>
+    <sequenceFlow id="sf-gd-rejected-fix"         sourceRef="task-gd-reject"         targetRef="task-fix-decision"/>
+
+    <sequenceFlow id="sf-timer-gd-autoreject"     sourceRef="timer-gd-48h"           targetRef="task-gd-auto-reject"/>
+    <sequenceFlow id="sf-gd-autoreject-fix"       sourceRef="task-gd-auto-reject"    targetRef="task-fix-decision"/>
+
+    <sequenceFlow id="sf-manager-correction-check" sourceRef="task-manager-corrects-price" targetRef="gw-decision-after-correction"/>
+    <sequenceFlow id="sf-correction-ok-autoapprove" sourceRef="gw-decision-after-correction" targetRef="task-fix-decision"
+                  name="Да, отклонение менее 1% — автосогласование"/>
+    <sequenceFlow id="sf-correction-notok-rbu"     sourceRef="gw-decision-after-correction" targetRef="task-rbu-review"
+                  name="Нет — повторное согласование (до 5 итераций)"/>
+
+    <sequenceFlow id="sf-fix-gw-final"            sourceRef="task-fix-decision"      targetRef="gw-final"/>
+    <sequenceFlow id="sf-final-approved"          sourceRef="gw-final"               targetRef="end-approved-appr"
+                  name="Согласовано"/>
+    <sequenceFlow id="sf-final-rejected"          sourceRef="gw-final"               targetRef="end-rejected-appr"
+                  name="Отклонено"/>
+
+  </process>
+
+  <!-- ===== ДИАГРАММА (КООРДИНАТЫ) ===== -->
+  <bpmndi:BPMNDiagram id="diagram-approval">
+    <bpmndi:BPMNPlane id="plane-approval" bpmnElement="collab-approval">
+
+      <!-- Pool -->
+      <bpmndi:BPMNShape id="shape-pool-approval" bpmnElement="pool-approval" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1760" height="760"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="shape-lane-system-appr" bpmnElement="lane-system-appr" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1730" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-rbu" bpmnElement="lane-rbu" isHorizontal="true">
+        <dc:Bounds x="190" y="240" width="1730" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-dp" bpmnElement="lane-dp" isHorizontal="true">
+        <dc:Bounds x="190" y="400" width="1730" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-gd" bpmnElement="lane-gd" isHorizontal="true">
+        <dc:Bounds x="190" y="560" width="1730" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-manager-appr" bpmnElement="lane-manager-appr" isHorizontal="true">
+        <dc:Bounds x="190" y="720" width="1730" height="120"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы дорожки 1С:УТ/ELMA -->
+      <bpmndi:BPMNShape id="shape-start-appr" bpmnElement="start-appr">
+        <dc:Bounds x="242" y="142" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="220" y="185" width="80" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-form-request" bpmnElement="task-form-request">
+        <dc:Bounds x="330" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-notify-approver" bpmnElement="task-notify-approver">
+        <dc:Bounds x="500" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-determine-level" bpmnElement="task-determine-level">
+        <dc:Bounds x="670" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-deviation-level" bpmnElement="gw-deviation-level" isMarkerVisible="true">
+        <dc:Bounds x="845" y="135" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="835" y="192" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-fix-decision" bpmnElement="task-fix-decision">
+        <dc:Bounds x="1440" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-final" bpmnElement="gw-final" isMarkerVisible="true">
+        <dc:Bounds x="1615" y="135" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1605" y="192" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-approved-appr" bpmnElement="end-approved-appr">
+        <dc:Bounds x="1730" y="112" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1710" y="153" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-rejected-appr" bpmnElement="end-rejected-appr">
+        <dc:Bounds x="1730" y="162" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1710" y="203" width="80" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-escalate" bpmnElement="task-escalate">
+        <dc:Bounds x="1200" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-decision-after-correction" bpmnElement="gw-decision-after-correction" isMarkerVisible="true">
+        <dc:Bounds x="1360" y="755" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1350" y="812" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы дорожки РБЮ -->
+      <bpmndi:BPMNShape id="shape-task-rbu-review" bpmnElement="task-rbu-review">
+        <dc:Bounds x="940" y="280" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-timer-sla-escalation" bpmnElement="timer-sla-escalation">
+        <dc:Bounds x="982" y="342" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="965" y="383" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-rbu-decision" bpmnElement="gw-rbu-decision" isMarkerVisible="true">
+        <dc:Bounds x="1120" y="295" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1110" y="352" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-rbu-approve" bpmnElement="task-rbu-approve">
+        <dc:Bounds x="1200" y="260" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-rbu-correct" bpmnElement="task-rbu-correct">
+        <dc:Bounds x="1200" y="360" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-rbu-reject" bpmnElement="task-rbu-reject">
+        <dc:Bounds x="1320" y="260" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы дорожки ДП -->
+      <bpmndi:BPMNShape id="shape-task-dp-review" bpmnElement="task-dp-review">
+        <dc:Bounds x="940" y="440" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-dp-decision" bpmnElement="gw-dp-decision" isMarkerVisible="true">
+        <dc:Bounds x="1120" y="455" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1110" y="512" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-dp-approve" bpmnElement="task-dp-approve">
+        <dc:Bounds x="1200" y="420" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-dp-reject" bpmnElement="task-dp-reject">
+        <dc:Bounds x="1320" y="420" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы дорожки ГД -->
+      <bpmndi:BPMNShape id="shape-task-gd-review" bpmnElement="task-gd-review">
+        <dc:Bounds x="940" y="600" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-timer-gd-48h" bpmnElement="timer-gd-48h">
+        <dc:Bounds x="982" y="662" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="960" y="703" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-gd-decision" bpmnElement="gw-gd-decision" isMarkerVisible="true">
+        <dc:Bounds x="1120" y="615" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1110" y="672" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-gd-approve" bpmnElement="task-gd-approve">
+        <dc:Bounds x="1200" y="580" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-gd-reject" bpmnElement="task-gd-reject">
+        <dc:Bounds x="1320" y="580" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-gd-auto-reject" bpmnElement="task-gd-auto-reject">
+        <dc:Bounds x="1080" y="650" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы дорожки Менеджер -->
+      <bpmndi:BPMNShape id="shape-task-manager-corrects-price" bpmnElement="task-manager-corrects-price">
+        <dc:Bounds x="1200" y="740" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Потоки -->
+      <bpmndi:BPMNEdge id="edge-start-formrequest" bpmnElement="sf-start-formrequest">
+        <di:waypoint x="278" y="160"/>
+        <di:waypoint x="330" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-formrequest-notify" bpmnElement="sf-formrequest-notify">
+        <di:waypoint x="450" y="160"/>
+        <di:waypoint x="500" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-notify-determinelevel" bpmnElement="sf-notify-determinelevel">
+        <di:waypoint x="620" y="160"/>
+        <di:waypoint x="670" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-determinelevel-gwlevel" bpmnElement="sf-determinelevel-gwlevel">
+        <di:waypoint x="790" y="160"/>
+        <di:waypoint x="845" y="160"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-level-rbu" bpmnElement="sf-level-rbu">
+        <di:waypoint x="870" y="185"/>
+        <di:waypoint x="870" y="320"/>
+        <di:waypoint x="940" y="320"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="875" y="240" width="60" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-level-dp" bpmnElement="sf-level-dp">
+        <di:waypoint x="895" y="160"/>
+        <di:waypoint x="920" y="160"/>
+        <di:waypoint x="920" y="480"/>
+        <di:waypoint x="940" y="480"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="925" y="300" width="60" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-level-gd" bpmnElement="sf-level-gd">
+        <di:waypoint x="870" y="185"/>
+        <di:waypoint x="870" y="640"/>
+        <di:waypoint x="940" y="640"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="875" y="400" width="60" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-rbu-review-gwdecision" bpmnElement="sf-rbu-review-gwdecision">
+        <di:waypoint x="1060" y="320"/>
+        <di:waypoint x="1120" y="320"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-approve" bpmnElement="sf-rbu-approve">
+        <di:waypoint x="1145" y="295"/>
+        <di:waypoint x="1145" y="280"/>
+        <di:waypoint x="1200" y="300"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1150" y="260" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-correct" bpmnElement="sf-rbu-correct">
+        <di:waypoint x="1145" y="345"/>
+        <di:waypoint x="1145" y="400"/>
+        <di:waypoint x="1200" y="400"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1150" y="355" width="90" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-reject" bpmnElement="sf-rbu-reject">
+        <di:waypoint x="1170" y="320"/>
+        <di:waypoint x="1320" y="300"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1230" y="300" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-approved-fix" bpmnElement="sf-rbu-approved-fix">
+        <di:waypoint x="1320" y="300"/>
+        <di:waypoint x="1440" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-correct-manager" bpmnElement="sf-rbu-correct-manager">
+        <di:waypoint x="1260" y="440"/>
+        <di:waypoint x="1260" y="780"/>
+        <di:waypoint x="1200" y="780"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-rbu-rejected-fix" bpmnElement="sf-rbu-rejected-fix">
+        <di:waypoint x="1440" y="300"/>
+        <di:waypoint x="1500" y="300"/>
+        <di:waypoint x="1500" y="160"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-timer-escalate" bpmnElement="sf-timer-escalate">
+        <di:waypoint x="1000" y="342"/>
+        <di:waypoint x="1000" y="160"/>
+        <di:waypoint x="1200" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-escalate-dp" bpmnElement="sf-escalate-dp">
+        <di:waypoint x="1320" y="160"/>
+        <di:waypoint x="1360" y="160"/>
+        <di:waypoint x="1360" y="480"/>
+        <di:waypoint x="940" y="480"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-dp-review-gwdecision" bpmnElement="sf-dp-review-gwdecision">
+        <di:waypoint x="1060" y="480"/>
+        <di:waypoint x="1120" y="480"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-dp-approve" bpmnElement="sf-dp-approve">
+        <di:waypoint x="1145" y="455"/>
+        <di:waypoint x="1145" y="440"/>
+        <di:waypoint x="1200" y="460"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1150" y="430" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-dp-reject" bpmnElement="sf-dp-reject">
+        <di:waypoint x="1170" y="480"/>
+        <di:waypoint x="1320" y="460"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1230" y="460" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-dp-approved-fix" bpmnElement="sf-dp-approved-fix">
+        <di:waypoint x="1320" y="460"/>
+        <di:waypoint x="1500" y="460"/>
+        <di:waypoint x="1500" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-dp-rejected-fix" bpmnElement="sf-dp-rejected-fix">
+        <di:waypoint x="1440" y="460"/>
+        <di:waypoint x="1520" y="460"/>
+        <di:waypoint x="1520" y="200"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-gd-review-gwdecision" bpmnElement="sf-gd-review-gwdecision">
+        <di:waypoint x="1060" y="640"/>
+        <di:waypoint x="1120" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-gd-approve" bpmnElement="sf-gd-approve">
+        <di:waypoint x="1145" y="615"/>
+        <di:waypoint x="1145" y="600"/>
+        <di:waypoint x="1200" y="620"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1150" y="590" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-gd-reject" bpmnElement="sf-gd-reject">
+        <di:waypoint x="1170" y="640"/>
+        <di:waypoint x="1320" y="620"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1230" y="620" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-gd-approved-fix" bpmnElement="sf-gd-approved-fix">
+        <di:waypoint x="1320" y="620"/>
+        <di:waypoint x="1540" y="620"/>
+        <di:waypoint x="1540" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-gd-rejected-fix" bpmnElement="sf-gd-rejected-fix">
+        <di:waypoint x="1440" y="620"/>
+        <di:waypoint x="1560" y="620"/>
+        <di:waypoint x="1560" y="200"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-timer-gd-autoreject" bpmnElement="sf-timer-gd-autoreject">
+        <di:waypoint x="1000" y="698"/>
+        <di:waypoint x="1000" y="690"/>
+        <di:waypoint x="1080" y="690"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-gd-autoreject-fix" bpmnElement="sf-gd-autoreject-fix">
+        <di:waypoint x="1220" y="690"/>
+        <di:waypoint x="1580" y="690"/>
+        <di:waypoint x="1580" y="200"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-manager-correction-check" bpmnElement="sf-manager-correction-check">
+        <di:waypoint x="1340" y="780"/>
+        <di:waypoint x="1360" y="780"/>
+        <di:waypoint x="1385" y="805"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-correction-ok-autoapprove" bpmnElement="sf-correction-ok-autoapprove">
+        <di:waypoint x="1410" y="755"/>
+        <di:waypoint x="1600" y="755"/>
+        <di:waypoint x="1600" y="200"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1420" y="720" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-correction-notok-rbu" bpmnElement="sf-correction-notok-rbu">
+        <di:waypoint x="1385" y="755"/>
+        <di:waypoint x="1385" y="700"/>
+        <di:waypoint x="1000" y="700"/>
+        <di:waypoint x="1000" y="360"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1100" y="680" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-fix-gw-final" bpmnElement="sf-fix-gw-final">
+        <di:waypoint x="1560" y="160"/>
+        <di:waypoint x="1615" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-final-approved" bpmnElement="sf-final-approved">
+        <di:waypoint x="1665" y="160"/>
+        <di:waypoint x="1730" y="130"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1668" y="120" width="80" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-final-rejected" bpmnElement="sf-final-rejected">
+        <di:waypoint x="1665" y="185"/>
+        <di:waypoint x="1730" y="180"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1668" y="185" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

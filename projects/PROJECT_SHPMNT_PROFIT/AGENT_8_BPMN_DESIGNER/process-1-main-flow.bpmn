@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://ekf.ru/fm-ls-profit"
+             id="FM-LS-PROFIT-MAIN-FLOW">
+
+  <!--
+    BPMN 2.0: Основной процесс контроля рентабельности отгрузок по ЛС
+    FM: FM-LS-PROFIT v1.0.5
+    Раздел ФМ: 3.1, 3.3, 3.4, 3.5
+    Диаграмма: (упрощенная)
+    Создано: 25.02.2026
+  -->
+
+  <collaboration id="collab-main">
+    <participant id="pool-main" name="Контроль рентабельности при отгрузке по ЛС (упрощенная)" processRef="proc-main"/>
+  </collaboration>
+
+  <process id="proc-main" name="Основной процесс контроля рентабельности" isExecutable="false">
+
+    <laneSet id="laneSet-main">
+      <lane id="lane-manager" name="Менеджер">
+        <flowNodeRef>start</flowNodeRef>
+        <flowNodeRef>task-create-order</flowNodeRef>
+        <flowNodeRef>task-receive-notification</flowNodeRef>
+        <flowNodeRef>gw-decision-result</flowNodeRef>
+        <flowNodeRef>task-correct-order</flowNodeRef>
+        <flowNodeRef>task-continue-work</flowNodeRef>
+        <flowNodeRef>end-approved</flowNodeRef>
+        <flowNodeRef>end-rejected</flowNodeRef>
+      </lane>
+      <lane id="lane-system" name="Контроль рентабельности 1С:УТ">
+        <flowNodeRef>task-check-npss</flowNodeRef>
+        <flowNodeRef>gw-npss-age</flowNodeRef>
+        <flowNodeRef>task-block-npss</flowNodeRef>
+        <flowNodeRef>task-calc-rentability</flowNodeRef>
+        <flowNodeRef>gw-deviation</flowNodeRef>
+        <flowNodeRef>task-auto-approve</flowNodeRef>
+        <flowNodeRef>task-fix-result</flowNodeRef>
+        <flowNodeRef>end-blocked-npss</flowNodeRef>
+      </lane>
+      <lane id="lane-approval" name="Согласующий (по матрице п. 3.4)">
+        <flowNodeRef>subprocess-approval</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- ===== СОБЫТИЯ И ШЛЮЗЫ ===== -->
+    <startEvent id="start" name="Создать Заказ клиента">
+      <outgoing>sf-start-createorder</outgoing>
+    </startEvent>
+
+    <!-- Шаг 1: Менеджер создает заказ -->
+    <userTask id="task-create-order" name="Создать Заказ&#10;клиента">
+      <incoming>sf-start-createorder</incoming>
+      <outgoing>sf-createorder-checknpss</outgoing>
+    </userTask>
+
+    <!-- Шаг 2: Проверка НПСС -->
+    <serviceTask id="task-check-npss" name="Проверка НПСС&#10;(возраст менее 90 дн.)">
+      <incoming>sf-createorder-checknpss</incoming>
+      <outgoing>sf-checknpss-gwage</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw-npss-age" name="НПСС&#10;актуальна?">
+      <incoming>sf-checknpss-gwage</incoming>
+      <outgoing>sf-gwage-blocknpss</outgoing>
+      <outgoing>sf-gwage-calcrent</outgoing>
+    </exclusiveGateway>
+
+    <!-- Ветка: НПСС устарела -->
+    <task id="task-block-npss" name="Блокировка&#10;(обновить НПСС)">
+      <incoming>sf-gwage-blocknpss</incoming>
+      <outgoing>sf-blocknpss-endblocked</outgoing>
+    </task>
+
+    <endEvent id="end-blocked-npss" name="Заблокирован&#10;(НПСС устарела)">
+      <incoming>sf-blocknpss-endblocked</incoming>
+      <errorEventDefinition/>
+    </endEvent>
+
+    <!-- Шаг 3: Расчет рентабельности -->
+    <serviceTask id="task-calc-rentability" name="Расчет рентабельности&#10;(Накопл. + Заказ, Остаток ЛС)">
+      <incoming>sf-gwage-calcrent</incoming>
+      <outgoing>sf-calcrent-gwdeviation</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw-deviation" name="Отклонение&#10;от плана ЛС?">
+      <incoming>sf-calcrent-gwdeviation</incoming>
+      <outgoing>sf-deviation-autoapprove</outgoing>
+      <outgoing>sf-deviation-subapproval</outgoing>
+    </exclusiveGateway>
+
+    <!-- Ветка: автосогласование -->
+    <serviceTask id="task-auto-approve" name="Автосогласование&#10;системой">
+      <incoming>sf-deviation-autoapprove</incoming>
+      <outgoing>sf-autoapprove-fixresult</outgoing>
+    </serviceTask>
+
+    <!-- Ветка: требуется согласование -->
+    <subProcess id="subprocess-approval" name="Согласование&#10;(см. process-2-approval.bpmn)">
+      <incoming>sf-deviation-subapproval</incoming>
+      <outgoing>sf-subapproval-fixresult</outgoing>
+    </subProcess>
+
+    <!-- Фиксация результата -->
+    <serviceTask id="task-fix-result" name="Фиксация&#10;результата решения">
+      <incoming>sf-autoapprove-fixresult</incoming>
+      <incoming>sf-subapproval-fixresult</incoming>
+      <outgoing>sf-fixresult-notify</outgoing>
+    </serviceTask>
+
+    <!-- Уведомление менеджера -->
+    <userTask id="task-receive-notification" name="Получить уведомление&#10;о решении">
+      <incoming>sf-fixresult-notify</incoming>
+      <outgoing>sf-notify-gwresult</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-decision-result" name="Заказ&#10;согласован?">
+      <incoming>sf-notify-gwresult</incoming>
+      <outgoing>sf-result-continue</outgoing>
+      <outgoing>sf-result-correct</outgoing>
+    </exclusiveGateway>
+
+    <!-- Согласовано: продолжить работу -->
+    <userTask id="task-continue-work" name="Продолжить работу&#10;с Заказом (РТУ)">
+      <incoming>sf-result-continue</incoming>
+      <outgoing>sf-continue-endapproved</outgoing>
+    </userTask>
+
+    <endEvent id="end-approved" name="Заказ согласован,&#10;отгрузка разрешена">
+      <incoming>sf-continue-endapproved</incoming>
+    </endEvent>
+
+    <!-- Отклонено: скорректировать -->
+    <userTask id="task-correct-order" name="Скорректировать Заказ&#10;или отказать">
+      <incoming>sf-result-correct</incoming>
+      <outgoing>sf-correct-endrejected</outgoing>
+    </userTask>
+
+    <endEvent id="end-rejected" name="Заказ отклонен">
+      <incoming>sf-correct-endrejected</incoming>
+      <terminateEventDefinition/>
+    </endEvent>
+
+    <!-- ===== ПОТОКИ УПРАВЛЕНИЯ ===== -->
+    <sequenceFlow id="sf-start-createorder"     sourceRef="start"              targetRef="task-create-order"/>
+    <sequenceFlow id="sf-createorder-checknpss"  sourceRef="task-create-order"   targetRef="task-check-npss"/>
+    <sequenceFlow id="sf-checknpss-gwage"        sourceRef="task-check-npss"     targetRef="gw-npss-age"/>
+    <sequenceFlow id="sf-gwage-blocknpss"        sourceRef="gw-npss-age"         targetRef="task-block-npss"
+                  name="Устарела (возраст &gt; 90 дн.)"/>
+    <sequenceFlow id="sf-gwage-calcrent"         sourceRef="gw-npss-age"         targetRef="task-calc-rentability"
+                  name="Актуальна"/>
+    <sequenceFlow id="sf-blocknpss-endblocked"   sourceRef="task-block-npss"     targetRef="end-blocked-npss"/>
+    <sequenceFlow id="sf-calcrent-gwdeviation"   sourceRef="task-calc-rentability" targetRef="gw-deviation"/>
+    <sequenceFlow id="sf-deviation-autoapprove"  sourceRef="gw-deviation"        targetRef="task-auto-approve"
+                  name="Отклонение менее 1% (автосогласование)"/>
+    <sequenceFlow id="sf-deviation-subapproval"  sourceRef="gw-deviation"        targetRef="subprocess-approval"
+                  name="Отклонение 1% и более — требуется согласование"/>
+    <sequenceFlow id="sf-autoapprove-fixresult"  sourceRef="task-auto-approve"   targetRef="task-fix-result"/>
+    <sequenceFlow id="sf-subapproval-fixresult"  sourceRef="subprocess-approval" targetRef="task-fix-result"/>
+    <sequenceFlow id="sf-fixresult-notify"       sourceRef="task-fix-result"     targetRef="task-receive-notification"/>
+    <sequenceFlow id="sf-notify-gwresult"        sourceRef="task-receive-notification" targetRef="gw-decision-result"/>
+    <sequenceFlow id="sf-result-continue"        sourceRef="gw-decision-result"  targetRef="task-continue-work"
+                  name="Согласован"/>
+    <sequenceFlow id="sf-result-correct"         sourceRef="gw-decision-result"  targetRef="task-correct-order"
+                  name="Отклонен"/>
+    <sequenceFlow id="sf-continue-endapproved"   sourceRef="task-continue-work"  targetRef="end-approved"/>
+    <sequenceFlow id="sf-correct-endrejected"    sourceRef="task-correct-order"  targetRef="end-rejected"/>
+
+  </process>
+
+  <!-- ===== ДИАГРАММА (КООРДИНАТЫ) ===== -->
+  <bpmndi:BPMNDiagram id="diagram-main">
+    <bpmndi:BPMNPlane id="plane-main" bpmnElement="collab-main">
+
+      <!-- Pool -->
+      <bpmndi:BPMNShape id="shape-pool-main" bpmnElement="pool-main" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1520" height="600"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lane: Менеджер -->
+      <bpmndi:BPMNShape id="shape-lane-manager" bpmnElement="lane-manager" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1490" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lane: Контроль рентабельности 1С:УТ -->
+      <bpmndi:BPMNShape id="shape-lane-system" bpmnElement="lane-system" isHorizontal="true">
+        <dc:Bounds x="190" y="280" width="1490" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lane: Согласующий -->
+      <bpmndi:BPMNShape id="shape-lane-approval" bpmnElement="lane-approval" isHorizontal="true">
+        <dc:Bounds x="190" y="480" width="1490" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Менеджер -->
+      <bpmndi:BPMNShape id="shape-start" bpmnElement="start">
+        <dc:Bounds x="242" y="162" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="218" y="205" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-create-order" bpmnElement="task-create-order">
+        <dc:Bounds x="330" y="140" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-receive-notification" bpmnElement="task-receive-notification">
+        <dc:Bounds x="1040" y="140" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-decision-result" bpmnElement="gw-decision-result" isMarkerVisible="true">
+        <dc:Bounds x="1215" y="155" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1205" y="212" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-continue-work" bpmnElement="task-continue-work">
+        <dc:Bounds x="1320" y="100" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-approved" bpmnElement="end-approved">
+        <dc:Bounds x="1510" y="117" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1490" y="158" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-correct-order" bpmnElement="task-correct-order">
+        <dc:Bounds x="1320" y="200" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-rejected" bpmnElement="end-rejected">
+        <dc:Bounds x="1510" y="217" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1490" y="258" width="84" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Контроль рентабельности 1С:УТ -->
+      <bpmndi:BPMNShape id="shape-task-check-npss" bpmnElement="task-check-npss">
+        <dc:Bounds x="500" y="340" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-npss-age" bpmnElement="gw-npss-age" isMarkerVisible="true">
+        <dc:Bounds x="675" y="355" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="665" y="412" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-block-npss" bpmnElement="task-block-npss">
+        <dc:Bounds x="780" y="340" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-blocked-npss" bpmnElement="end-blocked-npss">
+        <dc:Bounds x="965" y="357" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="945" y="398" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-calc-rentability" bpmnElement="task-calc-rentability">
+        <dc:Bounds x="780" y="440" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-deviation" bpmnElement="gw-deviation" isMarkerVisible="true">
+        <dc:Bounds x="975" y="355" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="960" y="412" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-auto-approve" bpmnElement="task-auto-approve">
+        <dc:Bounds x="1040" y="320" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-fix-result" bpmnElement="task-fix-result">
+        <dc:Bounds x="1200" y="320" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Согласующий -->
+      <bpmndi:BPMNShape id="shape-subprocess-approval" bpmnElement="subprocess-approval" isExpanded="false">
+        <dc:Bounds x="1040" y="520" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Потоки -->
+      <bpmndi:BPMNEdge id="edge-start-createorder" bpmnElement="sf-start-createorder">
+        <di:waypoint x="278" y="180"/>
+        <di:waypoint x="330" y="180"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-createorder-checknpss" bpmnElement="sf-createorder-checknpss">
+        <di:waypoint x="390" y="220"/>
+        <di:waypoint x="390" y="380"/>
+        <di:waypoint x="500" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-checknpss-gwage" bpmnElement="sf-checknpss-gwage">
+        <di:waypoint x="620" y="380"/>
+        <di:waypoint x="675" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-gwage-blocknpss" bpmnElement="sf-gwage-blocknpss">
+        <di:waypoint x="725" y="380"/>
+        <di:waypoint x="780" y="380"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="726" y="355" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-gwage-calcrent" bpmnElement="sf-gwage-calcrent">
+        <di:waypoint x="700" y="405"/>
+        <di:waypoint x="700" y="480"/>
+        <di:waypoint x="780" y="480"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="430" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-blocknpss-endblocked" bpmnElement="sf-blocknpss-endblocked">
+        <di:waypoint x="900" y="380"/>
+        <di:waypoint x="965" y="375"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-calcrent-gwdeviation" bpmnElement="sf-calcrent-gwdeviation">
+        <di:waypoint x="920" y="480"/>
+        <di:waypoint x="1000" y="480"/>
+        <di:waypoint x="1000" y="405"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-deviation-autoapprove" bpmnElement="sf-deviation-autoapprove">
+        <di:waypoint x="1000" y="355"/>
+        <di:waypoint x="1000" y="320"/>
+        <di:waypoint x="1040" y="360"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1002" y="290" width="90" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-deviation-subapproval" bpmnElement="sf-deviation-subapproval">
+        <di:waypoint x="1000" y="405"/>
+        <di:waypoint x="1000" y="560"/>
+        <di:waypoint x="1040" y="560"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1002" y="460" width="90" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-autoapprove-fixresult" bpmnElement="sf-autoapprove-fixresult">
+        <di:waypoint x="1160" y="360"/>
+        <di:waypoint x="1200" y="360"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-subapproval-fixresult" bpmnElement="sf-subapproval-fixresult">
+        <di:waypoint x="1200" y="560"/>
+        <di:waypoint x="1260" y="560"/>
+        <di:waypoint x="1260" y="400"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-fixresult-notify" bpmnElement="sf-fixresult-notify">
+        <di:waypoint x="1260" y="320"/>
+        <di:waypoint x="1260" y="180"/>
+        <di:waypoint x="1040" y="180"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-notify-gwresult" bpmnElement="sf-notify-gwresult">
+        <di:waypoint x="1160" y="180"/>
+        <di:waypoint x="1215" y="180"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-result-continue" bpmnElement="sf-result-continue">
+        <di:waypoint x="1265" y="155"/>
+        <di:waypoint x="1265" y="140"/>
+        <di:waypoint x="1320" y="140"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1270" y="120" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-result-correct" bpmnElement="sf-result-correct">
+        <di:waypoint x="1265" y="205"/>
+        <di:waypoint x="1265" y="240"/>
+        <di:waypoint x="1320" y="240"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1270" y="225" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-continue-endapproved" bpmnElement="sf-continue-endapproved">
+        <di:waypoint x="1440" y="140"/>
+        <di:waypoint x="1510" y="135"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge-correct-endrejected" bpmnElement="sf-correct-endrejected">
+        <di:waypoint x="1440" y="240"/>
+        <di:waypoint x="1510" y="235"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

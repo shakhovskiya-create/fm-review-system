@@ -1,0 +1,82 @@
+{
+  "agent": "agent-8-bpmn-designer",
+  "command": "bpmn",
+  "timestamp": "2026-02-25T00:00:00Z",
+  "fmVersion": "1.0.5",
+  "project": "PROJECT_SHPMNT_PROFIT",
+  "confluencePageId": "83951683",
+  "confluenceVersion": 83,
+  "status": "completed",
+  "counts": {
+    "diagrams": 3,
+    "processes": 3,
+    "uploaded": 0
+  },
+  "diagrams": [
+    {
+      "id": 1,
+      "name": "Основной процесс контроля рентабельности",
+      "file": "process-1-main-flow.bpmn",
+      "fmSections": ["3.1", "3.3", "3.4", "3.5"],
+      "lanes": ["Менеджер", "Контроль рентабельности 1С:УТ", "Согласующий (по матрице п. 3.4)"],
+      "nodes": 13,
+      "gateways": 3,
+      "flows": 14,
+      "timers": 0,
+      "simplified": true,
+      "status": "created"
+    },
+    {
+      "id": 2,
+      "name": "Согласование отклонения рентабельности",
+      "file": "process-2-approval.bpmn",
+      "fmSections": ["3.4", "3.5.1", "3.5.2", "3.6"],
+      "lanes": ["1С:УТ / ELMA", "РБЮ", "ДП (Директор по продажам)", "ГД (Генеральный директор)", "Менеджер"],
+      "nodes": 22,
+      "gateways": 6,
+      "flows": 24,
+      "timers": 2,
+      "simplified": true,
+      "status": "created",
+      "approvalMatrix": {
+        "auto": "отклонение < 1%",
+        "rbu": "1.00-15.00%",
+        "dp": "15.01-25.00%",
+        "gd": "более 25.00%"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Экстренное согласование",
+      "file": "process-3-emergency.bpmn",
+      "fmSections": ["3.7"],
+      "lanes": ["Менеджер", "Склад", "Согласующий (ДП / Директор ДРП)", "1С:УТ"],
+      "nodes": 14,
+      "gateways": 3,
+      "flows": 16,
+      "timers": 1,
+      "simplified": true,
+      "status": "created",
+      "limits": {
+        "perManager": "3 в месяц",
+        "perCounterparty": "5 в месяц (в пиковые — до 10)",
+        "postfactSLA": "24 рабочих часа"
+      }
+    }
+  ],
+  "artifacts": [
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_8_BPMN_DESIGNER/process-1-main-flow.bpmn",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_8_BPMN_DESIGNER/process-2-approval.bpmn",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_8_BPMN_DESIGNER/process-3-emergency.bpmn",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_8_BPMN_DESIGNER/BPMN-DIAGRAMS-v1.0.5-2026-02-25.md",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_8_BPMN_DESIGNER/bpmn_summary.json"
+  ],
+  "v105_compliance": {
+    "CRIT001_timeout_5min": true,
+    "approval_matrix_1_15_25": true,
+    "gd_auto_reject_48h": true,
+    "emergency_limits_3_per_month": true,
+    "postfact_sla_24h": true
+  },
+  "gitHubIssue": 33
+}

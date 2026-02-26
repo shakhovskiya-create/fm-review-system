@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://ekf.ru/fm-ls-profit"
+             id="FM-LS-PROFIT-EMERGENCY">
+
+  <!--
+    BPMN 2.0: Экстренное согласование заказа
+    FM: FM-LS-PROFIT v1.0.5
+    Раздел ФМ: 3.7
+    Диаграмма: (упрощенная)
+    Создано: 25.02.2026
+    Лимиты: 3/мес на менеджера, 5/мес на контрагента
+    Отклонение > 25% или убыток (план >= 0%) — экстренное недоступно
+  -->
+
+  <collaboration id="collab-emergency">
+    <participant id="pool-emergency" name="Экстренное согласование Заказа (упрощенная)" processRef="proc-emergency"/>
+  </collaboration>
+
+  <process id="proc-emergency" name="Экстренное согласование" isExecutable="false">
+
+    <laneSet id="laneSet-emergency">
+      <lane id="lane-mgr-emg" name="Менеджер">
+        <flowNodeRef>start-emg</flowNodeRef>
+        <flowNodeRef>task-request-verbal</flowNodeRef>
+        <flowNodeRef>gw-verbal-granted</flowNodeRef>
+        <flowNodeRef>task-fix-in-system</flowNodeRef>
+        <flowNodeRef>end-no-approval</flowNodeRef>
+        <flowNodeRef>task-notify-client</flowNodeRef>
+      </lane>
+      <lane id="lane-warehouse" name="Склад">
+        <flowNodeRef>task-ship-goods</flowNodeRef>
+      </lane>
+      <lane id="lane-approver-emg" name="Согласующий (ДП / Директор ДРП)">
+        <flowNodeRef>task-postfact-confirm</flowNodeRef>
+        <flowNodeRef>gw-postfact-decision</flowNodeRef>
+        <flowNodeRef>end-postfact-confirmed</flowNodeRef>
+        <flowNodeRef>task-register-incident</flowNodeRef>
+        <flowNodeRef>timer-postfact-24h</flowNodeRef>
+        <flowNodeRef>task-auto-incident</flowNodeRef>
+      </lane>
+      <lane id="lane-system-emg" name="1С:УТ">
+        <flowNodeRef>gw-limit-check</flowNodeRef>
+        <flowNodeRef>task-mark-emergency</flowNodeRef>
+        <flowNodeRef>end-limit-exceeded</flowNodeRef>
+        <flowNodeRef>task-send-push-confirm</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- ===== ЭЛЕМЕНТЫ ===== -->
+    <startEvent id="start-emg" name="Срочная отгрузка —&#10;стандартное согласование&#10;недоступно">
+      <outgoing>sf-start-request</outgoing>
+    </startEvent>
+
+    <!-- Запрос устного разрешения -->
+    <userTask id="task-request-verbal" name="Запросить устное разрешение&#10;у уполномоченного&#10;(Директор ДРП / ДП)">
+      <incoming>sf-start-request</incoming>
+      <outgoing>sf-request-gwverbal</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gw-verbal-granted" name="Разрешение&#10;получено?">
+      <incoming>sf-request-gwverbal</incoming>
+      <outgoing>sf-verbal-yes</outgoing>
+      <outgoing>sf-verbal-no</outgoing>
+    </exclusiveGateway>
+
+    <!-- Нет разрешения — конец -->
+    <endEvent id="end-no-approval" name="Отказ в отгрузке&#10;(без разрешения)">
+      <incoming>sf-verbal-no</incoming>
+      <terminateEventDefinition/>
+    </endEvent>
+
+    <!-- Проверка лимитов в системе -->
+    <exclusiveGateway id="gw-limit-check" name="Лимит не&#10;исчерпан?&#10;(3/мес менеджер,&#10;5/мес контрагент)">
+      <incoming>sf-verbal-yes</incoming>
+      <outgoing>sf-limit-ok</outgoing>
+      <outgoing>sf-limit-exceeded</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end-limit-exceeded" name="Лимит экстренных&#10;исчерпан — стандартное&#10;согласование">
+      <incoming>sf-limit-exceeded</incoming>
+    </endEvent>
+
+    <!-- Фиксация в системе -->
+    <userTask id="task-fix-in-system" name="Зафиксировать в 1С:УТ:&#10;- ФИО согласующего&#10;- Причина срочности&#10;- Скриншот разрешения">
+      <incoming>sf-limit-ok</incoming>
+      <outgoing>sf-fix-markemergency</outgoing>
+    </userTask>
+
+    <!-- Пометка в системе -->
+    <serviceTask id="task-mark-emergency" name="Перевести Заказ в&#10;статус «Согласован»&#10;(пометка «Экстренно»)&#10;+ Push согласующему">
+      <incoming>sf-fix-markemergency</incoming>
+      <outgoing>sf-mark-sendpush</outgoing>
+    </serviceTask>
+
+    <!-- Push согласующему для подтверждения -->
+    <serviceTask id="task-send-push-confirm" name="Отправить уведомление&#10;согласующему: «Вам&#10;приписано экстренное&#10;согласование. Подтвердите&#10;в течение 2 часов»">
+      <incoming>sf-mark-sendpush</incoming>
+      <outgoing>sf-push-ship</outgoing>
+    </serviceTask>
+
+    <!-- Отгрузка со склада -->
+    <task id="task-ship-goods" name="Отгрузить товар&#10;(провести РТУ)">
+      <incoming>sf-push-ship</incoming>
+      <outgoing>sf-ship-postfact</outgoing>
+    </task>
+
+    <!-- Согласование постфактум (SLA 24ч) -->
+    <userTask id="task-postfact-confirm" name="Подтвердить экстренное&#10;согласование в ELMA&#10;(SLA 24 рабочих часа)">
+      <incoming>sf-ship-postfact</incoming>
+      <outgoing>sf-postfact-gwdecision</outgoing>
+    </userTask>
+
+    <!-- Таймер 24ч — автоинцидент -->
+    <boundaryEvent id="timer-postfact-24h" name="SLA 24ч истек" attachedToRef="task-postfact-confirm" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT24H</timeDuration>
+      </timerEventDefinition>
+      <outgoing>sf-timer24-autoincident</outgoing>
+    </boundaryEvent>
+
+    <serviceTask id="task-auto-incident" name="Авто-уведомление ДП&#10;о нарушении SLA&#10;постфактум">
+      <incoming>sf-timer24-autoincident</incoming>
+      <outgoing>sf-autoincident-registerincident</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw-postfact-decision" name="Решение&#10;постфактум?">
+      <incoming>sf-postfact-gwdecision</incoming>
+      <outgoing>sf-postfact-confirmed</outgoing>
+      <outgoing>sf-postfact-rejected</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end-postfact-confirmed" name="Согласовано&#10;постфактум">
+      <incoming>sf-postfact-confirmed</incoming>
+    </endEvent>
+
+    <!-- Регистрация инцидента при отказе -->
+    <task id="task-register-incident" name="Зарегистрировать инцидент:&#10;- Менеджер, сумма, причина&#10;- Запись в отчет&#10;- Расчет удержания из премии">
+      <incoming>sf-postfact-rejected</incoming>
+      <incoming>sf-autoincident-registerincident</incoming>
+      <outgoing>sf-incident-notifyclient</outgoing>
+    </task>
+
+    <!-- Уведомление клиента (не блокирует факт отгрузки) -->
+    <task id="task-notify-client" name="При необходимости:&#10;уведомить клиента&#10;о статусе">
+      <incoming>sf-incident-notifyclient</incoming>
+      <outgoing>sf-notify-end-incident</outgoing>
+    </task>
+
+    <endEvent id="end-incident" name="Инцидент&#10;зафиксирован">
+      <incoming>sf-notify-end-incident</incoming>
+    </endEvent>
+
+    <!-- ===== ПОТОКИ ===== -->
+    <sequenceFlow id="sf-start-request"          sourceRef="start-emg"             targetRef="task-request-verbal"/>
+    <sequenceFlow id="sf-request-gwverbal"        sourceRef="task-request-verbal"   targetRef="gw-verbal-granted"/>
+    <sequenceFlow id="sf-verbal-yes"             sourceRef="gw-verbal-granted"     targetRef="gw-limit-check"
+                  name="Да"/>
+    <sequenceFlow id="sf-verbal-no"              sourceRef="gw-verbal-granted"     targetRef="end-no-approval"
+                  name="Нет"/>
+    <sequenceFlow id="sf-limit-ok"              sourceRef="gw-limit-check"        targetRef="task-fix-in-system"
+                  name="Лимит не исчерпан"/>
+    <sequenceFlow id="sf-limit-exceeded"        sourceRef="gw-limit-check"        targetRef="end-limit-exceeded"
+                  name="Лимит исчерпан"/>
+    <sequenceFlow id="sf-fix-markemergency"     sourceRef="task-fix-in-system"    targetRef="task-mark-emergency"/>
+    <sequenceFlow id="sf-mark-sendpush"         sourceRef="task-mark-emergency"   targetRef="task-send-push-confirm"/>
+    <sequenceFlow id="sf-push-ship"             sourceRef="task-send-push-confirm" targetRef="task-ship-goods"/>
+    <sequenceFlow id="sf-ship-postfact"         sourceRef="task-ship-goods"       targetRef="task-postfact-confirm"/>
+    <sequenceFlow id="sf-postfact-gwdecision"   sourceRef="task-postfact-confirm" targetRef="gw-postfact-decision"/>
+    <sequenceFlow id="sf-postfact-confirmed"    sourceRef="gw-postfact-decision"  targetRef="end-postfact-confirmed"
+                  name="Подтверждено"/>
+    <sequenceFlow id="sf-postfact-rejected"     sourceRef="gw-postfact-decision"  targetRef="task-register-incident"
+                  name="Отказано"/>
+    <sequenceFlow id="sf-timer24-autoincident"  sourceRef="timer-postfact-24h"    targetRef="task-auto-incident"/>
+    <sequenceFlow id="sf-autoincident-registerincident" sourceRef="task-auto-incident" targetRef="task-register-incident"/>
+    <sequenceFlow id="sf-incident-notifyclient" sourceRef="task-register-incident" targetRef="task-notify-client"/>
+    <sequenceFlow id="sf-notify-end-incident"   sourceRef="task-notify-client"    targetRef="end-incident"/>
+
+  </process>
+
+  <!-- ===== ДИАГРАММА (КООРДИНАТЫ) ===== -->
+  <bpmndi:BPMNDiagram id="diagram-emergency">
+    <bpmndi:BPMNPlane id="plane-emergency" bpmnElement="collab-emergency">
+
+      <!-- Pool -->
+      <bpmndi:BPMNShape id="shape-pool-emergency" bpmnElement="pool-emergency" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1520" height="640"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="shape-lane-mgr-emg" bpmnElement="lane-mgr-emg" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1490" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-system-emg" bpmnElement="lane-system-emg" isHorizontal="true">
+        <dc:Bounds x="190" y="240" width="1490" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-warehouse" bpmnElement="lane-warehouse" isHorizontal="true">
+        <dc:Bounds x="190" y="400" width="1490" height="120"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-lane-approver-emg" bpmnElement="lane-approver-emg" isHorizontal="true">
+        <dc:Bounds x="190" y="520" width="1490" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Менеджер -->
+      <bpmndi:BPMNShape id="shape-start-emg" bpmnElement="start-emg">
+        <dc:Bounds x="242" y="142" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="218" y="183" width="84" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-request-verbal" bpmnElement="task-request-verbal">
+        <dc:Bounds x="330" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-verbal-granted" bpmnElement="gw-verbal-granted" isMarkerVisible="true">
+        <dc:Bounds x="505" y="135" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="495" y="192" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-no-approval" bpmnElement="end-no-approval">
+        <dc:Bounds x="505" y="85" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="481" y="50" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-fix-in-system" bpmnElement="task-fix-in-system">
+        <dc:Bounds x="700" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-notify-client" bpmnElement="task-notify-client">
+        <dc:Bounds x="1300" y="120" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы 1С:УТ -->
+      <bpmndi:BPMNShape id="shape-gw-limit-check" bpmnElement="gw-limit-check" isMarkerVisible="true">
+        <dc:Bounds x="595" y="295" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="575" y="352" width="90" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-limit-exceeded" bpmnElement="end-limit-exceeded">
+        <dc:Bounds x="695" y="297" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="670" y="338" width="84" height="40"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-mark-emergency" bpmnElement="task-mark-emergency">
+        <dc:Bounds x="860" y="280" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-send-push-confirm" bpmnElement="task-send-push-confirm">
+        <dc:Bounds x="1040" y="280" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Склад -->
+      <bpmndi:BPMNShape id="shape-task-ship-goods" bpmnElement="task-ship-goods">
+        <dc:Bounds x="1060" y="420" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Элементы Согласующий -->
+      <bpmndi:BPMNShape id="shape-task-postfact-confirm" bpmnElement="task-postfact-confirm">
+        <dc:Bounds x="1060" y="560" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-timer-postfact-24h" bpmnElement="timer-postfact-24h">
+        <dc:Bounds x="1132" y="622" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1112" y="663" width="80" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-auto-incident" bpmnElement="task-auto-incident">
+        <dc:Bounds x="1200" y="620" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-gw-postfact-decision" bpmnElement="gw-postfact-decision" isMarkerVisible="true">
+        <dc:Bounds x="1255" y="575" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1245" y="632" width="70" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-postfact-confirmed" bpmnElement="end-postfact-confirmed">
+        <dc:Bounds x="1380" y="517" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1360" y="558" width="84" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-task-register-incident" bpmnElement="task-register-incident">
+        <dc:Bounds x="1380" y="560" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape-end-incident" bpmnElement="end-incident">
+        <dc:Bounds x="1480" y="142" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1458" y="183" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Потоки -->
+      <bpmndi:BPMNEdge id="edge-start-request" bpmnElement="sf-start-request">
+        <di:waypoint x="278" y="160"/>
+        <di:waypoint x="330" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-request-gwverbal" bpmnElement="sf-request-gwverbal">
+        <di:waypoint x="450" y="160"/>
+        <di:waypoint x="505" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-verbal-yes" bpmnElement="sf-verbal-yes">
+        <di:waypoint x="530" y="185"/>
+        <di:waypoint x="530" y="320"/>
+        <di:waypoint x="595" y="320"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="536" y="240" width="20" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-verbal-no" bpmnElement="sf-verbal-no">
+        <di:waypoint x="530" y="135"/>
+        <di:waypoint x="530" y="121"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="536" y="110" width="20" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-limit-ok" bpmnElement="sf-limit-ok">
+        <di:waypoint x="620" y="295"/>
+        <di:waypoint x="620" y="160"/>
+        <di:waypoint x="700" y="160"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="625" y="200" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-limit-exceeded" bpmnElement="sf-limit-exceeded">
+        <di:waypoint x="645" y="320"/>
+        <di:waypoint x="695" y="315"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="648" y="298" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-fix-markemergency" bpmnElement="sf-fix-markemergency">
+        <di:waypoint x="760" y="200"/>
+        <di:waypoint x="760" y="320"/>
+        <di:waypoint x="860" y="320"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-mark-sendpush" bpmnElement="sf-mark-sendpush">
+        <di:waypoint x="1000" y="320"/>
+        <di:waypoint x="1040" y="320"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-push-ship" bpmnElement="sf-push-ship">
+        <di:waypoint x="1110" y="360"/>
+        <di:waypoint x="1110" y="420"/>
+        <di:waypoint x="1120" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-ship-postfact" bpmnElement="sf-ship-postfact">
+        <di:waypoint x="1120" y="500"/>
+        <di:waypoint x="1120" y="560"/>
+        <di:waypoint x="1060" y="600"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-postfact-gwdecision" bpmnElement="sf-postfact-gwdecision">
+        <di:waypoint x="1200" y="600"/>
+        <di:waypoint x="1255" y="600"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-postfact-confirmed" bpmnElement="sf-postfact-confirmed">
+        <di:waypoint x="1280" y="575"/>
+        <di:waypoint x="1280" y="535"/>
+        <di:waypoint x="1380" y="535"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1285" y="540" width="80" height="27"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-postfact-rejected" bpmnElement="sf-postfact-rejected">
+        <di:waypoint x="1305" y="600"/>
+        <di:waypoint x="1380" y="600"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1310" y="580" width="60" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-timer24-autoincident" bpmnElement="sf-timer24-autoincident">
+        <di:waypoint x="1168" y="640"/>
+        <di:waypoint x="1200" y="660"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-autoincident-registerincident" bpmnElement="sf-autoincident-registerincident">
+        <di:waypoint x="1320" y="660"/>
+        <di:waypoint x="1380" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-incident-notifyclient" bpmnElement="sf-incident-notifyclient">
+        <di:waypoint x="1450" y="560"/>
+        <di:waypoint x="1450" y="160"/>
+        <di:waypoint x="1300" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge-notify-end-incident" bpmnElement="sf-notify-end-incident">
+        <di:waypoint x="1420" y="160"/>
+        <di:waypoint x="1480" y="160"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>
