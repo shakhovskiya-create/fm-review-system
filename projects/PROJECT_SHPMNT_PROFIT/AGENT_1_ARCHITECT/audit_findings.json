@@ -1,64 +1,168 @@
 {
+  "project": "PROJECT_SHPMNT_PROFIT",
   "fmVersion": "1.0.5",
-  "auditDate": "2026-02-26",
-  "platform": "1С:УТ 10.2 на платформе 8.3 (обычные формы)",
-  "previousAudit": "v1.0.4 (25.02.2026, 13 findings: 1C/3H/5M/4L)",
-  "resolvedInV105": [
-    "CRITICAL-001: таймаут LS-BR-035 исправлен (15→5 мин)",
-    "HIGH-001: число P1-требований исправлено (61→64)",
-    "HIGH-002: пояснение порогов 30/50 добавлено",
-    "HIGH-003: LS-RPT-072 содержит оба порога",
-    "MEDIUM-001: формулировка дефолт-решения уточнена",
-    "MEDIUM-002..005: грамматические ошибки исправлены (6 правок)"
-  ],
+  "timestamp": "2026-02-26T14:00:00Z",
+  "auditFocus": "SBS compatibility, formulas, integrations, 1C:UT 10.2 platform",
   "findings": [
     {
-      "id": "PLAT-001",
-      "severity": "MEDIUM",
-      "category": "PLATFORM",
-      "fmSection": "весь документ",
-      "description": "ФМ не содержит явного указания на платформу 1С:УТ 10.2 и ограничения обычных форм. Разработчик может предположить управляемые формы.",
-      "recommendation": "Добавить в раздел 1 указание платформы и режима работы (обычное приложение)."
+      "id": "HIGH-001",
+      "severity": "HIGH",
+      "category": "INTEGRATION",
+      "fmSection": "3.3, 3.19, 7.1",
+      "description": "FM does not reference SBS project (SBS-58 NPSS register, SBS-59 target margin, SBS-63 actual profitability, SBS-130 internal prices). NPSS is described independently without linking to SBS-58 formula and register.",
+      "recommendation": "Add section 'Dependencies on SBS project' with explicit references to SBS-58, SBS-59, SBS-63, SBS-130.",
+      "status": "Open",
+      "location": "3.19, 7.1"
     },
     {
-      "id": "PLAT-002",
+      "id": "HIGH-002",
+      "severity": "HIGH",
+      "category": "LOGIC",
+      "fmSection": "3.19",
+      "description": "NPSS formula in FM describes composition (purchase price + logistics + customs) but SBS-58 defines NPSS = CZavg x TTK_country. FM says 'weighted average for 3 months', SBS-58 says '6 months'. Independent description may lead to duplicate implementation.",
+      "recommendation": "Replace FM's own NPSS description with reference to SBS-58 formula. Update period from 3 to 6 months.",
+      "status": "Open",
+      "location": "3.19"
+    },
+    {
+      "id": "HIGH-003",
+      "severity": "HIGH",
+      "category": "LOGIC",
+      "fmSection": "Section 6",
+      "description": "P1 requirement count mismatch: text claims '64 requirements' but actual table count is 65-67 (depending on how LS-FR-049a/b/c counted). LS-RPT-072, LS-RPT-073, LS-RPT-074, LS-BR-075 are P1 in table but missing from text description.",
+      "recommendation": "Update prioritization text to include LS-RPT-072..074 and LS-BR-075. Correct count to actual number.",
+      "status": "Open",
+      "location": "Section 6"
+    },
+    {
+      "id": "HIGH-004",
+      "severity": "HIGH",
+      "category": "INTEGRATION",
+      "fmSection": "3.3, 7.1",
+      "description": "Internal transfer prices (SBS-130) from ERP to UT affect cost basis for manufactured goods. FM does not describe how these prices relate to NPSS or whether they need separate handling in profitability control.",
+      "recommendation": "Add clarification in 7.1 or 3.19 about manufactured goods cost basis and SBS-130 dependency.",
+      "status": "Open",
+      "location": "3.3, 7.1"
+    },
+    {
+      "id": "MEDIUM-001",
       "severity": "MEDIUM",
-      "category": "PLATFORM",
-      "fmSection": "3.11 (обратный отсчёт SLA)",
-      "description": "Обратный отсчёт SLA в статусе согласования предполагает динамическое обновление UI. На обычных формах доступен механизм ПодключитьОбработчикОжидания. ТЗ v3.0 учитывает это.",
-      "recommendation": "Убедиться что ТЗ описывает реализацию через таймер обычной формы."
+      "category": "INTEGRATION",
+      "fmSection": "7.1",
+      "description": "No mention of SBS-63 (actual profitability calculation at month-end). Plan vs actual comparison for validation of control effectiveness is not described.",
+      "recommendation": "Add plan/fact reconciliation using SBS-63 data for monthly validation.",
+      "status": "Open",
+      "location": "7.1"
+    },
+    {
+      "id": "MEDIUM-002",
+      "severity": "MEDIUM",
+      "category": "INTEGRATION",
+      "fmSection": "3.3, 3.5",
+      "description": "Target margin from SBS-59 (register) not explicitly linked to planned profitability of LS. Could serve as benchmark.",
+      "recommendation": "Add reference to SBS-59 target margin as benchmark for LS planned profitability.",
+      "status": "Open",
+      "location": "3.3, 3.5"
+    },
+    {
+      "id": "MEDIUM-003",
+      "severity": "MEDIUM",
+      "category": "LOGIC",
+      "fmSection": "3.19",
+      "description": "NPSS weighted average period: FM says '3 months', SBS-58 uses '6 months'. Inconsistency in calculation period.",
+      "recommendation": "Align with SBS-58: change to '6 months' or reference SBS-58 for authoritative value.",
+      "status": "Open",
+      "location": "3.19"
+    },
+    {
+      "id": "MEDIUM-004",
+      "severity": "MEDIUM",
+      "category": "INTEGRATION",
+      "fmSection": "3.9, 3.19",
+      "description": "Monthly NPSS recalculation during period closing (SBS-57 step 3) not mentioned. New LS created after month-end closing will use updated NPSS but this is not documented.",
+      "recommendation": "Add note about SBS-57 monthly NPSS recalculation in 3.19.",
+      "status": "Open",
+      "location": "3.9, 3.19"
+    },
+    {
+      "id": "MEDIUM-005",
+      "severity": "MEDIUM",
+      "category": "LOGIC",
+      "fmSection": "Glossary, 3.4, 3.5",
+      "description": "Inconsistent use of 'percent' vs 'percentage points' (pp) for profitability deviations. Deviation of 35%-28%=7 is 7 pp, not 7%. Glossary uses '< 1' without units.",
+      "recommendation": "Standardize to 'percentage points' (pp) throughout the document for deviation measurements.",
+      "status": "Open",
+      "location": "Glossary, 3.4, 3.5"
+    },
+    {
+      "id": "MEDIUM-006",
+      "severity": "MEDIUM",
+      "category": "INTEGRATION",
+      "fmSection": "Section 6",
+      "description": "No integration requirement for ERP->UT data exchange affecting NPSS (internal prices, purchase data). Only WMS and ELMA integrations documented (LS-INT-001..003).",
+      "recommendation": "Add note in section 7 about dependency on ERP->UT integration for NPSS accuracy.",
+      "status": "Open",
+      "location": "Section 6, 7"
+    },
+    {
+      "id": "MEDIUM-007",
+      "severity": "MEDIUM",
+      "category": "LOGIC",
+      "fmSection": "3.9, 3.19, LS-BR-075",
+      "description": "NPSS auto-trigger on purchase price deviation >15% (LS-BR-075) does not specify data source: last PTU, contractor price register, or NPSS component CZavg.",
+      "recommendation": "Clarify: 'Actual purchase price from latest PTU, compared to CZavg component in current NPSS (SBS-58).'",
+      "status": "Open",
+      "location": "3.19, LS-BR-075"
+    },
+    {
+      "id": "MEDIUM-008",
+      "severity": "MEDIUM",
+      "category": "LOGIC",
+      "fmSection": "3.3",
+      "description": "Minimum acceptable price formula Price_min = NPSS / (1 - Rent_LS_plan / 100) has edge case: when Rent_LS_plan = 100%, division by zero. When > 100%, negative result.",
+      "recommendation": "Add boundary condition: 'When planned profitability >= 100%, formula not applicable (implies NPSS=0, blocked by 3.3 rule).'",
+      "status": "Open",
+      "location": "3.3"
     },
     {
       "id": "LOW-001",
       "severity": "LOW",
-      "category": "1C",
-      "fmSection": "3.7 (BPMN)",
-      "description": "Примечание BPMN экстренного согласования не ссылается на определение пиковых периодов в глоссарии.",
-      "recommendation": "Добавить: пиковые периоды — см. глоссарий."
+      "category": "LOGIC",
+      "fmSection": "Glossary",
+      "description": "Term 'DP' (Sales Director) defined in both glossary table and abbreviations table with slightly different descriptions.",
+      "recommendation": "Remove duplicate, keep one canonical definition.",
+      "status": "Open",
+      "location": "Section 1"
     },
     {
       "id": "LOW-002",
       "severity": "LOW",
-      "category": "1C",
-      "fmSection": "8 (FAQ)",
-      "description": "Дублирование ответа на вопрос о мульти-БЮ: два отдельных абзаца с частичным повторением.",
-      "recommendation": "Объединить два ответа в один."
+      "category": "LOGIC",
+      "fmSection": "Section 8 (FAQ)",
+      "description": "Multi-BU FAQ question has two 'Answer:' blocks. Second duplicates and extends the first.",
+      "recommendation": "Merge into single comprehensive answer.",
+      "status": "Open",
+      "location": "Section 8"
     },
     {
       "id": "LOW-003",
       "severity": "LOW",
-      "category": "1C",
-      "fmSection": "по всему документу",
-      "description": "Непоследовательное использование кавычек: елочки vs лапки для статусов.",
-      "recommendation": "Привести к единому стилю (елочки)."
+      "category": "LOGIC",
+      "fmSection": "3.7",
+      "description": "BPMN 3 (emergency approval) uses 'Result' as a lane name, which is neither a system nor a role. Other BPMNs use systems/roles as lanes.",
+      "recommendation": "Replace 'Result' lane with terminal states in the appropriate system lane.",
+      "status": "Open",
+      "location": "3.7"
     },
     {
       "id": "LOW-004",
       "severity": "LOW",
       "category": "LOGIC",
-      "fmSection": "2.6 vs 6 (LS-RPT-067)",
-      "description": "LS-RPT-067 помечен P2, но п. 2.6 ссылается на него как на отчёт мониторинга без пометки о режиме симуляции на Этапе 1.",
-      "recommendation": "В п. 2.6 добавить: на Этапе 1 — расчётный, по данным мягкого контроля."
+      "fmSection": "Section 6",
+      "description": "Non-sequential requirement numbering (gaps in LS-BR-018, etc.). Note about gaps exists but may confuse traceability.",
+      "recommendation": "No action needed — note about gaps is sufficient.",
+      "status": "Open",
+      "location": "Section 6"
     }
   ]
 }

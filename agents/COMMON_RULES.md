@@ -45,3 +45,14 @@
 24. **Plan → Implement → Fix**: подробнее `.claude/rules/agent-workflow.md`.
 25. **Knowledge Graph + Episodic Memory**: подробнее `.claude/rules/knowledge-graph.md`.
 26. **GitHub Issues**: подробнее `.claude/rules/agent-workflow.md`.
+
+## База знаний компании
+27. **`knowledge-base/`** — справочник о компании, проектах, процессах EKF. Читай при необходимости:
+    - `company-profile.md` — о компании, команды, системы
+    - `1c-landscape.md` — ландшафт 1С: 12 баз, версии, ключевые документы и регистры
+    - `project-sbs.md` — проект «Себестоимость»: 9 ЧТЗ, формулы НПСС, объекты
+    - `project-shpmnt-profit.md` — наша ФМ: пороги, SLA, связь с SBS
+    - `business-processes.md` — бизнес-процессы: О9 продажи, О2 ценообразование, закупки
+    - `integrations.md` — интеграции между системами (AS IS и TO BE)
+    - `teams.md` — продуктовые команды ДИТ
+28. **Когда читать KB:** при аудите (совместимость с SBS), при проектировании (интеграции), при UX-проверке (бизнес-процессы).
