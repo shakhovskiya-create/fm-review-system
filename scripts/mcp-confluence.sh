@@ -22,5 +22,10 @@ if command -v infisical &>/dev/null && infisical export --format=dotenv-export &
     exec infisical run -- "$MCP_CMD" "${MCP_ARGS[@]}"
 fi
 
-# Priority 3: .env file fallback
-exec "$MCP_CMD" "${MCP_ARGS[@]}" --env-file "$PROJECT_DIR/.env"
+# Priority 3: .env file fallback (if exists)
+if [[ -f "$PROJECT_DIR/.env" ]]; then
+    exec "$MCP_CMD" "${MCP_ARGS[@]}" --env-file "$PROJECT_DIR/.env"
+fi
+
+echo "[mcp-confluence] ERROR: No secrets source available (Infisical down, no .env)" >&2
+exit 1
