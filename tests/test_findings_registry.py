@@ -20,8 +20,7 @@ from scripts.generate_findings_registry import (
     build_summary,
     deduplicate,
     extract_findings_from_markdown,
-)
-
+)  # noqa: I001
 
 # ── extract_findings_from_markdown ─────────────────────────
 

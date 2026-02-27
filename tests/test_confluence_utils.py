@@ -527,7 +527,6 @@ class TestLockErrorPaths:
             lock = ConfluenceLock("err_page", timeout=5)
             lock.acquire()
             # Force OSError on flock
-            import fcntl
             with patch("fcntl.flock", side_effect=OSError("mock flock error")):
                 lock.release()
             # lock_fd should be None after release
@@ -574,7 +573,6 @@ class TestUpdateErrorPath:
         def side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            req = args[0]
             # First call (GET for current page) succeeds
             if call_count == 1:
                 resp = MagicMock()

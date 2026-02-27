@@ -3,7 +3,6 @@ Tests for scripts/tg-bot.py — Telegram bot for expense reports.
 
 Covers: tg_api, send_message, run_report, _is_rate_limited, handle_message, main.
 """
-import collections
 import importlib.util
 import json
 import os

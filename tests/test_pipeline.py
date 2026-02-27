@@ -479,7 +479,7 @@ class TestPipelineTracerInitReal:
         import langfuse
         with patch.object(langfuse, "get_client", return_value=mock_client):
             from fm_review.pipeline_tracer import PipelineTracer as PT
-            tracer = PT("TEST", "sonnet")
+            PT("TEST", "sonnet")
             assert os.environ["LANGFUSE_HOST"] == "https://existing.host.com"
 
 
