@@ -581,6 +581,22 @@ INFRA = [
         "Infra team (6 ppl): Leksakov M.Yu., sysadmins",
         "Analytics team (4 ppl): Kovaleva N.L., DWH analysts",
     ]},
+    {"name": "kb_confluence_index", "entityType": "knowledge_base", "observations": [
+        "knowledge-base/confluence-index.md: page ID lookup for Confluence MCP calls",
+        "EKF WIKI (EW): root 2293899, DIT 2293908, teams/regs/arch/projects subsections",
+        "EKF-SUPPORT (EK): root 54789442, user instructions for 1C/WEB/VDI/Mail/ELMA",
+        "Project pages: SBS 49448191, FM-LS-PROFIT 83951677, QC 68781040, Chestniy Znak 39586606",
+        "Architecture: TO BE 15368306, AS IS 2294052",
+    ]},
+    {"name": "kb_security", "entityType": "knowledge_base", "observations": [
+        "knowledge-base/security.md: security policies and compliance",
+        "InfoSec team: Zloy A.A. (head), Karagodin Yu.Yu. (engineer)",
+        "2FA: Multifactor (2fa.ekf.su), mandatory for all employees",
+        "PD protection: 8 regulatory documents (politics, STO-12, instructions)",
+        "CIS Controls v8: tracked in JIRA INFOBEZ, 10+ active tasks",
+        "Bug bounty: Kibergeroi EKF, report to a.zloy@ekf.su",
+        "Key rule: no confidential data in AI/neural networks",
+    ]},
     {"name": "infisical_json", "entityType": "config", "observations": [
         "infisical.json: project config for Infisical CLI",
     ]},

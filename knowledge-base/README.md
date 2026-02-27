@@ -23,3 +23,5 @@
 | [teams.md](teams.md) | Продуктовые команды ДИТ |
 | [infrastructure.md](infrastructure.md) | Серверы 1С, DWH (Kafka/Airflow/Hasura), целевая архитектура, бэкапы |
 | [company-org-ldap.md](company-org-ldap.md) | Оргструктура EKF из AD: руководство, департаменты, ИТ-команды (57 чел.) |
+| [confluence-index.md](confluence-index.md) | Справочник page ID для Confluence MCP: EKF WIKI, EKF-SUPPORT, проекты |
+| [security.md](security.md) | Безопасность и compliance: ИБ-команда, 2FA, ПДн, CIS Controls v8, bug bounty |
