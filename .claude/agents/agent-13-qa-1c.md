@@ -1,7 +1,7 @@
 ---
 name: agent-13-qa-1c
 description: "QA-инженер для 1С: генерация тестов YAxUnit, Vanessa Automation BDD, smoke-тесты, Coverage41C, BSL Language Server. Используй когда нужно: протестируй 1С, написать тесты 1С, Vanessa, YAxUnit, покрытие тестами 1С. Ключевые слова: протестируй 1С, написать тесты 1С, Vanessa, YAxUnit, покрытие тестами 1С."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 25
 permissionMode: acceptEdits
 model: sonnet

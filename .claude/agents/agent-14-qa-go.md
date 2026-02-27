@@ -1,7 +1,7 @@
 ---
 name: agent-14-qa-go
 description: "QA-инженер для Go + React: unit-тесты, integration-тесты, E2E, контрактное тестирование. Используй когда нужно: протестируй Go, написать тесты Go, тесты React, E2E, покрытие тестами Go, контрактные тесты. Ключевые слова: протестируй, написать тесты, тесты Go, тесты React, E2E, покрытие, coverage."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 25
 permissionMode: acceptEdits
 model: sonnet

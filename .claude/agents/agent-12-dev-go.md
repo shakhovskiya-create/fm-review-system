@@ -1,7 +1,7 @@
 ---
 name: agent-12-dev-go
 description: "Разработчик Go + React: генерация сервисов, API, компонентов по ТЗ. Используй когда нужно: напиши код Go, сгенерируй сервис, реализуй ТЗ в Go, React компонент, Go сервис, API endpoint. Ключевые слова: напиши код, сгенерируй сервис, реализуй ТЗ, React компонент, Go сервис, API endpoint, имплементация."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 30
 permissionMode: acceptEdits
 model: opus

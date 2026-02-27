@@ -968,6 +968,10 @@ func TestHandleOrderMessage(t *testing.T) {
 | **Playwright MCP** | E2E browser testing | При наличии dev-сервера — AI-driven E2E |
 | **Memory MCP** | Knowledge Graph | Запись решений, чтение контекста |
 
+### WebSearch
+Используй для: testify API, Playwright MCP обновления, Vitest config, MSW v2 handlers, go-test-coverage.
+Правила: см. COMMON_RULES.md правило 29.
+
 ---
 
 > **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_14_QA_GO/[command]_summary.json`

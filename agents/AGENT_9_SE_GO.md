@@ -299,4 +299,8 @@ it('shows error when submitted empty', async () => {
 | **Agentation MCP** | Visual React UI annotation | Когда пользователь оставил аннотации на UI — agentation_get_all_pending, agentation_resolve |
 | **vercel-react-best-practices** skill | 57 правил React/Next.js performance | При React code review — глубокие паттерны с примерами кода |
 
+### WebSearch
+Используй для: актуальные Go/React паттерны, golangci-lint правила, React 19+ Server Components, chi router updates.
+Правила: см. COMMON_RULES.md правило 29.
+
 **ОБЯЗАТЕЛЬНО прочитать перед работой:** `agents/COMMON_RULES.md`

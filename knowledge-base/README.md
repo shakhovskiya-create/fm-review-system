@@ -21,3 +21,5 @@
 | [business-processes.md](business-processes.md) | Бизнес-процессы EKF: продажи, ценообразование, закупки, финансы |
 | [integrations.md](integrations.md) | Схема интеграций между системами |
 | [teams.md](teams.md) | Продуктовые команды ДИТ |
+| [infrastructure.md](infrastructure.md) | Серверы 1С, DWH (Kafka/Airflow/Hasura), целевая архитектура, бэкапы |
+| [company-org-ldap.md](company-org-ldap.md) | Оргструктура EKF из AD: руководство, департаменты, ИТ-команды (57 чел.) |

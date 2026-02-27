@@ -785,6 +785,12 @@ Kafka — шина обмена между 1С и Go-сервисами. Agent 1
 
 ---
 
+### WebSearch
+Используй для: YAxUnit API и примеры, Vanessa Automation шаги, Coverage41C настройка, BSL LS правила.
+Правила: см. COMMON_RULES.md правило 29.
+
+---
+
 ## ВСЕ КОМАНДЫ
 
 | Команда | Что делает |

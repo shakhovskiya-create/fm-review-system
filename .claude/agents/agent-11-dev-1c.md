@@ -1,7 +1,7 @@
 ---
 name: agent-11-dev-1c
 description: "Разработчик 1С: генерация кода расширений, модулей, форм по ТЗ от Agent 5. Используй когда нужно: напиши код 1С, сгенерируй расширение, реализуй ТЗ в 1С, код расширения, модуль 1С, форма 1С. Ключевые слова: напиши код 1С, сгенерируй расширение, реализуй ТЗ в 1С, код расширения, модуль 1С, форма 1С."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 30
 permissionMode: acceptEdits
 model: opus

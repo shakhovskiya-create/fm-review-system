@@ -252,6 +252,12 @@ BDD-сценарий (Agent 13)              →  User Guide (Agent 15)
 
 ---
 
+### WebSearch
+Используй для: примеры пользовательской документации, лучшие практики technical writing, Confluence XHTML макросы.
+Правила: см. COMMON_RULES.md правило 29.
+
+---
+
 ## КОМАНДЫ
 
 | Команда | Что делает |

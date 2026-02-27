@@ -1,7 +1,7 @@
 ---
 name: agent-15-trainer
 description: "Создание пользовательской документации по ФМ: инструкции, обучение, user guide, FAQ, документация для пользователя, руководство пользователя, quick start, admin guide, release notes, видеоинструкции, сценарии обучения. Используй когда нужно: написать руководство пользователя, создать FAQ, quick start guide, инструкцию для администратора, сценарий видеоинструкции, release notes."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 25
 permissionMode: acceptEdits
 model: sonnet

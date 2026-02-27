@@ -564,6 +564,23 @@ INFRA = [
         "schemas/agent-contracts.json (v2.2)",
         "Multi-platform support, _summary.json and _findings.json schemas",
     ]},
+    {"name": "kb_infrastructure", "entityType": "knowledge_base", "observations": [
+        "knowledge-base/infrastructure.md: 1C server landscape, DWH, web infra, target architecture",
+        "1C servers: 1C-EKF-APP-01 (main), 1C-DEVAPP01/02 (dev), 16 databases",
+        "DWH: Hasura + dbt + Airflow + PostgreSQL + S3 (Yandex Cloud)",
+        "Target: Kafka bus, Valkey cache, API Gateway, Keycloak auth, ELK + Prometheus + Grafana",
+        "Kafka topics: hrm.references.departments, hrm.queries.department_chiefs_last, etc.",
+        "Backup: Veeam + SQL Always On, Jenkins for 1C DevOps",
+    ]},
+    {"name": "kb_org_structure", "entityType": "knowledge_base", "observations": [
+        "knowledge-base/company-org-ldap.md: EKF org structure from Active Directory",
+        "CEO: Kucherov D.A., 1152 active employees, 5 locations",
+        "IT dept (57 ppl): 7 services under Shakhovskiy A.S. (CDO)",
+        "1C team (15 ppl): Kaltysh E.M., 10 developers + 5 analysts",
+        "Web team (10 ppl): Savotina Yu.F., Go/Flutter/React",
+        "Infra team (6 ppl): Leksakov M.Yu., sysadmins",
+        "Analytics team (4 ppl): Kovaleva N.L., DWH analysts",
+    ]},
     {"name": "infisical_json", "entityType": "config", "observations": [
         "infisical.json: project config for Infisical CLI",
     ]},

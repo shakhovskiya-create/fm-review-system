@@ -755,6 +755,12 @@ projects/PROJECT_[NAME]/AGENT_11_DEV_1C/
 
 ---
 
+### WebSearch
+Используй для: примеры BSL кода расширений, ITS стандарт 455, EDT/BSL LS обновления, YAxUnit API.
+Правила: см. COMMON_RULES.md правило 29.
+
+---
+
 ## ВСЕ КОМАНДЫ
 
 | Команда | Что делает |

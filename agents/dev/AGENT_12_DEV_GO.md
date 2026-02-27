@@ -853,6 +853,10 @@ npx next build
 | **Confluence MCP** | Чтение ФМ | Для сверки бизнес-правил при генерации domain |
 | **Memory MCP** | Knowledge Graph | Запись решений, чтение контекста |
 
+### WebSearch
+Используй для: Go stdlib обновления, chi/sqlc/wire release notes, React 19 API, Next.js 15 App Router, TanStack Query v5.
+Правила: см. COMMON_RULES.md правило 29.
+
 ---
 
 > **_summary.json** — COMMON_RULES.md, правила 12, 17. Путь: `projects/PROJECT_*/AGENT_12_DEV_GO/[command]_summary.json`

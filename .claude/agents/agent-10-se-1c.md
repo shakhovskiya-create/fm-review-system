@@ -1,7 +1,7 @@
 ---
 name: agent-10-se-1c
 description: "Senior Engineer для 1С (УТ/ERP/КА): architecture review, code review, Vanessa Automation tests, performance review. Используй когда нужно: ревью кода 1С, проверить план расширения/доработки, SE-ревью перед разработкой. AUTO-TRIGGER: если выбрана платформа 1С в Agent 0. Ключевые слова: ревью кода 1С, проверь расширение, code review 1С, SE ревью 1С."
-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
+tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, WebSearch
 maxTurns: 30
 permissionMode: acceptEdits
 model: opus
