@@ -273,3 +273,75 @@ class TestWriteMemory:
         rel = json.loads(lines[-1])
         assert rel["type"] == "relation"
         assert "from" in rel and "to" in rel
+
+    def test_handles_invalid_jsonl_lines(self, tmp_path):
+        """write_memory skips invalid JSONL lines during dedup read."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        memory_file.parent.mkdir(parents=True)
+        memory_file.write_text(
+            'not valid json\n'
+            '{"type":"entity","name":"Existing","entityType":"test","observations":[]}\n'
+        )
+        entities = [
+            {"name": "New", "entityType": "test", "observations": ["obs"]},
+        ]
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file):
+            added = write_memory(entities, [])
+        assert added == 1
+        lines = [l for l in memory_file.read_text().strip().split("\n") if l]
+        assert len(lines) == 3  # invalid + existing + new
+
+
+class TestDiscoverProjectsNonDir:
+    def test_skips_non_directories(self, tmp_path):
+        """discover_projects skips PROJECT_* files that are not directories."""
+        projects_dir = tmp_path / "projects"
+        projects_dir.mkdir()
+        (projects_dir / "PROJECT_FILE").write_text("not a dir")
+        (projects_dir / "PROJECT_REAL").mkdir()
+        with patch("scripts.seed_memory.PROJECT_ROOT", tmp_path):
+            result = discover_projects()
+            names = [p["name"] for p in result]
+            assert "PROJECT_REAL" in names
+            assert "PROJECT_FILE" not in names
+
+
+class TestMainFunction:
+    def test_main_runs_and_prints(self, tmp_path, capsys):
+        """main() collects entities, writes memory, prints summary."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file), \
+             patch("scripts.seed_memory.PROJECT_ROOT", tmp_path), \
+             patch("sys.argv", ["seed_memory.py"]):
+            from scripts.seed_memory import main
+            main()
+        captured = capsys.readouterr()
+        assert "Knowledge graph" in captured.out
+        assert "Entities added" in captured.out
+        assert memory_file.exists()
+
+    def test_main_with_reset(self, tmp_path, capsys):
+        """main() with --reset clears existing data."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        memory_file.parent.mkdir(parents=True)
+        memory_file.write_text('{"type":"entity","name":"Old","entityType":"old","observations":[]}\n')
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file), \
+             patch("scripts.seed_memory.PROJECT_ROOT", tmp_path), \
+             patch("sys.argv", ["seed_memory.py", "--reset"]):
+            from scripts.seed_memory import main
+            main()
+        captured = capsys.readouterr()
+        assert "Knowledge graph" in captured.out
+        content = memory_file.read_text()
+        assert '"Old"' not in content
+
+    def test_main_counts_total_lines(self, tmp_path, capsys):
+        """main() prints total lines count."""
+        memory_file = tmp_path / ".claude-memory" / "memory.jsonl"
+        with patch("scripts.seed_memory.MEMORY_FILE", memory_file), \
+             patch("scripts.seed_memory.PROJECT_ROOT", tmp_path), \
+             patch("sys.argv", ["seed_memory.py"]):
+            from scripts.seed_memory import main
+            main()
+        captured = capsys.readouterr()
+        assert "Total lines" in captured.out

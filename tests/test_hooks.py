@@ -188,6 +188,206 @@ class TestAutoSaveContext:
         assert result.returncode == 0
 
 
+class TestSubagentContextIssueGate:
+    """Tests for issue-gate blocking in subagent-context.sh (SubagentStart hook).
+
+    Agents MUST have at least one issue with status:in-progress to start work.
+    Exceptions: helper-architect (whitelist), --skip-issue-check in prompt.
+    """
+
+    def _make_gh_mock(self, tmp_path, script_body):
+        """Create a mock 'gh' script that returns controlled data."""
+        mock_dir = tmp_path / "mock_bin"
+        mock_dir.mkdir(exist_ok=True)
+        mock_gh = mock_dir / "gh"
+        mock_gh.write_text(script_body)
+        mock_gh.chmod(0o755)
+        return str(mock_dir)
+
+    def _setup_project_dir(self, tmp_path):
+        """Create minimal project structure for the hook."""
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        return str(tmp_path)
+
+    def test_blocks_when_no_in_progress_issues(self, tmp_path):
+        """Agent with open issues but none in-progress should be BLOCKED (exit 2)."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[{"number":42,"title":"Test issue","labels":[{"name":"agent:1-architect"},{"name":"status:planned"}]}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 2
+        assert "BLOCK" in result.stdout
+
+    def test_passes_when_in_progress_issue_exists(self, tmp_path):
+        """Agent with status:in-progress issue should pass (exit 0)."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[{"number":42,"title":"Audit FM","labels":[{"name":"agent:1-architect"},{"name":"status:in-progress"}]}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "#42" in result.stdout
+
+    def test_blocks_when_no_issues_at_all(self, tmp_path):
+        """Agent with zero issues should be BLOCKED (exit 2)."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-0-creator"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 2
+        assert "BLOCK" in result.stdout
+        assert "gh-tasks.sh create" in result.stdout
+
+    def test_helper_architect_not_blocked(self, tmp_path):
+        """helper-architect (orchestrator) should never be blocked, only warned."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "helper-architect"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "WARNING" in result.stdout
+
+    def test_skip_issue_check_flag(self, tmp_path):
+        """--skip-issue-check in prompt bypasses blocking for any agent."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[]'
+        ;;
+esac
+''')
+        stdin = json.dumps({
+            "subagent_name": "agent-1-architect",
+            "prompt": "Do something --skip-issue-check"
+        })
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "WARNING" in result.stdout
+
+    def test_graceful_degradation_gh_unavailable(self, tmp_path):
+        """If gh CLI fails, hook should not block (exit 0)."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '#!/bin/bash\nexit 1\n')
+        stdin = json.dumps({"subagent_name": "agent-1-architect"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "WARNING" in result.stdout
+
+    def test_no_check_without_agent_name(self):
+        """Without subagent_name, no issue check performed."""
+        result = run_hook("subagent-context.sh", stdin_data="{}")
+        assert result.returncode == 0
+
+    def test_mixed_issues_only_in_progress_passes(self, tmp_path):
+        """Mix of planned and in-progress: should pass because in-progress exists."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[{"number":10,"title":"Task A","labels":[{"name":"agent:5-tech-architect"},{"name":"status:planned"}]},{"number":11,"title":"Task B","labels":[{"name":"agent:5-tech-architect"},{"name":"status:in-progress"}]}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-5-tech-architect"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 0
+        assert "#10" in result.stdout
+        assert "#11" in result.stdout
+
+    def test_block_message_instructs_start(self, tmp_path):
+        """Block message should instruct to run gh-tasks.sh start."""
+        project_dir = self._setup_project_dir(tmp_path)
+        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
+case "$*" in
+    *"repo view"*)
+        echo '{"nameWithOwner":"test/repo"}'
+        ;;
+    *"issue list"*)
+        echo '[{"number":55,"title":"Review code","labels":[{"name":"agent:9-se-go"},{"name":"status:planned"}]}]'
+        ;;
+esac
+''')
+        stdin = json.dumps({"subagent_name": "agent-9-se-go"})
+        env = {
+            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "CLAUDE_PROJECT_DIR": project_dir,
+        }
+        result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
+        assert result.returncode == 2
+        assert "gh-tasks.sh start" in result.stdout
+
+
 class TestValidateSummary:
     """Tests for validate-summary.sh (SubagentStop hook)."""
 

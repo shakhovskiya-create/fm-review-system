@@ -493,3 +493,128 @@ class TestTTLCache:
                     # Update should invalidate
                     client.update_page("<p>New</p>", "test", agent_name="test")
                     assert test_cache.get("12345:body.storage,version") is None
+
+
+# ── Safe Publish Tests ─────────────────────────────────────
+
+
+class TestSafePublish:
+    def test_safe_publish_success(self, tmp_path, mock_urllib):
+        """safe_publish acquires lock and updates page."""
+        from fm_review.confluence_utils import safe_publish
+        env = {
+            "CONFLUENCE_URL": "https://test.example.com",
+            "CONFLUENCE_TOKEN": "test-token",
+        }
+        with patch.dict(os.environ, env):
+            with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "backup"):
+                with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+                    with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
+                        result = safe_publish(
+                            "12345", "<p>New</p>", "test update",
+                            fm_version="1.0.0", agent_name="test"
+                        )
+                        assert result["id"] == "83951683"
+
+
+# ── Lock Error Path Tests ──────────────────────────────────
+
+
+class TestLockErrorPaths:
+    def test_release_handles_os_error(self, tmp_path):
+        """release handles OSError during flock."""
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
+            lock = ConfluenceLock("err_page", timeout=5)
+            lock.acquire()
+            # Force OSError on flock
+            import fcntl
+            with patch("fcntl.flock", side_effect=OSError("mock flock error")):
+                lock.release()
+            # lock_fd should be None after release
+            assert lock.lock_fd is None
+
+    def test_release_handles_unlink_error(self, tmp_path):
+        """release handles exception on file cleanup."""
+        with patch("fm_review.confluence_utils.LOCK_DIR", tmp_path):
+            lock = ConfluenceLock("unlink_page", timeout=5)
+            lock.acquire()
+            lock_file = lock.lock_file
+            # Remove the file before release tries to unlink it
+            lock_file.unlink()
+            lock.release()  # Should not raise
+            assert lock.lock_fd is None
+
+
+# ── Backup Cleanup Error ───────────────────────────────────
+
+
+class TestBackupCleanupError:
+    def test_cleanup_handles_unlink_error(self, tmp_path, confluence_response):
+        """_cleanup_old_backups handles OSError on unlink."""
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path):
+            with patch("fm_review.confluence_utils.MAX_BACKUPS", 1):
+                backup = ConfluenceBackup("cleanup_err_page")
+                for i in range(3):
+                    backup.save(confluence_response(version=i))
+                    time.sleep(0.05)
+                # Verify only MAX_BACKUPS kept (cleanup worked despite potential errors)
+                backups = backup.list_backups()
+                assert len(backups) == 1
+
+
+# ── Update Error Path ─────────────────────────────────────
+
+
+class TestUpdateErrorPath:
+    def test_update_page_api_error_preserves_backup(self, tmp_path, mock_urllib):
+        """update_page preserves backup when API PUT fails."""
+        call_count = 0
+        import urllib.error
+
+        def side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            req = args[0]
+            # First call (GET for current page) succeeds
+            if call_count == 1:
+                resp = MagicMock()
+                resp.read.return_value = json.dumps({
+                    "id": "12345", "type": "page", "title": "Test Page",
+                    "version": {"number": 42, "message": "test"},
+                    "body": {"storage": {"value": "<p>old</p>", "representation": "storage"}}
+                }).encode()
+                resp.__enter__ = MagicMock(return_value=resp)
+                resp.__exit__ = MagicMock(return_value=False)
+                return resp
+            # Second call (PUT) fails
+            error = urllib.error.HTTPError(
+                "https://test.example.com", 403, "Forbidden", {}, MagicMock()
+            )
+            error.read = MagicMock(return_value=b"Forbidden")
+            raise error
+
+        with patch("urllib.request.urlopen", side_effect=side_effect):
+            with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "backup"):
+                with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", tmp_path / "audit"):
+                    client = ConfluenceClient("https://test.example.com", "token", "12345")
+                    with pytest.raises(ConfluenceAPIError):
+                        client.update_page("<p>New</p>", "test", agent_name="test")
+                    # Backup should still exist
+                    backups = client.backup.list_backups()
+                    assert len(backups) >= 1
+
+
+# ── Audit Log Error Path ──────────────────────────────────
+
+
+class TestAuditLogError:
+    def test_audit_log_handles_os_error(self, tmp_path, mock_urllib):
+        """_audit_log silently handles OSError."""
+        with patch("fm_review.confluence_utils.BACKUP_DIR", tmp_path / "backup"):
+            # Set audit dir to a file (not directory) to trigger OSError
+            bad_dir = tmp_path / "bad_audit"
+            bad_dir.write_text("not a dir")
+            with patch("fm_review.confluence_utils.AUDIT_LOG_DIR", bad_dir):
+                client = ConfluenceClient("https://test.example.com", "token", "12345")
+                # Should not raise despite audit log failure
+                client.update_page("<p>New</p>", "test", agent_name="test")

@@ -302,6 +302,31 @@ class TestBuildPrompt:
         if (PROJECT_DIR / "AGENT_1_ARCHITECT").is_dir():
             assert "AGENT_1_ARCHITECT" in prompt
 
+    def test_defense_mode_prompt(self, tmp_path):
+        """Defense mode adds defense instructions and command."""
+        proj = tmp_path / "projects" / "DEF_TEST"
+        proj.mkdir(parents=True)
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            prompt = build_prompt(1, "DEF_TEST", "/auto", mode="defense")
+            assert "ЗАЩИТА" in prompt or "Defense" in prompt
+            assert "/defense-all" in prompt
+            assert "AGENT_2_ROLE_SIMULATOR" in prompt
+            assert "defenseResults" in prompt
+
+    def test_non_dir_agent_results_skipped(self, tmp_path):
+        """Non-directory entries in project dir are skipped in prev results."""
+        proj = tmp_path / "projects" / "NONDIR_TEST"
+        proj.mkdir(parents=True)
+        # Create a file with AGENT_ prefix (not a dir)
+        (proj / "AGENT_FILE.txt").write_text("not a dir")
+        # Create a real agent dir
+        real_dir = proj / "AGENT_1_ARCHITECT"
+        real_dir.mkdir()
+        (real_dir / "report.md").write_text("test")
+        with patch("scripts.run_agent.ROOT_DIR", tmp_path):
+            prompt = build_prompt(1, "NONDIR_TEST", "/auto")
+            assert "AGENT_1_ARCHITECT" in prompt
+
 
 class TestAgentResult:
     def test_default_values(self):
@@ -410,6 +435,52 @@ class TestPipelineTracer:
             assert hasattr(tracer, "start_quality_gate")
             assert hasattr(tracer, "end_quality_gate")
             assert hasattr(tracer, "finish")
+
+
+class TestPipelineTracerInitReal:
+    """Tests for PipelineTracer._init method (lines 45-52)."""
+
+    @patch.dict(os.environ, {
+        "LANGFUSE_PUBLIC_KEY": "pk",
+        "LANGFUSE_BASE_URL": "https://langfuse.test.com",
+    })
+    def test_base_url_sets_host(self):
+        """_init sets LANGFUSE_HOST from LANGFUSE_BASE_URL when HOST not set."""
+        os.environ.pop("LANGFUSE_HOST", None)
+        mock_client = MagicMock()
+        # get_client is imported inline in _init, so patch via builtins __import__
+        import langfuse
+        with patch.object(langfuse, "get_client", return_value=mock_client):
+            from fm_review.pipeline_tracer import PipelineTracer as PT
+            tracer = PT("TEST", "sonnet")
+            assert os.environ.get("LANGFUSE_HOST") == "https://langfuse.test.com"
+            assert tracer.enabled is True
+            assert tracer.langfuse is mock_client
+
+    @patch.dict(os.environ, {"LANGFUSE_PUBLIC_KEY": "pk"})
+    def test_import_error_disables(self):
+        """_init stays disabled when langfuse get_client raises ImportError."""
+        os.environ.pop("LANGFUSE_BASE_URL", None)
+        os.environ.pop("LANGFUSE_HOST", None)
+        import langfuse
+        with patch.object(langfuse, "get_client", side_effect=ImportError("no langfuse")):
+            from fm_review.pipeline_tracer import PipelineTracer as PT
+            tracer = PT("TEST", "sonnet")
+            assert tracer.enabled is False
+
+    @patch.dict(os.environ, {
+        "LANGFUSE_PUBLIC_KEY": "pk",
+        "LANGFUSE_HOST": "https://existing.host.com",
+        "LANGFUSE_BASE_URL": "https://should-not-override.com",
+    })
+    def test_host_not_overridden_by_base_url(self):
+        """_init does NOT override LANGFUSE_HOST if already set."""
+        mock_client = MagicMock()
+        import langfuse
+        with patch.object(langfuse, "get_client", return_value=mock_client):
+            from fm_review.pipeline_tracer import PipelineTracer as PT
+            tracer = PT("TEST", "sonnet")
+            assert os.environ["LANGFUSE_HOST"] == "https://existing.host.com"
 
 
 class TestFindSummaryJson:
