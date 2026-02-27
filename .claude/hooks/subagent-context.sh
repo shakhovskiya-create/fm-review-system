@@ -45,6 +45,7 @@ if [ -n "$AGENT_NAME" ]; then
   echo "$AGENT_NAME" > "$PROJECT_DIR/.claude/.current-subagent"
 
   # Извлекаем номер/имя агента: agent-0-creator -> 0-creator, helper-architect -> orchestrator
+  # Supports agents 0-15 including dev agents (11-dev-1c, 12-dev-go, 13-qa-1c, 14-qa-go, 15-trainer)
   AGENT_LABEL=""
   case "$AGENT_NAME" in
     agent-*)  AGENT_LABEL=$(echo "$AGENT_NAME" | sed 's/^agent-//') ;;

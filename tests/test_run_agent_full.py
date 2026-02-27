@@ -442,11 +442,11 @@ class TestRunPipeline:
                 mock_run.side_effect = RuntimeError("boom")
                 results = await run_pipeline(
                     project="PAR_EXC",
-                    agents_filter=[2, 4],  # Parallel stage
+                    agents_filter=[8, 15],  # Parallel stage [8, 15]
                     parallel=True,
                     dry_run=False,
                 )
-                assert 2 in results or 4 in results
+                assert 8 in results or 15 in results
                 failed = [k for k, v in results.items() if v.get("status") == "failed"]
                 assert len(failed) >= 1
 
@@ -973,15 +973,16 @@ class TestPipelineEdgeCases:
                 from scripts.run_agent import AgentResult
 
                 mock_agent.return_value = AgentResult(
-                    agent_id=4, status="completed", cost_usd=0.5, duration_seconds=5
+                    agent_id=1, status="completed", cost_usd=0.5, duration_seconds=5
                 )
                 results = await run_pipeline(
                     project="RESUME_SKIP",
-                    agents_filter=[1, 2, 4],
+                    agents_filter=[1, 2, 5],
                     resume=True,
                     dry_run=False,
                 )
-                assert 4 in results or 1 in results or 2 in results
+                # Agents 1 and 2 are skipped (resume), "1:defense" and 5 run
+                assert "1:defense" in results or 5 in results or 1 in results or 2 in results
 
     @pytest.mark.asyncio
     async def test_injection_warnings_more_than_five(self, tmp_path):
@@ -1103,32 +1104,8 @@ class TestPipelineEdgeCases:
 
 # --- QG auto-retry detection ---
 
-class TestQGAutoRetry:
-    """Tests for _qg_failure_is_agent4_related detection."""
-
-    def test_detects_critical_findings_no_coverage(self):
-        from scripts.run_agent import _qg_failure_is_agent4_related
-        output = "  ❌ 3 CRITICAL findings без покрытия тестами\n  Passed: 5  Warnings: 2  Failed: 1"
-        assert _qg_failure_is_agent4_related(output) is True
-
-    def test_detects_traceability_missing(self):
-        from scripts.run_agent import _qg_failure_is_agent4_related
-        output = "  ⚠️  Матрица трассируемости отсутствует (создается Agent 4)"
-        assert _qg_failure_is_agent4_related(output) is True
-
-    def test_detects_agent4_not_executed(self):
-        from scripts.run_agent import _qg_failure_is_agent4_related
-        output = "  ⚠️  Тест-кейсы: не выполнен\n  ❌ AGENT_4_QA_TESTER: error"
-        assert _qg_failure_is_agent4_related(output) is True
-
-    def test_no_match_for_unrelated_failure(self):
-        from scripts.run_agent import _qg_failure_is_agent4_related
-        output = "  ❌ Нет открытых CRITICAL\n  Confluence PAGE_ID: пуст"
-        assert _qg_failure_is_agent4_related(output) is False
-
-    def test_empty_output(self):
-        from scripts.run_agent import _qg_failure_is_agent4_related
-        assert _qg_failure_is_agent4_related("") is False
+# NOTE: TestQGAutoRetry removed — Agent 4 deprecated (2026-02-27).
+# Auto-retry of Agent 4 after QG failure is no longer applicable.
 
 
 # --- AgentResult.status extension (timeout, budget_exceeded, injection_detected) ---

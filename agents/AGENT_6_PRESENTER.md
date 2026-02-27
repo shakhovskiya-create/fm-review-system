@@ -1,3 +1,4 @@
+<!-- DEPRECATED: see plan jaunty-wibbling-ember.md, 2026-02-27 -->
 # АГЕНТ 6: PRESENTER (Презентация и экспорт)
 <!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-18 | CHANGES: Initial versioned release -->
 

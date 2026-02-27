@@ -5,10 +5,9 @@
 # Запуск: ./scripts/orchestrate.sh
 #
 # Единая точка входа для всех операций с ФМ:
-# - Полный цикл review (Agent 1 → 2 → 4 → 5)
+# - Полный цикл review (Agent 1 → 2 → 1:defense → 5 → 7)
 # - Создание новой ФМ (Agent 0)
-# - Защита от замечаний (Agent 3)
-# - Генерация презентации (Agent 6)
+# - Разработка (Agent 11/12 → 13/14 → 7)
 # - Управление проектами
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -26,12 +25,12 @@ ACTION=$(gum choose --header "Что делаем?" \
     "2. 📝 Создать новую ФМ (Agent 0)" \
     "3. 🔍 Аудит ФМ (Agent 1)" \
     "4. 👤 Симуляция ролей (Agent 2)" \
-    "5. 🛡️ Защита от замечаний (Agent 3)" \
-    "6. 🧪 Генерация тестов (Agent 4)" \
-    "7. 🏗️ Архитектура + ТЗ (Agent 5)" \
-    "8. 📊 Презентация для стейкхолдеров (Agent 6)" \
-    "9. 🔄 Публикация в Confluence (Agent 7)" \
-    "10. 🎨 BPMN-диаграммы в Confluence (Agent 8)" \
+    "5. 🛡️ Защита ФМ от замечаний (Agent 1: defense)" \
+    "6. 🏗️ Архитектура + ТЗ (Agent 5)" \
+    "7. 🔄 Публикация в Confluence (Agent 7)" \
+    "8. 🎨 BPMN-диаграммы в Confluence (Agent 8)" \
+    "9. 📖 Документация и обучение (Agent 15)" \
+    "10. 🔨 Разработка (Agent 11/12 → 13/14 → 7)" \
     "11. 📁 Управление проектами" \
     "12. 📋 Статус pipeline" \
     "13. ▶️ Продолжить pipeline (resume)" \
@@ -59,21 +58,22 @@ case "$ACTION" in
     STAGES=$(gum choose --no-limit --header "Какие этапы включить? (Space для выбора)" \
         "Agent 1: Аудит (бизнес + 1С) ⭐" \
         "Agent 2: Симуляция ролей" \
-        "Agent 4: Тест-кейсы" \
+        "Agent 1: Защита (defense)" \
         "Agent 5: Архитектура + ТЗ" \
-        "Agent 6: Презентация" \
         "Agent 7: Публикация в Confluence" \
-        "Agent 8: BPMN в Confluence")
+        "Agent 8: BPMN в Confluence" \
+        "Agent 15: Документация и обучение")
     
     init_pipeline_state "$PROJECT" "${FM_PATH:-Confluence}"
     
     echo ""
     subheader "PIPELINE"
     
-    # Определяем порядок
-    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_4" "AGENT_5" "AGENT_7" "AGENT_8" "AGENT_6")
-    PIPELINE_NAMES=("Аудит" "Симуляция" "Тест-кейсы" "Архитектура" "Публикация" "BPMN" "Презентация")
-    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_4_QA_TESTER" "AGENT_5_TECH_ARCHITECT" "AGENT_7_PUBLISHER" "AGENT_8_BPMN_DESIGNER" "AGENT_6_PRESENTER")
+    # Определяем порядок (новый pipeline: 1 → 2 → 1:defense → 5 → QG → 7 → [8, 15])
+    PIPELINE_ORDER=("AGENT_1" "AGENT_2" "AGENT_1_DEFENSE" "AGENT_5" "AGENT_7" "AGENT_8" "AGENT_15")
+    PIPELINE_NAMES=("Аудит" "Симуляция" "Защита (defense)" "Архитектура" "Публикация" "BPMN" "Документация")
+    PIPELINE_FILES=("AGENT_1_ARCHITECT" "AGENT_2_ROLE_SIMULATOR" "AGENT_1_ARCHITECT" "AGENT_5_TECH_ARCHITECT" "AGENT_7_PUBLISHER" "AGENT_8_BPMN_DESIGNER" "AGENT_15_TRAINER")
+    PIPELINE_MDS=("AGENT_1_ARCHITECT.md" "AGENT_2_ROLE_SIMULATOR.md" "AGENT_1_ARCHITECT.md" "AGENT_5_TECH_ARCHITECT.md" "AGENT_7_PUBLISHER.md" "AGENT_8_BPMN_DESIGNER.md" "dev/AGENT_15_TRAINER.md")
     
     for i in "${!PIPELINE_ORDER[@]}"; do
         agent="${PIPELINE_NAMES[$i]}"
@@ -114,15 +114,19 @@ case "$ACTION" in
 Версия: ${FM_VER}
 ${PREV_CONTEXT}"
             
-            case "${agent_md}" in
-                AGENT_7_PUBLISHER.md) CMD="/publish" ;;
-                AGENT_8_BPMN_DESIGNER.md) CMD="/bpmn" ;;
-                AGENT_1_ARCHITECT.md) CMD="/audit" ;;
-                AGENT_2_ROLE_SIMULATOR.md) CMD="/simulate-all" ;;
-                AGENT_4_QA_TESTER.md) CMD="/generate-all" ;;
-                AGENT_5_TECH_ARCHITECT.md) CMD="/full" ;;
-                AGENT_6_PRESENTER.md) CMD="/auto" ;;
-                *) CMD="/auto" ;;
+            case "${PIPELINE_ORDER[$i]}" in
+                AGENT_1_DEFENSE) CMD="/defense-all" ;;
+                *)
+                    case "${agent_md}" in
+                        AGENT_7_PUBLISHER.md) CMD="/publish" ;;
+                        AGENT_8_BPMN_DESIGNER.md) CMD="/bpmn" ;;
+                        AGENT_1_ARCHITECT.md) CMD="/audit" ;;
+                        AGENT_2_ROLE_SIMULATOR.md) CMD="/simulate-all" ;;
+                        AGENT_5_TECH_ARCHITECT.md) CMD="/full" ;;
+                        dev/AGENT_15_TRAINER.md) CMD="/auto" ;;
+                        *) CMD="/auto" ;;
+                    esac
+                    ;;
             esac
 
             # FC-08C: Обязательный Quality Gate перед Agent 7 (после Agent 5)
@@ -168,12 +172,10 @@ ${PREV_CONTEXT}"
                     AGENT_0_CREATOR.md) AGENT_NUM=0 ;;
                     AGENT_1_ARCHITECT.md) AGENT_NUM=1 ;;
                     AGENT_2_ROLE_SIMULATOR.md) AGENT_NUM=2 ;;
-                    AGENT_3_DEFENDER.md) AGENT_NUM=3 ;;
-                    AGENT_4_QA_TESTER.md) AGENT_NUM=4 ;;
                     AGENT_5_TECH_ARCHITECT.md) AGENT_NUM=5 ;;
-                    AGENT_6_PRESENTER.md) AGENT_NUM=6 ;;
                     AGENT_7_PUBLISHER.md) AGENT_NUM=7 ;;
                     AGENT_8_BPMN_DESIGNER.md) AGENT_NUM=8 ;;
+                    dev/AGENT_15_TRAINER.md) AGENT_NUM=15 ;;
                 esac
                 export FM_PATH FM_VER
                 if python3 "${SCRIPTS_DIR}/run_agent.py" --project "${PROJECT}" --agent "${AGENT_NUM}" --command "${CMD}"; then
@@ -251,24 +253,16 @@ ${PREV_CONTEXT}"
     ;;
 
 "5."*)
+    header "ЗАЩИТА ФМ ОТ ЗАМЕЧАНИЙ (Agent 1: Defense)"
     PROJECT=$(select_project)
     export PROJECT
     FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
-    bash "${SCRIPTS_DIR}/agent3_defend.sh"
     CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/agents/AGENT_3_DEFENDER.md" "/respond-all" "$CONTEXT"
+    CONTEXT="${CONTEXT}\nПроект: ${PROJECT}\nФМ: ${FM_PATH}\nРЕЖИМ: DEFENSE"
+    launch_claude_code "${ROOT_DIR}/agents/AGENT_1_ARCHITECT.md" "/defense-all" "$CONTEXT"
     ;;
 
 "6."*)
-    PROJECT=$(select_project)
-    export PROJECT
-    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
-    bash "${SCRIPTS_DIR}/agent4_test.sh"
-    CONTEXT=$(load_context)
-    launch_claude_code "${ROOT_DIR}/agents/AGENT_4_QA_TESTER.md" "/generate-all" "$CONTEXT"
-    ;;
-
-"7."*)
     PROJECT=$(select_project)
     export PROJECT
     FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null) || true
@@ -278,35 +272,9 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 8. ПРЕЗЕНТАЦИЯ
+# 7. ПУБЛИКАЦИЯ В CONFLUENCE (Agent 7 Publisher)
 # ═══════════════════════════════════════════════════════════════
-"8."*)
-    header "ПРЕЗЕНТАЦИЯ ДЛЯ СТЕЙКХОЛДЕРОВ (Agent 6)"
-    PROJECT=$(select_project)
-    
-    AUDIENCE=$(gum choose --header "Для кого презентация?" \
-        "1. Заказчик (бизнес-язык, ROI, сроки) ⭐" \
-        "2. Руководство (высокоуровнево, стратегия)" \
-        "3. Разработчики (техника, архитектура, оценка)" \
-        "4. Все стейкхолдеры (универсальная)")
-    
-    FORMAT=$(gum choose --header "В каком формате?" \
-        "1. Markdown отчет" \
-        "2. Confluence страница (через API)" \
-        "3. Miro доска (через MCP)" \
-        "4. PPTX презентация")
-    
-    CONTEXT="Проект: ${PROJECT}
-Аудитория: ${AUDIENCE}
-Формат: ${FORMAT}"
-    
-    launch_claude_code "${ROOT_DIR}/agents/AGENT_6_PRESENTER.md" "/present" "$CONTEXT"
-    ;;
-
-# ═══════════════════════════════════════════════════════════════
-# 9. ПУБЛИКАЦИЯ В CONFLUENCE (Agent 7 Publisher)
-# ═══════════════════════════════════════════════════════════════
-"9."*)
+"7."*)
     header "ПУБЛИКАЦИЯ В CONFLUENCE (Agent 7)"
     PROJECT=$(select_project)
     FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null || true)
@@ -330,9 +298,9 @@ ${PREV_CONTEXT}"
     ;;
 
 # ═══════════════════════════════════════════════════════════════
-# 10. BPMN-ДИАГРАММЫ В CONFLUENCE (Agent 8)
+# 8. BPMN-ДИАГРАММЫ В CONFLUENCE (Agent 8)
 # ═══════════════════════════════════════════════════════════════
-"10."*)
+"8."*)
     header "BPMN-ДИАГРАММЫ В CONFLUENCE (Agent 8)"
     PROJECT=$(select_project)
     FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null || true)
@@ -353,6 +321,59 @@ ${PREV_CONTEXT}"
         "3."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_BPMN_DESIGNER.md" "/bpmn-validate" "$CONTEXT" ;;
         "4."*) launch_claude_code "${ROOT_DIR}/agents/AGENT_8_BPMN_DESIGNER.md" "/bpmn-publish" "$CONTEXT" ;;
     esac
+    ;;
+
+# ═══════════════════════════════════════════════════════════════
+# 9. ДОКУМЕНТАЦИЯ И ОБУЧЕНИЕ (Agent 15 Trainer)
+# ═══════════════════════════════════════════════════════════════
+"9."*)
+    header "ДОКУМЕНТАЦИЯ И ОБУЧЕНИЕ (Agent 15)"
+    PROJECT=$(select_project)
+    FM_PATH=$(get_latest_fm "$PROJECT" 2>/dev/null || true)
+
+    DOC_ACTION=$(gum choose --header "Что генерируем?" \
+        "1. Руководство пользователя ⭐" \
+        "2. Quick Start" \
+        "3. Руководство администратора" \
+        "4. FAQ из ФМ" \
+        "5. Release Notes" \
+        "6. Всё сразу (auto)")
+
+    CONTEXT="Проект: ${PROJECT}
+ФМ: ${FM_PATH}
+Действие: ${DOC_ACTION}"
+
+    case "$DOC_ACTION" in
+        "1."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/user-guide" "$CONTEXT" ;;
+        "2."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/quick-start" "$CONTEXT" ;;
+        "3."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/admin-guide" "$CONTEXT" ;;
+        "4."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/faq" "$CONTEXT" ;;
+        "5."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/release-notes" "$CONTEXT" ;;
+        "6."*) launch_claude_code "${ROOT_DIR}/agents/dev/AGENT_15_TRAINER.md" "/auto" "$CONTEXT" ;;
+    esac
+    ;;
+
+# ═══════════════════════════════════════════════════════════════
+# 10. РАЗРАБОТКА (Dev Pipeline: Agent 11/12 → 13/14 → 7)
+# ═══════════════════════════════════════════════════════════════
+"10."*)
+    header "РАЗРАБОТКА (Dev Pipeline)"
+    PROJECT=$(select_project)
+    export PROJECT
+
+    info "Dev Pipeline запускает цикл: Developer → QA → Publisher"
+    info "Платформа определяется автоматически из PROJECT_CONTEXT.md"
+    echo ""
+
+    if gum confirm "Запустить dev pipeline для ${PROJECT}?"; then
+        if [[ -n "${AUTONOMOUS:-}" ]]; then
+            python3 "${SCRIPTS_DIR}/run_agent.py" --pipeline --project "${PROJECT}" --phase dev
+        else
+            info "Dev pipeline доступен через:"
+            info "  python3 scripts/run_agent.py --pipeline --project ${PROJECT} --phase dev"
+            info "Или запустите агентов вручную через Claude Code."
+        fi
+    fi
     ;;
 
 # ═══════════════════════════════════════════════════════════════

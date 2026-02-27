@@ -60,9 +60,18 @@ except (OSError, ValueError) as e:
 
 AGENT_REGISTRY = {int(k): v for k, v in _CONFIG["AGENT_REGISTRY"].items()}
 PIPELINE_BUDGET_USD = _CONFIG.get("PIPELINE_BUDGET_USD", 60.0)
-PIPELINE_ORDER = _CONFIG.get("PIPELINE_ORDER", [1, 2, 4, 5, 3, "quality_gate", 7, 8, 6])
+PIPELINE_ORDER = _CONFIG.get("PIPELINE_ORDER", [1, 2, "1:defense", 5, "quality_gate", 7, [8, 15]])
 PARALLEL_STAGES = _CONFIG.get("PARALLEL_STAGES", [])
-CONDITIONAL_STAGES = {int(k): v for k, v in _CONFIG.get("CONDITIONAL_STAGES", {}).items()}
+DEV_PIPELINE_ORDER = _CONFIG.get("DEV_PIPELINE_ORDER", [])
+DEV_PARALLEL_STAGES = _CONFIG.get("DEV_PARALLEL_STAGES", [])
+PIPELINE_MODES = _CONFIG.get("PIPELINE_MODES", {})
+CONDITIONAL_STAGES = {}
+for k, v in _CONFIG.get("CONDITIONAL_STAGES", {}).items():
+    # Keys may be int or str (e.g. "9" or "10")
+    try:
+        CONDITIONAL_STAGES[int(k)] = v
+    except ValueError:
+        CONDITIONAL_STAGES[k] = v
 
 
 # --- Prompt Injection Protection ---
@@ -173,8 +182,12 @@ def check_agent_status(summary_path: Path) -> str:
 
 # --- Prompt builder ---
 
-def build_prompt(agent_id: int, project: str, command: str) -> str:
-    """Build prompt for agent execution."""
+def build_prompt(agent_id: int, project: str, command: str, mode: str = "") -> str:
+    """Build prompt for agent execution.
+
+    Args:
+        mode: Optional mode suffix, e.g. "defense" for "1:defense" step.
+    """
     config = AGENT_REGISTRY[agent_id]
     agent_file = ROOT_DIR / "agents" / config["file"]
     project_dir = ROOT_DIR / "projects" / project
@@ -225,10 +238,23 @@ def build_prompt(agent_id: int, project: str, command: str) -> str:
         "- _summary.json должен содержать: "
         "agent, command, timestamp, fmVersion, project, status"
     )
+
+    # 5a. Defense mode instructions (Agent 1 second pass)
+    if mode == "defense":
+        parts.append("")
+        parts.append("РЕЖИМ: ЗАЩИТА (Defense). Это второй проход Agent 1.")
+        parts.append("- Выполни команду /defense-all (автономная классификация)")
+        parts.append("- Прочитай findings от Agent 2 (AGENT_2_ROLE_SIMULATOR/)")
+        parts.append("- Классифицируй каждое замечание по типам A-I")
+        parts.append("- Добавь defenseResults в _summary.json")
+
     parts.append("")
 
     # 6. Command
-    parts.append(command)
+    if mode == "defense":
+        parts.append("/defense-all")
+    else:
+        parts.append(command)
 
     return "\n".join(parts)
 
@@ -379,21 +405,7 @@ def run_quality_gate(project: str) -> tuple[int, str]:
         return 1, f"Quality Gate: error: {e}"
 
 
-def _qg_failure_is_agent4_related(output: str) -> bool:
-    """Check if QG failure is caused by missing Agent 4 (QA) results."""
-    agent4_patterns = [
-        "CRITICAL findings без покрытия тестами",
-        "Матрица трассируемости отсутствует",
-        "Тест-кейсы: не выполнен",
-        "Тест-кейсы: папка есть, отчетов нет",
-        "_summary.json не найден",
-        "AGENT_4_QA_TESTER",
-    ]
-    output_lower = output.lower()
-    for pattern in agent4_patterns:
-        if pattern.lower() in output_lower:
-            return True
-    return False
+# NOTE: _qg_failure_is_agent4_related removed — Agent 4 deprecated (2026-02-27)
 
 
 def run_quality_gate_with_reason(project: str, reason: str) -> int:
@@ -470,7 +482,7 @@ async def run_pipeline(
     total_start = time.time()
     total_cost = 0.0
     pipeline_stopped = False
-    _qg_retried: set[int] = set()  # Track QG auto-retry (max 1 per agent)
+    # NOTE: Agent 4 QG auto-retry removed (Agent 4 deprecated, 2026-02-27)
 
     # Resume: load checkpoint and skip completed steps
     skip_steps: set = set()
@@ -564,61 +576,7 @@ async def run_pipeline(
             for line in output.strip().split("\n")[-10:]:
                 log(f"  {line}")
 
-            # AUTO-RETRY: if QG failed due to Agent 4 (QA) issues, retry Agent 4 once
-            if exit_code == 1 and _qg_failure_is_agent4_related(output) and 4 not in _qg_retried:
-                _qg_retried.add(4)
-                log("")
-                log("  AUTO-RETRY: QG failure related to Agent 4 (QA). Перезапуск Agent 4...")
-                tracer.end_quality_gate(qg_span, exit_code, "retry_agent4")
-
-                retry_span = tracer.start_agent(4, "QATester-retry")
-                agent4_model = model if model != "sonnet" else AGENT_REGISTRY[4].get("model", model)
-                agent4_budget = AGENT_REGISTRY[4].get("budget_usd", 3.0)
-                agent4_timeout = AGENT_REGISTRY[4].get("timeout_seconds", timeout_per_agent)
-                retry_result = await run_single_agent(
-                    agent_id=4,
-                    project=project,
-                    command="/auto --retry: покрой все CRITICAL findings тестами, обнови traceability-matrix.json",
-                    model=agent4_model,
-                    dry_run=dry_run,
-                    max_budget=agent4_budget,
-                    timeout=agent4_timeout,
-                )
-                total_cost += retry_result.cost_usd
-                results["agent4_retry"] = {
-                    "status": retry_result.status,
-                    "duration": round(retry_result.duration_seconds, 1),
-                    "cost_usd": round(retry_result.cost_usd, 2),
-                    "num_turns": retry_result.num_turns,
-                    "session_id": retry_result.session_id,
-                }
-                tracer.end_agent(retry_span, retry_result)
-
-                if retry_result.status == "failed":
-                    log("  AUTO-RETRY Agent 4: FAILED. Останавливаем конвейер.")
-                    results["quality_gate"] = {"status": "failed", "exit_code": 1}
-                    pipeline_stopped = True
-                else:
-                    log("  AUTO-RETRY Agent 4: OK. Повторяем Quality Gate...")
-                    qg_span2 = tracer.start_quality_gate()
-                    exit_code, output = run_quality_gate(project)
-                    for line in output.strip().split("\n")[-10:]:
-                        log(f"  {line}")
-                    if exit_code == 0:
-                        log("Quality Gate (retry): все проверки пройдены.")
-                        results["quality_gate"] = {"status": "passed_after_retry"}
-                        tracer.end_quality_gate(qg_span2, exit_code, "passed_after_retry")
-                    elif exit_code == 2 and skip_qg_warnings:
-                        log("Quality Gate (retry): предупреждения пропущены.")
-                        run_quality_gate_with_reason(project, "Автопропуск после retry Agent 4")
-                        results["quality_gate"] = {"status": "warnings_skipped"}
-                        tracer.end_quality_gate(qg_span2, exit_code, "warnings_skipped")
-                    else:
-                        log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Quality Gate (retry) exit={exit_code}.")
-                        results["quality_gate"] = {"status": "failed", "exit_code": exit_code}
-                        tracer.end_quality_gate(qg_span2, exit_code, "failed")
-                        pipeline_stopped = True
-            elif exit_code == 1:
+            if exit_code == 1:
                 log("КОНВЕЙЕР ОСТАНОВЛЕН: критические ошибки Quality Gate.")
                 results["quality_gate"] = {"status": "failed", "exit_code": 1}
                 tracer.end_quality_gate(qg_span, exit_code, "failed")
@@ -644,6 +602,61 @@ async def run_pipeline(
             # Save checkpoint after QG
             if not dry_run:
                 save_checkpoint(project, results, total_cost, model, parallel)
+            continue
+
+        # Handle "1:defense" string stages (Agent 1 defense mode)
+        defense_stages = [s for s in stage if isinstance(s, str) and ":" in s]
+        if defense_stages:
+            for ds in defense_stages:
+                parts = ds.split(":")
+                aid = int(parts[0])
+                mode_suffix = parts[1]  # "defense"
+                step_key = ds  # "1:defense"
+
+                if step_key in skip_steps:
+                    log(f"\n--- Стадия {stage_idx}: Agent {aid} ({AGENT_REGISTRY[aid]['name']}) [{mode_suffix}] [ПРОПУСК — resume] ---")
+                    continue
+
+                log("")
+                log(f"--- Стадия {stage_idx}: Agent {aid} ({AGENT_REGISTRY[aid]['name']}) [{mode_suffix}] ---")
+
+                agent_span = tracer.start_agent(aid, f"{AGENT_REGISTRY[aid]['name']}-{mode_suffix}")
+
+                if total_cost >= pipeline_budget and not dry_run:
+                    log(f"КОНВЕЙЕР ОСТАНОВЛЕН: превышен бюджет ${total_cost:.2f} >= ${pipeline_budget:.0f}")
+                    pipeline_stopped = True
+                    break
+
+                agent_model = model if model != "sonnet" else AGENT_REGISTRY[aid].get("model", model)
+                agent_budget = max_budget_per_agent if max_budget_per_agent != 5.0 else AGENT_REGISTRY[aid].get("budget_usd", 5.0)
+                agent_timeout = AGENT_REGISTRY[aid].get("timeout_seconds", timeout_per_agent)
+
+                agent_result = await run_single_agent(
+                    agent_id=aid,
+                    project=project,
+                    command=f"/defense-all",
+                    model=agent_model,
+                    dry_run=dry_run,
+                    max_budget=agent_budget,
+                    timeout=agent_timeout,
+                )
+                total_cost += agent_result.cost_usd
+                results[step_key] = {
+                    "status": agent_result.status,
+                    "duration": round(agent_result.duration_seconds, 1),
+                    "cost_usd": round(agent_result.cost_usd, 2),
+                    "num_turns": agent_result.num_turns,
+                    "session_id": agent_result.session_id,
+                    "summary": str(agent_result.summary_path) if agent_result.summary_path else None,
+                }
+                tracer.end_agent(agent_span, agent_result)
+
+                if agent_result.status in ("failed", "timeout", "budget_exceeded"):
+                    log(f"КОНВЕЙЕР ОСТАНОВЛЕН: Agent {aid} ({AGENT_REGISTRY[aid]['name']}) [{mode_suffix}]: {agent_result.status}.")
+                    pipeline_stopped = True
+
+                if not dry_run:
+                    save_checkpoint(project, results, total_cost, model, parallel)
             continue
 
         # Agent stage
@@ -815,20 +828,65 @@ def _detect_platform(project: str) -> str:
     return ""
 
 
+def _resolve_conditional_stage(stage_item, platform: str) -> list | None:
+    """Resolve a conditional stage like '11|12' based on platform.
+
+    '11|12' means: agent 11 if platform=1c, agent 12 if platform=go.
+    Returns [agent_id] or None if neither matches.
+    """
+    if isinstance(stage_item, str) and "|" in stage_item:
+        parts = stage_item.split("|")
+        for part in parts:
+            aid = int(part)
+            cond = CONDITIONAL_STAGES.get(aid, {})
+            cond_platform = cond.get("platform", "").lower()
+            if cond_platform == platform or not cond_platform:
+                return [aid]
+        return None
+    return None
+
+
 def _inject_conditional(stages: list[list], project: str) -> list[list]:
-    """Inject conditional agents (9, 10) into stages based on platform."""
+    """Inject conditional agents (9, 10) into stages based on platform.
+
+    Also resolves '11|12' conditional stages in the pipeline.
+    """
     if not CONDITIONAL_STAGES:
         return stages
     platform = _detect_platform(project)
     if not platform:
         return stages
+
+    # Resolve any "11|12" string stages already in the pipeline
+    resolved_stages = []
+    for stage in stages:
+        new_stage = []
+        for item in stage:
+            if isinstance(item, str) and "|" in item:
+                resolved = _resolve_conditional_stage(item, platform)
+                if resolved:
+                    new_stage.extend(resolved)
+            else:
+                new_stage.append(item)
+        if new_stage:
+            resolved_stages.append(new_stage)
+    stages = resolved_stages
+
+    # Inject conditional agents (review phase: 9/10 after agent 5)
     for agent_id, cond in CONDITIONAL_STAGES.items():
+        if not isinstance(agent_id, int):
+            continue
+        if cond.get("phase") == "dev":
+            continue  # Dev phase agents handled by DEV_PIPELINE_ORDER
         if cond.get("platform", "").lower() != platform:
             continue
         if agent_id not in AGENT_REGISTRY:
             continue
+        # Check if already present
+        flat = [item for stage in stages for item in stage]
+        if agent_id in flat:
+            continue
         after = cond.get("after")
-        # Find the stage index containing the 'after' agent
         insert_idx = None
         for i, stage in enumerate(stages):
             if after in stage:
@@ -846,12 +904,20 @@ def _build_parallel_stages(agents_filter: list[int] | None, project: str = "") -
     stages = []
     for stage in PARALLEL_STAGES:
         if agents_filter:
-            filtered = [
-                s for s in stage
-                if s == "quality_gate" or s in agents_filter
-            ]
-            if "quality_gate" in stage and 7 not in agents_filter:
-                filtered = [s for s in filtered if s != "quality_gate"]
+            filtered = []
+            for s in stage:
+                if s == "quality_gate":
+                    if 7 in agents_filter:
+                        filtered.append(s)
+                elif isinstance(s, str) and ":" in s:
+                    base = int(s.split(":")[0])
+                    if base in agents_filter:
+                        filtered.append(s)
+                elif isinstance(s, str) and "|" in s:
+                    # Conditional like "11|12" — keep for platform resolution
+                    filtered.append(s)
+                elif s in agents_filter:
+                    filtered.append(s)
             if filtered:
                 stages.append(filtered)
         else:
@@ -862,16 +928,41 @@ def _build_parallel_stages(agents_filter: list[int] | None, project: str = "") -
 
 
 def _build_sequential_stages(agents_filter: list[int] | None, project: str = "") -> list[list]:
-    """Build sequential stage list (each step in its own stage)."""
+    """Build sequential stage list (each step in its own stage).
+
+    Handles:
+    - int items: regular agents (1, 2, 5...)
+    - str items: "quality_gate", "1:defense" (string stages)
+    - list items: parallel groups like [8, 15]
+    - str items with |: conditional "11|12" (resolved by platform)
+    """
     pipeline = list(PIPELINE_ORDER)
     if agents_filter:
-        pipeline = [
-            step for step in PIPELINE_ORDER
-            if step == "quality_gate" or step in agents_filter
-        ]
-        if 7 not in agents_filter:
-            pipeline = [s for s in pipeline if s != "quality_gate"]
-    stages = [[step] for step in pipeline]
+        new_pipeline = []
+        for step in PIPELINE_ORDER:
+            if step == "quality_gate":
+                if 7 in agents_filter:
+                    new_pipeline.append(step)
+            elif isinstance(step, str) and ":" in step:
+                # "1:defense" — include if base agent in filter
+                base = int(step.split(":")[0])
+                if base in agents_filter:
+                    new_pipeline.append(step)
+            elif isinstance(step, list):
+                # Parallel group like [8, 15]
+                filtered = [s for s in step if s in agents_filter]
+                if filtered:
+                    new_pipeline.append(filtered)
+            elif step in agents_filter:
+                new_pipeline.append(step)
+        pipeline = new_pipeline
+    # Flatten: each item becomes its own stage, except lists which stay as-is
+    stages = []
+    for step in pipeline:
+        if isinstance(step, list):
+            stages.append(step)
+        else:
+            stages.append([step])
     if project:
         stages = _inject_conditional(stages, project)
     return stages
@@ -897,8 +988,8 @@ async def async_main():
         help="Project name (or env PROJECT)",
     )
     parser.add_argument(
-        "--agent", type=int, choices=range(11), metavar="0-10",
-        help="Run a single agent (0-10)",
+        "--agent", type=int, choices=list(AGENT_REGISTRY.keys()), metavar="N",
+        help=f"Run a single agent ({', '.join(str(k) for k in sorted(AGENT_REGISTRY.keys()))})",
     )
     parser.add_argument(
         "--command", default="/auto",
@@ -906,7 +997,11 @@ async def async_main():
     )
     parser.add_argument(
         "--pipeline", action="store_true",
-        help="Run full pipeline (1->2->4->5->3->QG->7->8->6)",
+        help="Run FM review pipeline (1->2->1:defense->5->QG->7->[8,15])",
+    )
+    parser.add_argument(
+        "--phase", choices=["review", "dev"], default="review",
+        help="Pipeline phase: review (FM review, default) or dev (development)",
     )
     parser.add_argument(
         "--agents", type=str, default=None,
@@ -958,6 +1053,14 @@ async def async_main():
         agents_filter = None
         if args.agents:
             agents_filter = [int(x.strip()) for x in args.agents.split(",")]
+
+        # Dev phase: use DEV_PIPELINE_ORDER instead of main pipeline
+        if args.phase == "dev":
+            log("PHASE: Development (dev)")
+            # Override pipeline globals for dev phase
+            global PIPELINE_ORDER, PARALLEL_STAGES
+            PIPELINE_ORDER = DEV_PIPELINE_ORDER
+            PARALLEL_STAGES = DEV_PARALLEL_STAGES
 
         results = await run_pipeline(
             project=args.project,

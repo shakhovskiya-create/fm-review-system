@@ -41,8 +41,8 @@ class TestAgentDefinitions:
     """Validate AGENTS list structure."""
 
     def test_agents_defined(self):
-        """12 agents: Agent0-8 + Agent9 (SE Go) + Agent10 (SE 1C) + Orchestrator_Helper."""
-        assert len(AGENTS) == 12
+        """17 agents: Agent0-2, 3-6 (deprecated), 5, 7-15 + Orchestrator_Helper."""
+        assert len(AGENTS) == 17
 
     def test_each_agent_has_name(self):
         for agent in AGENTS:
@@ -55,16 +55,20 @@ class TestAgentDefinitions:
     def test_each_agent_has_observations(self):
         for agent in AGENTS:
             assert "observations" in agent
-            assert len(agent["observations"]) >= 2
+            # Deprecated agents (3, 4, 6) may have just 1 observation
+            if "DEPRECATED" in agent["observations"][0]:
+                assert len(agent["observations"]) >= 1
+            else:
+                assert len(agent["observations"]) >= 2
 
     def test_agent_names_unique(self):
         names = [a["name"] for a in AGENTS]
         assert len(names) == len(set(names))
 
     def test_fm_agent_names_match_ids(self):
-        """FM agents (first 11) follow Agent{N}_{Name} convention."""
+        """FM agents follow Agent{N}_{Name} convention (0-15 + deprecated)."""
         fm_agents = [a for a in AGENTS if a["name"].startswith("Agent")]
-        assert len(fm_agents) == 11
+        assert len(fm_agents) == 16  # 0-15 including deprecated 3, 4, 6
         for i, agent in enumerate(fm_agents):
             assert agent["name"].startswith(f"Agent{i}_")
 

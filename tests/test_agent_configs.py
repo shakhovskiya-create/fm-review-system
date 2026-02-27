@@ -1,8 +1,9 @@
 """
 Tests for agent configuration validation.
 
-Validates all 9 subagent frontmatter files (.claude/agents/agent-*.md)
-have required fields, consistent settings, and follow system conventions.
+Validates all 13 active subagent frontmatter files (.claude/agents/agent-*.md).
+Agents 3, 4, 6 are deprecated (.md.deprecated) and excluded from active tests.
+Active agents: 0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15.
 """
 import json
 import os
@@ -23,9 +24,14 @@ AGENT_FILES = sorted(AGENTS_DIR.glob("agent-*.md"))
 REQUIRED_FRONTMATTER = ["name", "description", "tools", "maxTurns", "model", "memory"]
 VALID_MODELS = {"opus", "sonnet", "haiku"}
 VALID_PERMISSION_MODES = {"default", "acceptEdits", "plan", "bypassPermissions"}
-ANALYSIS_AGENTS = {"agent-1-architect", "agent-2-simulator", "agent-3-defender", "agent-4-qa-tester"}
-WRITING_AGENTS = {"agent-0-creator", "agent-5-tech-architect", "agent-6-presenter",
-                  "agent-7-publisher", "agent-8-bpmn-designer"}
+ANALYSIS_AGENTS = {"agent-1-architect", "agent-2-simulator"}
+WRITING_AGENTS = {"agent-0-creator", "agent-5-tech-architect",
+                  "agent-7-publisher", "agent-8-bpmn-designer",
+                  "agent-9-se-go", "agent-10-se-1c",
+                  "agent-11-dev-1c", "agent-12-dev-go",
+                  "agent-13-qa-1c", "agent-14-qa-go", "agent-15-trainer"}
+# Active agent numbers (3, 4, 6 deprecated)
+ACTIVE_AGENT_NUMBERS = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
 
 def parse_frontmatter(file_path: Path) -> dict:
@@ -38,18 +44,24 @@ def parse_frontmatter(file_path: Path) -> dict:
 
 
 class TestAgentFileDiscovery:
-    def test_nine_agents_exist(self):
-        """All 11 agent files exist in .claude/agents/ (agent-0 through agent-10)."""
-        assert len(AGENT_FILES) == 11, f"Expected 11 agents, found {len(AGENT_FILES)}"
+    def test_active_agents_exist(self):
+        """All 13 active agent files exist in .claude/agents/ (3, 4, 6 deprecated)."""
+        assert len(AGENT_FILES) == 13, f"Expected 13 agents, found {len(AGENT_FILES)}"
 
     def test_agent_numbering(self):
-        """Agents are numbered 0-10 consecutively."""
+        """Active agents have expected numbers (0-2, 5, 7-15, excluding 3/4/6)."""
         numbers = []
         for f in AGENT_FILES:
             match = re.match(r"agent-(\d+)-", f.name)
             assert match, f"File {f.name} does not match agent-N-name.md pattern"
             numbers.append(int(match.group(1)))
-        assert sorted(numbers) == list(range(11))
+        assert sorted(numbers) == ACTIVE_AGENT_NUMBERS
+
+    def test_deprecated_agents_exist(self):
+        """Deprecated agent files exist as .md.deprecated."""
+        for n in [3, 4, 6]:
+            deprecated = list(AGENTS_DIR.glob(f"agent-{n}-*.md.deprecated"))
+            assert len(deprecated) == 1, f"Expected agent-{n}-*.md.deprecated"
 
 
 class TestFrontmatter:
@@ -98,13 +110,13 @@ class TestLeastPrivilege:
 
     @pytest.fixture(params=list(ANALYSIS_AGENTS))
     def analysis_agent(self, request):
-        """Get config for analysis-only agents (1,2,3,4)."""
+        """Get config for analysis-only agents (1, 2)."""
         file_path = next(f for f in AGENT_FILES if request.param in f.name)
         return parse_frontmatter(file_path), file_path
 
     @pytest.fixture(params=list(WRITING_AGENTS))
     def writing_agent(self, request):
-        """Get config for agents that need write access (0,5,6,7,8)."""
+        """Get config for agents that need write access (0,5,7-15)."""
         file_path = next(f for f in AGENT_FILES if request.param in f.name)
         return parse_frontmatter(file_path), file_path
 

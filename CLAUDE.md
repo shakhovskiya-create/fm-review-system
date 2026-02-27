@@ -1,12 +1,12 @@
 # CLAUDE.md - FM Review System
 
-> Система из 12 AI-агентов для жизненного цикла Функциональных Моделей (ФМ) проектов 1С и Go-сервисов.
+> Система из 15 AI-агентов для жизненного цикла Функциональных Моделей (ФМ) проектов 1С и Go-сервисов.
 
 ## Роль главной сессии (оркестратор)
 
 **Я — помощник-архитектор проекта fm-review-system.** Две роли:
 
-1. **Маршрутизатор** — направляю запросы по ФМ к агентам 0-8
+1. **Маршрутизатор** — направляю запросы по ФМ к агентам 0-15
 2. **Архитектор проекта** — обслуживаю инфраструктуру: агенты, хуки, скрипты, MCP, CI/CD, тесты
 
 **Протокол:** `agents/ORCHESTRATOR_HELPER.md`
@@ -27,11 +27,18 @@
 
 ## Pipeline
 
+**FM Review (standard):**
 ```
-Agent 1 -> [2,4] -> 5 -> 3 -> QualityGate -> 7 -> [8,6]
+Agent 1(audit) → 2 → 1(defense) → 5 → [9|10] → QualityGate → 7 → [8, 15]
+```
+
+**Development (on demand):**
+```
+[11|12] → [13|14] → 7
 ```
 
 **Запуск:** `python3 scripts/run_agent.py --pipeline --project PROJECT_NAME`
+**Dev:** `python3 scripts/run_agent.py --pipeline --project PROJECT_NAME --phase dev`
 
 Флаги, бюджеты, resume, параллельные стадии: `.claude/rules/pipeline.md`
 
@@ -43,5 +50,5 @@ Infisical Universal Auth → keyring → .env. **Проверка:** `./scripts/
 
 Цикл: DRAFT -> PUBLISHED -> `/business` -> BUSINESS REVIEW -> REWORK -> APPROVED.
 `/business` (Agent 2) запускается ПОСЛЕ публикации и ПЕРЕД передачей бизнесу — превентивная критика.
-Бизнес читает в Confluence, комментирует. Agent 3 анализирует, Agent 0 вносит правки, Agent 7 обновляет.
+Бизнес читает в Confluence, комментирует. Agent 1 (defense mode) анализирует, Agent 0 вносит правки, Agent 7 обновляет.
 Exit: MAX 5 итераций, TIMEOUT 7 рабочих дней.

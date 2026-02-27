@@ -5,8 +5,9 @@ description: "Карта всех файлов системы fm-review-system �
 # Карта файлов системы
 
 ## Субагенты и протоколы
-- **Subagents:** `.claude/agents/agent-0-creator.md` ... `.claude/agents/agent-8-bpmn-designer.md`
+- **Subagents:** `.claude/agents/agent-0-creator.md` ... `.claude/agents/agent-15-trainer.md`
 - **Протоколы:** `agents/AGENT_0_CREATOR.md` ... `agents/AGENT_8_BPMN_DESIGNER.md`
+- **Протоколы (dev):** `agents/dev/AGENT_11_DEV_1C.md`, `agents/dev/AGENT_12_DEV_GO.md`, `agents/dev/AGENT_13_QA_1C.md`, `agents/dev/AGENT_14_QA_GO.md`, `agents/dev/AGENT_15_TRAINER.md`
 - **Оркестратор:** `agents/ORCHESTRATOR_HELPER.md`
 - **Общие правила:** `agents/COMMON_RULES.md`
 
@@ -67,14 +68,14 @@ description: "Карта всех файлов системы fm-review-system �
 - `.claude/skills/test/` (/test)
 - `.claude/skills/run-pipeline/` (/run-pipeline)
 - `.claude/skills/run-agent/` (/run-agent)
-- `.claude/skills/vercel-react-best-practices/` (57 правил React/Next.js performance, Agent 9)
+- `.claude/skills/vercel-react-best-practices/` (57 правил React/Next.js performance, Agent 9, Agent 12)
 
 ## MCP Servers
 - `confluence` — Confluence API (scripts/mcp-confluence.sh, Infisical secrets)
 - `memory` — Knowledge Graph (@modelcontextprotocol/server-memory)
 - `github` — GitHub API (scripts/mcp-github.sh)
 - `langfuse` — Observability (scripts/mcp-langfuse.sh)
-- `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9)
+- `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9, Agent 12, Agent 14)
 - `agentation` — Visual React UI annotation (agentation-mcp, 9 tools, Agent 9)
 
 ## Task Tracking (GitHub Issues)

@@ -404,7 +404,7 @@
 
     "agentOutput_Agent1_Architect": {
       "type": "object",
-      "description": "Output schema for Agent 1 (Architect)",
+      "description": "Output schema for Agent 1 (Architect + Defender). Supports audit and defense modes.",
       "required": ["findings", "summary"],
       "properties": {
         "findings": {
@@ -418,6 +418,27 @@
             "high": { "type": "integer" },
             "medium": { "type": "integer" },
             "low": { "type": "integer" }
+          }
+        },
+        "defenseResults": {
+          "type": "object",
+          "description": "Defense mode results (when running as 1:defense in pipeline)",
+          "properties": {
+            "accepted": { "type": "integer", "description": "Type C findings accepted (gaps to fix)" },
+            "rejected": { "type": "integer", "description": "Type B/G/I findings rejected" },
+            "deferred": { "type": "integer", "description": "Type D/E/F findings deferred" },
+            "classifications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "findingId": { "type": "string" },
+                  "type": { "type": "string", "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I"] },
+                  "action": { "type": "string" },
+                  "rationale": { "type": "string" }
+                }
+              }
+            }
           }
         }
       }
@@ -441,8 +462,7 @@
 
     "agentOutput_Agent3_Defender": {
       "type": "object",
-      "description": "Output schema for Agent 3 (Defender)",
-      "required": ["responses"],
+      "description": "DEPRECATED: merged into Agent 1 (defenseResults). Kept for backward compatibility.",
       "properties": {
         "responses": {
           "type": "array",
@@ -455,8 +475,7 @@
 
     "agentOutput_Agent4_QA": {
       "type": "object",
-      "description": "Output schema for Agent 4 (QA Tester)",
-      "required": ["testCases"],
+      "description": "DEPRECATED: replaced by Agent 13 (QA 1С) and Agent 14 (QA Go). Kept for backward compatibility.",
       "properties": {
         "testCases": {
           "type": "array",
@@ -503,12 +522,9 @@
 
     "agentOutput_Agent6_Presenter": {
       "type": "object",
-      "description": "Output schema for Agent 6 (Presenter)",
+      "description": "DEPRECATED: replaced by Agent 15 (Trainer). Kept for backward compatibility.",
       "properties": {
-        "format": {
-          "type": "string",
-          "enum": ["presentation", "report", "summary"]
-        },
+        "format": { "type": "string" },
         "audience": { "type": "string" },
         "sections": { "type": "array", "items": { "type": "string" } }
       }
@@ -529,6 +545,119 @@
       "required": ["result"],
       "properties": {
         "result": { "$ref": "#/definitions/bpmnResult" }
+      }
+    },
+
+    "agentOutput_Agent11_Dev1C": {
+      "type": "object",
+      "description": "Output schema for Agent 11 (Developer 1С)",
+      "properties": {
+        "generatedFiles": { "type": "array", "items": { "type": "string" }, "description": "List of generated BSL files" },
+        "validationResults": {
+          "type": "object",
+          "properties": {
+            "bslChecks": { "type": "integer" },
+            "warnings": { "type": "integer" },
+            "errors": { "type": "integer" }
+          }
+        },
+        "modules": { "type": "array", "items": { "type": "string" }, "description": "Generated module names" }
+      }
+    },
+
+    "agentOutput_Agent12_DevGo": {
+      "type": "object",
+      "description": "Output schema for Agent 12 (Developer Go+React)",
+      "properties": {
+        "generatedFiles": { "type": "array", "items": { "type": "string" } },
+        "lintResults": {
+          "type": "object",
+          "properties": {
+            "golangciLint": { "type": "integer" },
+            "eslint": { "type": "integer" }
+          }
+        },
+        "services": { "type": "array", "items": { "type": "string" }, "description": "Generated Go service names" },
+        "components": { "type": "array", "items": { "type": "string" }, "description": "Generated React component names" }
+      }
+    },
+
+    "agentOutput_Agent13_QA1C": {
+      "type": "object",
+      "description": "Output schema for Agent 13 (QA 1С)",
+      "properties": {
+        "testSuites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["unit", "bdd", "smoke", "integration"] },
+              "testCount": { "type": "integer" }
+            }
+          }
+        },
+        "coverageReport": {
+          "type": "object",
+          "properties": {
+            "lineCoverage": { "type": "number" },
+            "branchCoverage": { "type": "number" }
+          }
+        },
+        "staticAnalysis": {
+          "type": "object",
+          "properties": {
+            "bslChecks": { "type": "integer" },
+            "issues": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "agentOutput_Agent14_QAGo": {
+      "type": "object",
+      "description": "Output schema for Agent 14 (QA Go+React)",
+      "properties": {
+        "goTestResults": {
+          "type": "object",
+          "properties": {
+            "packages": { "type": "integer" },
+            "tests": { "type": "integer" },
+            "passed": { "type": "integer" },
+            "failed": { "type": "integer" },
+            "coverage": { "type": "number" }
+          }
+        },
+        "reactTestResults": {
+          "type": "object",
+          "properties": {
+            "suites": { "type": "integer" },
+            "tests": { "type": "integer" },
+            "passed": { "type": "integer" },
+            "coverage": { "type": "number" }
+          }
+        },
+        "e2eResults": {
+          "type": "object",
+          "properties": {
+            "scenarios": { "type": "integer" },
+            "passed": { "type": "integer" },
+            "failed": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "agentOutput_Agent15_Trainer": {
+      "type": "object",
+      "description": "Output schema for Agent 15 (Trainer)",
+      "properties": {
+        "documents": { "type": "array", "items": { "type": "string" }, "description": "Generated document file names" },
+        "documentTypes": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["user-guide", "admin-guide", "quick-start", "faq", "release-notes", "video-script"] }
+        },
+        "fmVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
       }
     }
   }

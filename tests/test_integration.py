@@ -177,29 +177,49 @@ class TestCrossAgentDependencies:
     AGENTS_DIR = PROJECT_ROOT / "agents"
 
     def test_all_agent_protocols_exist(self):
-        """Every agent referenced in CLAUDE.md has a protocol file."""
-        for i in range(9):
-            names = [
-                "AGENT_0_CREATOR", "AGENT_1_ARCHITECT", "AGENT_2_ROLE_SIMULATOR",
-                "AGENT_3_DEFENDER", "AGENT_4_QA_TESTER", "AGENT_5_TECH_ARCHITECT",
-                "AGENT_6_PRESENTER", "AGENT_7_PUBLISHER", "AGENT_8_BPMN_DESIGNER",
-            ]
-            if i < len(names):
-                proto = self.AGENTS_DIR / f"{names[i]}.md"
-                assert proto.exists(), f"Missing protocol: {proto.name}"
+        """Every agent has a protocol file (agents/ or agents/dev/)."""
+        # Review phase protocols (agents/)
+        review_protocols = [
+            "AGENT_0_CREATOR", "AGENT_1_ARCHITECT", "AGENT_2_ROLE_SIMULATOR",
+            "AGENT_3_DEFENDER", "AGENT_4_QA_TESTER", "AGENT_5_TECH_ARCHITECT",
+            "AGENT_6_PRESENTER", "AGENT_7_PUBLISHER", "AGENT_8_BPMN_DESIGNER",
+            "AGENT_9_SE_GO", "AGENT_10_SE_1C",
+        ]
+        for name in review_protocols:
+            proto = self.AGENTS_DIR / f"{name}.md"
+            assert proto.exists(), f"Missing protocol: {proto.name}"
+        # Dev phase protocols (agents/dev/)
+        dev_protocols = [
+            "AGENT_11_DEV_1C", "AGENT_12_DEV_GO",
+            "AGENT_13_QA_1C", "AGENT_14_QA_GO", "AGENT_15_TRAINER",
+        ]
+        dev_dir = self.AGENTS_DIR / "dev"
+        for name in dev_protocols:
+            proto = dev_dir / f"{name}.md"
+            assert proto.exists(), f"Missing dev protocol: {proto.name}"
 
     def test_all_subagent_definitions_exist(self):
-        """Every agent has a .claude/agents/ subagent definition."""
+        """Every active agent has a .claude/agents/ subagent definition."""
         subagents_dir = PROJECT_ROOT / ".claude" / "agents"
-        expected = [
+        expected_active = [
             "agent-0-creator.md", "agent-1-architect.md",
-            "agent-2-simulator.md", "agent-3-defender.md",
-            "agent-4-qa-tester.md", "agent-5-tech-architect.md",
-            "agent-6-presenter.md", "agent-7-publisher.md",
-            "agent-8-bpmn-designer.md",
+            "agent-2-simulator.md", "agent-5-tech-architect.md",
+            "agent-7-publisher.md", "agent-8-bpmn-designer.md",
+            "agent-9-se-go.md", "agent-10-se-1c.md",
+            "agent-11-dev-1c.md", "agent-12-dev-go.md",
+            "agent-13-qa-1c.md", "agent-14-qa-go.md",
+            "agent-15-trainer.md",
         ]
-        for name in expected:
+        for name in expected_active:
             assert (subagents_dir / name).exists(), f"Missing subagent: {name}"
+        # Deprecated agents exist as .md.deprecated
+        expected_deprecated = [
+            "agent-3-defender.md.deprecated",
+            "agent-4-qa-tester.md.deprecated",
+            "agent-6-presenter.md.deprecated",
+        ]
+        for name in expected_deprecated:
+            assert (subagents_dir / name).exists(), f"Missing deprecated: {name}"
 
     def test_common_rules_exists(self):
         """COMMON_RULES.md referenced by all agents must exist."""

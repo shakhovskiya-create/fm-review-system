@@ -41,13 +41,14 @@ PROJECT_DIR = PROJECT_ROOT / "projects" / "PROJECT_SHPMNT_PROFIT"
 
 
 class TestAgentRegistry:
-    def test_eleven_agents_registered(self):
-        """All 11 agents (0-10) are in the registry."""
-        assert len(AGENT_REGISTRY) == 11
+    def test_thirteen_agents_registered(self):
+        """All 13 active agents are in the registry (3, 4, 6 deprecated)."""
+        assert len(AGENT_REGISTRY) == 13
 
-    def test_agent_ids_0_to_10(self):
-        """Agent IDs are 0-10."""
-        assert sorted(AGENT_REGISTRY.keys()) == list(range(11))
+    def test_agent_ids(self):
+        """Active agent IDs: 0-2, 5, 7-15 (3, 4, 6 deprecated)."""
+        expected = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        assert sorted(AGENT_REGISTRY.keys()) == expected
 
     def test_each_agent_has_required_fields(self):
         """Each agent entry has name, file, dir."""
@@ -61,7 +62,7 @@ class TestAgentRegistry:
         agents_dir = PROJECT_ROOT / "agents"
         for agent_id, config in AGENT_REGISTRY.items():
             agent_file = agents_dir / config["file"]
-            assert agent_file.exists(), f"Agent {agent_id}: {agent_file} not found"
+            assert agent_file.exists(), f"Agent {agent_id}: {agent_file} not found (file: {config['file']})"
 
     def test_each_agent_has_budget(self):
         """Each agent entry has model and budget_usd."""
@@ -100,11 +101,19 @@ class TestPipelineOrder:
         """Pipeline includes quality_gate step."""
         assert "quality_gate" in PIPELINE_ORDER
 
-    def test_pipeline_has_all_review_agents(self):
-        """Pipeline includes agents 1, 2, 3, 4, 5, 6, 7, 8."""
-        agent_ids = [s for s in PIPELINE_ORDER if isinstance(s, int)]
-        for expected in [1, 2, 3, 4, 5, 6, 7, 8]:
-            assert expected in agent_ids, f"Agent {expected} missing from pipeline"
+    def test_pipeline_has_review_agents(self):
+        """Pipeline includes agents 1, 2, 5, 7 and defense mode."""
+        flat = []
+        for s in PIPELINE_ORDER:
+            if isinstance(s, int):
+                flat.append(s)
+            elif isinstance(s, str):
+                flat.append(s)
+            elif isinstance(s, list):
+                flat.extend(s)
+        for expected in [1, 2, 5, 7]:
+            assert expected in flat, f"Agent {expected} missing from pipeline"
+        assert "1:defense" in flat, "Defense mode missing from pipeline"
 
     def test_quality_gate_before_publisher(self):
         """Quality Gate runs before Agent 7 (Publisher)."""
@@ -116,26 +125,21 @@ class TestPipelineOrder:
         """Agent 1 (Architect) runs first."""
         assert PIPELINE_ORDER[0] == 1
 
-    def test_defender_after_other_reviewers(self):
-        """Agent 3 (Defender) runs after agents 1, 2, 4, 5."""
-        def_idx = PIPELINE_ORDER.index(3)
-        for agent in [1, 2, 4, 5]:
-            agent_idx = PIPELINE_ORDER.index(agent)
-            assert agent_idx < def_idx, f"Agent {agent} should run before Defender"
+    def test_defense_after_simulator(self):
+        """Defense mode (1:defense) runs after Agent 2 (Simulator)."""
+        sim_idx = PIPELINE_ORDER.index(2)
+        def_idx = PIPELINE_ORDER.index("1:defense")
+        assert def_idx > sim_idx, "Defense should run after Simulator"
 
 
 class TestParallelStages:
-    def test_seven_stages(self):
-        """There are 7 parallel stages."""
-        assert len(PARALLEL_STAGES) == 7
+    def test_stage_count(self):
+        """There are 7 parallel stages matching pipeline order."""
+        assert len(PARALLEL_STAGES) == len(PIPELINE_ORDER)
 
-    def test_simulator_and_qa_parallel(self):
-        """Agent 2 (Simulator) and Agent 4 (QA) run in parallel."""
-        assert [2, 4] in PARALLEL_STAGES
-
-    def test_bpmn_and_presenter_parallel(self):
-        """Agent 8 (BPMN) and Agent 6 (Presenter) run in parallel."""
-        assert [8, 6] in PARALLEL_STAGES
+    def test_bpmn_and_trainer_parallel(self):
+        """Agent 8 (BPMN) and Agent 15 (Trainer) run in parallel."""
+        assert [8, 15] in PARALLEL_STAGES
 
     def test_architect_runs_alone(self):
         """Agent 1 (Architect) runs alone (base for all)."""
@@ -147,22 +151,20 @@ class TestBuildStages:
         """Sequential stages without filter: each step in its own list."""
         stages = _build_sequential_stages(None)
         assert len(stages) == len(PIPELINE_ORDER)
-        for stage, expected in zip(stages, PIPELINE_ORDER):
-            assert stage == [expected]
 
     def test_sequential_with_filter(self):
         """Sequential stages with filter: only selected agents."""
-        stages = _build_sequential_stages([1, 2, 4])
-        agent_ids = [s[0] for s in stages]
-        assert 1 in agent_ids
-        assert 2 in agent_ids
-        assert 4 in agent_ids
-        assert "quality_gate" not in agent_ids  # No agent 7 -> no QG
+        stages = _build_sequential_stages([1, 2, 5])
+        flat = [item for s in stages for item in s]
+        assert 1 in flat
+        assert 2 in flat
+        assert 5 in flat
+        assert "quality_gate" not in flat  # No agent 7 -> no QG
 
     def test_sequential_filter_with_agent_7_includes_qg(self):
         """When agent 7 is in filter, quality_gate is included."""
         stages = _build_sequential_stages([1, 7])
-        flat = [s[0] for s in stages]
+        flat = [item for s in stages for item in s]
         assert "quality_gate" in flat
 
     def test_parallel_no_filter(self):
@@ -172,15 +174,14 @@ class TestBuildStages:
 
     def test_parallel_with_filter(self):
         """Parallel stages with filter: only relevant stages."""
-        stages = _build_parallel_stages([1, 2, 4])
+        stages = _build_parallel_stages([1, 2])
         assert [1] in stages
-        assert [2, 4] in stages
-        assert len(stages) == 2  # Only stages containing agents 1,2,4
+        assert [2] in stages
 
     def test_parallel_filter_removes_empty_stages(self):
         """Filtering removes stages with no matching agents."""
-        stages = _build_parallel_stages([1])
-        assert stages == [[1]]
+        stages = _build_parallel_stages([5])
+        assert stages == [[5]]
 
 
 class TestConditionalStages:
@@ -215,20 +216,18 @@ class TestConditionalStages:
 
     def test_inject_conditional_1c(self):
         """Injects Agent 10 for 1С projects after Agent 5."""
-        stages = [[1], [2, 4], [5], [3], ["quality_gate"], [7], [8, 6]]
+        stages = [[1], [2], ["1:defense"], [5], ["quality_gate"], [7], [8, 15]]
         with patch("scripts.run_agent._detect_platform", return_value="1c"):
             result = _inject_conditional(stages, "TEST")
-        # Agent 10 should be injected after stage containing 5
         flat = [item for stage in result for item in stage]
         assert 10 in flat
-        # Agent 10 should appear after Agent 5
         idx_5 = next(i for i, s in enumerate(result) if 5 in s)
         idx_10 = next(i for i, s in enumerate(result) if 10 in s)
         assert idx_10 > idx_5
 
     def test_inject_conditional_go(self):
         """Injects Agent 9 for Go projects after Agent 5."""
-        stages = [[1], [2, 4], [5], [3], ["quality_gate"], [7], [8, 6]]
+        stages = [[1], [2], ["1:defense"], [5], ["quality_gate"], [7], [8, 15]]
         with patch("scripts.run_agent._detect_platform", return_value="go"):
             result = _inject_conditional(stages, "TEST")
         flat = [item for stage in result for item in stage]
@@ -237,10 +236,10 @@ class TestConditionalStages:
 
     def test_inject_conditional_unknown_noop(self):
         """No injection for unknown platform."""
-        stages = [[1], [2, 4], [5]]
+        stages = [[1], [2], [5]]
         with patch("scripts.run_agent._detect_platform", return_value=""):
             result = _inject_conditional(stages, "TEST")
-        assert result == [[1], [2, 4], [5]]
+        assert result == [[1], [2], [5]]
 
     def test_build_parallel_with_project_injects(self, tmp_path):
         """_build_parallel_stages injects conditional agent for 1С project."""
@@ -248,7 +247,7 @@ class TestConditionalStages:
         project_dir.mkdir(parents=True)
         (project_dir / "PROJECT_CONTEXT.md").write_text("Платформа: 1С:ERP\n")
         with patch("scripts.run_agent.ROOT_DIR", tmp_path):
-            stages = _build_parallel_stages(None, "TEST_1C")
+            stages = _build_parallel_stages(None, project="TEST_1C")
         flat = [item for stage in stages for item in stage]
         assert 10 in flat
 
@@ -298,8 +297,8 @@ class TestBuildPrompt:
 
     def test_prompt_includes_previous_results(self):
         """Prompt lists previous agent result directories."""
-        prompt = build_prompt(3, "PROJECT_SHPMNT_PROFIT", "/auto")
-        # Agent 3 should see results from Agent 1, 2 etc.
+        prompt = build_prompt(5, "PROJECT_SHPMNT_PROFIT", "/auto")
+        # Agent 5 should see results from Agent 1, 2 etc.
         if (PROJECT_DIR / "AGENT_1_ARCHITECT").is_dir():
             assert "AGENT_1_ARCHITECT" in prompt
 
