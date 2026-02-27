@@ -11,6 +11,7 @@ skills:
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
   playwright: {}
 ---
 

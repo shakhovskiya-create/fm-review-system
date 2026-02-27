@@ -8,6 +8,7 @@ model: opus
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 9: Senior Engineer — Go + React

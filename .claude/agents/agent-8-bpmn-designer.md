@@ -8,6 +8,7 @@ model: sonnet
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 8: BPMN Designer - Диаграммы процессов

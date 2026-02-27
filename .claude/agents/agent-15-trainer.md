@@ -9,6 +9,7 @@ memory: project
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 15: Trainer - Пользовательская документация

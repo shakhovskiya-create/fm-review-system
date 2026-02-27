@@ -8,6 +8,7 @@ model: sonnet
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
   playwright: {}
 ---
 

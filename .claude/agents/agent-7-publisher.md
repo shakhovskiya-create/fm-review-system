@@ -11,6 +11,7 @@ skills:
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 7: Publisher - Управление ФМ в Confluence

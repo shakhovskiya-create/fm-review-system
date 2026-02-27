@@ -58,6 +58,7 @@ description: "Карта всех файлов системы fm-review-system �
 
 ## Memory
 - **Knowledge Graph** (`@modelcontextprotocol/server-memory`): `.claude-memory/memory.jsonl`, seed: `scripts/seed_memory.py`
+- **Graphiti** (общий с cio-assistant): `scripts/mcp-graphiti.sh`, Neo4j + OpenAI embeddings, group_id=`ekf-shared`
 - **Episodic Memory** (`episodic-memory@superpowers-marketplace`): глобально в `~/.claude/settings.json`
 - **Agent Memory** (`memory: project`): `.claude/agent-memory/<name>/MEMORY.md`
 
@@ -77,6 +78,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `langfuse` — Observability (scripts/mcp-langfuse.sh)
 - `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9, Agent 12, Agent 14)
 - `agentation` — Visual React UI annotation (agentation-mcp, 9 tools, Agent 9)
+- `graphiti` — Temporal Knowledge Graph (Graphiti + Neo4j, scripts/mcp-graphiti.sh, group_id=ekf-shared, все агенты)
 
 ## Task Tracking (GitHub Issues)
 - `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)

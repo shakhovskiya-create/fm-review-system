@@ -9,6 +9,7 @@ model: opus
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 2: Role Simulator - Симуляция ролей

@@ -12,6 +12,7 @@ skills:
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 1: Architect + Defender — Аудит и защита ФМ

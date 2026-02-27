@@ -8,6 +8,7 @@ model: opus
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 10: Senior Engineer — 1С

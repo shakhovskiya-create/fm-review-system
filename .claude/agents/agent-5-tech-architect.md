@@ -8,6 +8,7 @@ model: opus
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 5: Tech Architect - Проектирование и ТЗ

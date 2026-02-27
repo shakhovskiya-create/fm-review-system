@@ -9,6 +9,7 @@ memory: project
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 11: Developer 1С — Генерация кода расширений

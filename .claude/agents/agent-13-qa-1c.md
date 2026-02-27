@@ -8,6 +8,7 @@ model: sonnet
 memory: project
 mcpServers:
   memory: {}
+  graphiti: {}
 ---
 
 # Agent 13: QA 1С — Тестирование кода расширений

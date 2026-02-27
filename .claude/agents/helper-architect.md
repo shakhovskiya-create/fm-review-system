@@ -9,6 +9,7 @@ memory: project
 mcpServers:
   confluence: {}
   memory: {}
+  graphiti: {}
 ---
 
 # Оркестратор: Помощник-архитектор проекта
