@@ -43,9 +43,21 @@
 
 ## Workflow & Memory
 24. **Plan → Implement → Fix**: подробнее `.claude/rules/agent-workflow.md`.
-25. **Knowledge Graph + Episodic Memory**: подробнее `.claude/rules/knowledge-graph.md`.
+25. **Knowledge Graph**: `mcp__memory__search_nodes` при старте, `mcp__memory__add_observations` при завершении. Правила KG:
+    - **KG-1**: Включай ISO-дату в наблюдения: `[2026-02-27] Finding: ...`
+    - **KG-2**: Записывай ТОЛЬКО: audit findings (CRIT/HIGH), решения (что+почему), версии ФМ, блокеры
+    - **KG-3**: НЕ записывай: промежуточные шаги, текст ФМ, полные отчёты (используй файлы)
+    - **KG-4**: Решения = отдельные сущности: `decision_<topic>` с entityType `decision`
+    - **KG-5**: Связи версий: используй `SUPERSEDES` для цепочек версий ФМ
+    - Подробнее: `.claude/rules/knowledge-graph.md`
 26. **GitHub Issues**: подробнее `.claude/rules/agent-workflow.md`.
 29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
+
+## Kafka-интеграция
+30. **Kafka** — шина обмена данными между 1С и Go-сервисами. Все dev-агенты (11-15) обязаны учитывать.
+    - Архитектура: `1С → Outbox → HTTP Gateway → Kafka → Go consumers`
+    - Топики: `1c.<domain>.<event>.v<N>`, `cmd.*`, `evt.*`, `*.dlq`, `*.retry.*`
+    - Подробнее: `knowledge-base/integrations.md` (раздел TO BE)
 
 ## База знаний компании
 27. **`knowledge-base/`** — справочник о компании, проектах, процессах EKF. Читай при необходимости:

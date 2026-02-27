@@ -28,6 +28,11 @@
 │  → Agent 9 (SE Go): ревьюит мой код                         │
 │                                                             │
 │  AUTO-TRIGGER: после Agent 5 /full → я генерирую код        │
+│                                                             │
+│  KAFKA: шина обмена между 1С и Go-сервисами                │
+│  → knowledge-base/integrations.md — архитектура TO BE       │
+│  → franz-go (pure Go, fastest), Schema Registry, DLQ       │
+│  → Топики: 1c.*, cmd.*, evt.*, *.dlq                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -611,6 +616,139 @@ npx next lint
 3. Создать Zod-схему для props (если Client Component с формами)
 4. Создать Storybook story (если UI-примитив)
 5. Проверить TypeScript strict mode
+
+---
+
+## KAFKA-ИНТЕГРАЦИЯ (Go)
+
+> **Архитектура TO BE:** `1С → Kafka → Go-сервисы → React`
+> Подробности: `knowledge-base/integrations.md`
+
+### Библиотека: franz-go (ОБЯЗАТЕЛЬНО)
+
+```
+НЕ использовать: sarama (abandoned), confluent-kafka-go (cgo dependency)
+ИСПОЛЬЗОВАТЬ:    github.com/twmb/franz-go — pure Go, 4x faster producing, 10-20x faster consuming
+```
+
+### Consumer Group Pattern
+
+```go
+cl, err := kgo.NewClient(
+    kgo.SeedBrokers("broker1:9092", "broker2:9092"),
+    kgo.ConsumerGroup("shipment-profit-processor"),
+    kgo.ConsumeTopics("1c.shipment.posted.v1", "1c.order.created.v1"),
+    kgo.DisableAutoCommit(),
+    kgo.Balancers(kgo.CooperativeStickyBalancer()),
+    kgo.OnPartitionsRevoked(func(ctx context.Context, cl *kgo.Client, lost map[string][]int32) {
+        cl.CommitUncommittedOffsets(ctx) // Commit before revoke
+    }),
+)
+```
+
+### Exactly-Once Semantics (EOS)
+
+```go
+// GroupTransactSession: consume → process → produce atomically
+sess, _ := kgo.NewGroupTransactSession(cl, "output-topic")
+for {
+    fetches := sess.PollFetches(ctx)
+    for _, r := range fetches.Records() {
+        cl.Produce(ctx, transformRecord(r), nil)
+    }
+    sess.End(ctx, kgo.TryCommit) // Atomic commit
+}
+```
+
+### DLQ + Retry Pattern (3-level)
+
+```
+Topic: orders.created.v1
+  → Fail 1 → orders.created.v1.retry.1  (delay 1s)
+  → Fail 2 → orders.created.v1.retry.2  (delay 10s)
+  → Fail 3 → orders.created.v1.retry.3  (delay 60s)
+  → Fail 4 → orders.created.v1.dlq      (manual review)
+
+DLQ headers: error, original-topic, failed-at, retry-count
+```
+
+### Schema Registry (franz-go/pkg/sr)
+
+```go
+import "github.com/twmb/franz-go/pkg/sr"
+rcl, _ := sr.NewClient(sr.URLs("http://schema-registry:8081"))
+var serde sr.Serde
+serde.Register(schemaID, &ShipmentEvent{},
+    sr.EncodeFn(func(v any) ([]byte, error) { return proto.Marshal(v.(*ShipmentEvent)) }),
+    sr.DecodeFn(func(b []byte, v any) error { return proto.Unmarshal(b, v.(*ShipmentEvent)) }),
+)
+```
+
+### Saga Orchestration Pattern
+
+```
+Для distributed transactions (1С + Go):
+1. Go Saga Orchestrator управляет workflow
+2. Каждый шаг = команда в Kafka (cmd.inventory.reserve, cmd.payment.charge)
+3. Участники отвечают событиями (evt.inventory.reserved, evt.payment.failed)
+4. При ошибке — compensation в обратном порядке
+5. Состояние саги в БД (PostgreSQL)
+```
+
+### Топики (naming convention)
+
+```
+1c.<домен>.<событие>.v<N>          # 1C-originated events
+cmd.<домен>.<действие>             # Commands (imperative, expect response)
+evt.<домен>.<событие>.v<N>         # Go-originated events
+internal.<назначение>              # Infrastructure topics (compacted)
+<топик>.dlq                        # Dead Letter Queue
+<топик>.retry.<уровень>            # Retry topics (1, 2, 3)
+```
+
+### Структура проекта с Kafka
+
+```
+internal/
+├── adapter/
+│   ├── kafka/                     # Kafka adapter
+│   │   ├── consumer.go           # Consumer group wrapper
+│   │   ├── producer.go           # Producer wrapper
+│   │   ├── dlq.go                # DLQ handler
+│   │   ├── health.go             # Liveness/readiness probes
+│   │   └── metrics.go            # Prometheus metrics (lag, throughput)
+│   ├── http/
+│   └── postgres/
+```
+
+### Мониторинг Kafka (обязательные метрики)
+
+```
+kafka_consumer_group_lag           # Consumer lag per partition (ALERT > 5000)
+dlq_messages_total{topic="..."}    # DLQ growth (ALERT on any)
+saga_duration_seconds              # Saga completion time
+outbox_pending_messages            # 1C outbox queue depth
+```
+
+---
+
+## КОМАНДА: /generate-kafka
+
+**Генерация Kafka-инфраструктуры для Go-сервиса.**
+
+1. Прочитать ТЗ от Agent 5 — определить топики и события
+2. Сгенерировать:
+   - `internal/adapter/kafka/consumer.go` — consumer group (franz-go)
+   - `internal/adapter/kafka/producer.go` — producer wrapper
+   - `internal/adapter/kafka/dlq.go` — DLQ + retry handler
+   - `internal/adapter/kafka/health.go` — health probes
+   - `internal/adapter/kafka/metrics.go` — Prometheus metrics
+   - `internal/port/kafka.go` — интерфейсы (Consumer, Producer)
+3. Если saga нужна (ТЗ указывает distributed transaction):
+   - `internal/usecase/saga_orchestrator.go`
+   - `internal/adapter/postgres/saga_store.go`
+4. Сгенерировать Protobuf schemas (если Schema Registry)
+5. Валидация + отчёт
 
 ---
 

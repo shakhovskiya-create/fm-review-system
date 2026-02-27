@@ -30,6 +30,12 @@
 │  → Agent 12 (Dev Go): фиксит баги, найденные тестами       │
 │                                                             │
 │  AUTO-TRIGGER: после Agent 12 /generate → я пишу тесты     │
+│                                                             │
+│  KAFKA: шина обмена — тестирую Go ↔ Kafka интеграцию       │
+│  → testcontainers-go/modules/kafka (KRaft, no ZooKeeper)   │
+│  → franz-go consumer/producer тесты                         │
+│  → Contract testing: Pact + Schema Registry                 │
+│  → DLQ + retry flow проверка                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -642,6 +648,205 @@ E2E-тест для пользовательского сценария.
 3. Для React: сгенерировать MSW handlers из спеки
 4. Создать CI-шаг drift detection
 5. Прогнать все контрактные тесты
+
+---
+
+## ТЕСТИРОВАНИЕ KAFKA-ИНТЕГРАЦИИ (Go)
+
+Kafka — шина обмена между 1С и Go-сервисами. Agent 12 генерирует kafka-код (franz-go), я тестирую его.
+
+### Стратегия тестирования
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  УРОВНИ ТЕСТИРОВАНИЯ KAFKA-ИНТЕГРАЦИИ (Go сторона)            │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  1. UNIT: Consumer / Producer                                  │
+│     → Table-driven тесты обработки сообщений                  │
+│     → Моки franz-go через интерфейсы                          │
+│     → Проверка: десериализация, бизнес-логика, ошибки          │
+│                                                                │
+│  2. INTEGRATION: testcontainers-go                             │
+│     → Реальный Kafka (KRaft, без ZooKeeper)                   │
+│     → Produce → Consume → Verify full cycle                   │
+│     → DLQ: ошибка обработки → сообщение в DLQ-топик          │
+│     → Retry: 3 попытки с exponential backoff                  │
+│                                                                │
+│  3. CONTRACT: Schema Registry                                  │
+│     → Protobuf/Avro schemas валидны                           │
+│     → Backward compatibility check                             │
+│     → Pact: consumer-driven contract testing                  │
+│                                                                │
+│  4. E2E: Kafka + HTTP + DB                                     │
+│     → docker-compose: Kafka + Go server + Postgres            │
+│     → 1С → Kafka → Go consumer → DB → API → React            │
+│     → Проверка: данные прошли всю цепочку                     │
+│                                                                │
+│  5. PERFORMANCE: нагрузочные тесты                             │
+│     → Throughput: 1000+ msg/sec consumer                      │
+│     → Latency p99 < 100ms для обработки одного сообщения      │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### testcontainers-go: интеграционный тест Kafka
+
+```go
+//go:build integration
+
+package kafka_test
+
+import (
+    "context"
+    "testing"
+    "time"
+
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+    "github.com/testcontainers/testcontainers-go/modules/kafka"
+    "github.com/twmb/franz-go/pkg/kgo"
+)
+
+func TestKafkaConsumer_ProcessOrder(t *testing.T) {
+    ctx := context.Background()
+
+    // Start Kafka container (KRaft, no ZooKeeper)
+    kafkaC, err := kafka.Run(ctx, "confluentinc/confluent-local:7.6.0")
+    require.NoError(t, err)
+    t.Cleanup(func() { kafkaC.Terminate(ctx) })
+
+    brokers, err := kafkaC.Brokers(ctx)
+    require.NoError(t, err)
+
+    // Produce test message
+    producer, err := kgo.NewClient(kgo.SeedBrokers(brokers...))
+    require.NoError(t, err)
+    defer producer.Close()
+
+    msg := `{"messageId":"test-1","type":"order.created","source":"1c.ut",
+             "data":{"orderId":"ORD-001","total":50000,"currency":"RUB"}}`
+
+    results := producer.ProduceSync(ctx,
+        &kgo.Record{Topic: "1c.orders.created.v1", Value: []byte(msg)},
+    )
+    require.NoError(t, results.FirstErr())
+
+    // Start consumer under test
+    consumer := NewOrderConsumer(brokers, mockOrderService)
+    go consumer.Start(ctx)
+
+    // Verify processing
+    assert.Eventually(t, func() bool {
+        return mockOrderService.ProcessedCount() == 1
+    }, 10*time.Second, 100*time.Millisecond)
+
+    processed := mockOrderService.LastProcessed()
+    assert.Equal(t, "ORD-001", processed.OrderID)
+    assert.Equal(t, float64(50000), processed.Total)
+}
+
+func TestKafkaConsumer_DLQ(t *testing.T) {
+    ctx := context.Background()
+
+    kafkaC, err := kafka.Run(ctx, "confluentinc/confluent-local:7.6.0")
+    require.NoError(t, err)
+    t.Cleanup(func() { kafkaC.Terminate(ctx) })
+
+    brokers, err := kafkaC.Brokers(ctx)
+    require.NoError(t, err)
+
+    // Produce invalid message
+    producer, err := kgo.NewClient(kgo.SeedBrokers(brokers...))
+    require.NoError(t, err)
+    defer producer.Close()
+
+    results := producer.ProduceSync(ctx,
+        &kgo.Record{Topic: "1c.orders.created.v1", Value: []byte(`{invalid}`)},
+    )
+    require.NoError(t, results.FirstErr())
+
+    // Consumer should send to DLQ after retries
+    consumer := NewOrderConsumer(brokers, mockOrderService)
+    go consumer.Start(ctx)
+
+    // Read DLQ
+    dlqConsumer, err := kgo.NewClient(
+        kgo.SeedBrokers(brokers...),
+        kgo.ConsumeTopics("1c.orders.created.v1.dlq"),
+    )
+    require.NoError(t, err)
+    defer dlqConsumer.Close()
+
+    assert.Eventually(t, func() bool {
+        fetches := dlqConsumer.PollFetches(ctx)
+        return fetches.NumRecords() > 0
+    }, 30*time.Second, 500*time.Millisecond)
+}
+```
+
+### Unit: consumer handler
+
+```go
+func TestHandleOrderMessage(t *testing.T) {
+    tests := []struct {
+        name    string
+        payload string
+        wantErr bool
+    }{
+        {
+            name:    "valid order message",
+            payload: `{"messageId":"1","type":"order.created","data":{"orderId":"ORD-1","total":100}}`,
+            wantErr: false,
+        },
+        {
+            name:    "missing orderId — error",
+            payload: `{"messageId":"2","type":"order.created","data":{"total":100}}`,
+            wantErr: true,
+        },
+        {
+            name:    "invalid JSON — error",
+            payload: `{not json}`,
+            wantErr: true,
+        },
+        {
+            name:    "negative total — error",
+            payload: `{"messageId":"3","type":"order.created","data":{"orderId":"ORD-1","total":-1}}`,
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            handler := NewOrderHandler(mockRepo)
+            err := handler.Handle(context.Background(), []byte(tt.payload))
+            if tt.wantErr {
+                require.Error(t, err)
+            } else {
+                require.NoError(t, err)
+            }
+        })
+    }
+}
+```
+
+---
+
+## КОМАНДА: /generate-kafka
+
+Тесты Kafka-интеграции для Go-кода от Agent 12.
+
+### Процесс
+
+1. Прочитать Kafka-код из `AGENT_12_DEV_GO/` (consumers, producers, handlers)
+2. Прочитать ТЗ-KAFKA-* требования из `AGENT_5_TECH_ARCHITECT/`
+3. Сгенерировать:
+   - Unit: table-driven тесты message handlers
+   - Integration: testcontainers-go (produce → consume → verify)
+   - DLQ: ошибка → retry → DLQ с metadata
+   - Contract: Schema Registry validation
+   - Performance: throughput и latency benchmarks
+4. CI stage: `go test -tags=integration ./internal/adapter/kafka/...`
+5. Сохранить в `AGENT_14_QA_GO/tests/kafka/`
 
 ---
 
