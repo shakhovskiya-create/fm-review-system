@@ -634,7 +634,7 @@ async def run_pipeline(
                 agent_result = await run_single_agent(
                     agent_id=aid,
                     project=project,
-                    command=f"/defense-all",
+                    command="/defense-all",
                     model=agent_model,
                     dry_run=dry_run,
                     max_budget=agent_budget,
