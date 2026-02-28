@@ -36,6 +36,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `scripts/quality_gate.sh`, `scripts/fm_version.sh`, `scripts/new_project.sh`
 - `scripts/check-secrets.sh` — верификация секретов (Infisical/keyring/.env)
 - `scripts/export_from_confluence.py`
+- `scripts/queue-graphiti-episode.sh` — очередь эпизодов Graphiti (SubagentStop → `.graphiti-queue/`)
 
 ## Observability
 - `src/fm_review/langfuse_tracer.py` — Stop hook трейсер

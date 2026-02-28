@@ -107,6 +107,9 @@ src/.langfuse_state/
 .rag-db/
 .rag-models/
 
+# Graphiti episode queue (transient, processed by orchestrator)
+.graphiti-queue/
+
 # CSM/S3 auto-generated setup files
 .csm_setup_*
 .s3_setup_*

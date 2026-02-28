@@ -50,6 +50,12 @@ except Exception as e:
                     found_warning=true
                 fi
             fi
+
+            # Queue summary for Graphiti ingestion (non-blocking)
+            QUEUE_SCRIPT="$PROJECT_DIR/scripts/queue-graphiti-episode.sh"
+            if [ -x "$QUEUE_SCRIPT" ]; then
+                "$QUEUE_SCRIPT" "$recent" 2>/dev/null || true
+            fi
         fi
     done
 done

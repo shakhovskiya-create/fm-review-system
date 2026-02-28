@@ -48,6 +48,17 @@ if [ -f "$CONTEXT_FILE" ]; then
   echo "- Progress: CONTEXT.md exists (read for session continuity)"
 fi
 
+# Graphiti queue: pending episodes from SubagentStop
+QUEUE_DIR="$PROJECT_DIR/.graphiti-queue"
+if [ -d "$QUEUE_DIR" ]; then
+  queue_count=$(find "$QUEUE_DIR" -name "*.json" -type f 2>/dev/null | wc -l)
+  if [ "$queue_count" -gt 0 ]; then
+    echo "- Graphiti queue: ${queue_count} pending episodes. Process with:"
+    echo "    for f in .graphiti-queue/*.json; do cat \"\$f\" | jq -r '.episode_body'; done"
+    echo "    Then call mcp__graphiti__add_memory for each, and rm the queue files."
+  fi
+fi
+
 # Определяем repo динамически
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 
