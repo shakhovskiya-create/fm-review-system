@@ -91,6 +91,7 @@ description: "Карта всех файлов системы fm-review-system �
 
 ## Прочее
 - `CONTEXT.md` — эфемерный session state (в .gitignore, генерируется хуками)
-- `.github/workflows/claude.yml` (PR review), `.github/workflows/security-review.yml`
+- `.github/workflows/claude.yml` (PR review), `.github/workflows/security-review.yml`, `.github/workflows/dod-check.yml` (переоткрывает issues без DoD)
+- `.claude/hooks/guard-issue-autoclose.sh` — блокирует `Closes/Fixes/Resolves #N` в git commit (PreToolUse)
 - `schemas/agent-contracts.json` (v2.2, multi-platform)
 - `docs/MODEL_SELECTION.md` — модели и бюджеты по агентам

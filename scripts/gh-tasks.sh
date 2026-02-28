@@ -142,6 +142,58 @@ cmd_start() {
     echo "Issue #${issue}: status:in-progress"
 }
 
+# Validate DoD structure: comment must contain required sections and checkboxes.
+# Required: "## Результат" OR "## Result", "## DoD", at least 3 checked items "- [x]",
+# and at least one mention of "Artifacts" or "Артефакты".
+_validate_dod_structure() {
+    local comment="$1"
+    local errors=()
+
+    # Check for Result section
+    if ! echo "$comment" | grep -qiE '^## (Результат|Result)'; then
+        errors+=("Отсутствует секция '## Результат'")
+    fi
+
+    # Check for DoD section
+    if ! echo "$comment" | grep -qiE '^## DoD'; then
+        errors+=("Отсутствует секция '## DoD'")
+    fi
+
+    # Check for at least 3 checked DoD items
+    local checked_count
+    checked_count=$(echo "$comment" | grep -c '\- \[x\]' || true)
+    if [[ "$checked_count" -lt 3 ]]; then
+        errors+=("Менее 3 отмеченных пунктов DoD (найдено: ${checked_count}, минимум: 3)")
+    fi
+
+    # Check for Artifacts mention
+    if ! echo "$comment" | grep -qiE '(Artifacts|Артефакты):?\s+\S'; then
+        errors+=("Нет перечисления артефактов (Artifacts: файлы/страницы)")
+    fi
+
+    if [[ ${#errors[@]} -gt 0 ]]; then
+        echo ""
+        echo "ERROR: DoD comment не соответствует стандарту (.claude/rules/dod.md):"
+        for e in "${errors[@]}"; do
+            echo "  ✗ $e"
+        done
+        echo ""
+        echo "Шаблон:"
+        echo "  ## Результат"
+        echo "  [Что сделано]"
+        echo ""
+        echo "  ## DoD"
+        echo "  - [x] Tests pass"
+        echo "  - [x] No regression"
+        echo "  - [x] AC met"
+        echo "  - [x] Artifacts: [файлы]"
+        echo "  - [x] No hidden debt"
+        echo ""
+        echo "Используйте --force для обхода (только для ретроактивных/административных закрытий)."
+        exit 1
+    fi
+}
+
 cmd_done() {
     local issue="${1:?ERROR: issue number required}"
     shift
@@ -156,8 +208,11 @@ cmd_done() {
 
     [[ -z "$comment" ]] && { echo "ERROR: --comment required (DoD checklist + результат)"; echo "Template: '## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: ...\n- [x] No hidden debt'"; exit 1; }
 
-    # Pre-close check: uncommitted changes and unpushed commits
+    # Pre-close checks (skippable with --force for admin/retroactive closes)
     if [[ "$force" != true ]]; then
+
+        # Validate DoD structure in comment
+        _validate_dod_structure "$comment"
         local dirty
         dirty=$(git status --porcelain 2>/dev/null | grep -v '^??' | head -5 || true)
         if [[ -n "$dirty" ]]; then

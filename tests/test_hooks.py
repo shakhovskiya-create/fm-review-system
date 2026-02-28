@@ -32,6 +32,7 @@ EXPECTED_HOOKS = [
     "block-secrets.sh",
     "guard-destructive-bash.sh",
     "guard-mcp-confluence-write.sh",
+    "guard-issue-autoclose.sh",
 ]
 
 
@@ -597,3 +598,67 @@ class TestGuardAgentWriteScope:
             "CLAUDE_PROJECT_DIR": str(tmp_path)
         })
         assert result.returncode == 0
+
+
+class TestGuardIssueAutoclose:
+    """Tests for guard-issue-autoclose.sh (PreToolUse -> Bash hook).
+
+    Prevents GitHub auto-close of issues via 'Closes/Fixes/Resolves #N'
+    in commit messages. Forces use of gh-tasks.sh done for DoD compliance.
+    """
+
+    @pytest.mark.parametrize("keyword", ["Closes", "closes", "Close", "Fixed", "Fixes", "Resolves", "Resolved"])
+    def test_blocks_autoclose_keywords(self, keyword):
+        """All variants of autoclose keywords should be blocked."""
+        stdin = json.dumps({"tool_input": {"command": f'git commit -m "feat: update\n\n{keyword} #123"'}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 2
+        assert "BLOCKED" in result.stderr
+
+    def test_blocks_multiple_issues(self):
+        """'Closes #1, #2, #3' should be blocked."""
+        stdin = json.dumps({"tool_input": {"command": 'git commit -m "feat: batch\n\nCloses #1, #2, #3"'}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 2
+
+    def test_allows_refs(self):
+        """'Refs #N' should be allowed (no auto-close)."""
+        stdin = json.dumps({"tool_input": {"command": 'git commit -m "feat: update\n\nRefs #42"'}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 0
+
+    def test_allows_non_git_commands(self):
+        """Non-git commands should pass through."""
+        stdin = json.dumps({"tool_input": {"command": "ls -la"}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 0
+
+    def test_allows_git_non_commit(self):
+        """git status, git push, etc. should pass through."""
+        stdin = json.dumps({"tool_input": {"command": "git push origin main"}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 0
+
+    def test_suggests_refs_and_gh_tasks(self):
+        """Error message should suggest 'Refs #N' and gh-tasks.sh done."""
+        stdin = json.dumps({"tool_input": {"command": 'git commit -m "Closes #99"'}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert "Refs #N" in result.stderr
+        assert "gh-tasks.sh done" in result.stderr
+
+    def test_handles_empty_input(self):
+        """Empty input should pass through."""
+        result = run_hook("guard-issue-autoclose.sh", "")
+        assert result.returncode == 0
+
+    def test_handles_heredoc_commit(self):
+        """Commit via heredoc containing Closes should be blocked."""
+        cmd = """git commit -m "$(cat <<'EOF'
+feat: big update
+
+Closes #107
+EOF
+)" """
+        stdin = json.dumps({"tool_input": {"command": cmd}})
+        result = run_hook("guard-issue-autoclose.sh", stdin)
+        assert result.returncode == 2

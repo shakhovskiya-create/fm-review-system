@@ -58,6 +58,11 @@
     - **CIO-assistant читает наши данные** — пиши понятно для стороннего контекста
 26. **GitHub Issues**: подробнее `.claude/rules/agent-workflow.md`.
 29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
+31. **ЗАПРЕТ `Closes/Fixes/Resolves #N` в коммитах.** GitHub автозакрывает issues при push — это обходит DoD.
+    - В commit message используй **`Refs #N`** (ссылка без закрытия)
+    - Закрывай ТОЛЬКО через: `scripts/gh-tasks.sh done <N> --comment "...DoD..."`
+    - Hook `guard-issue-autoclose.sh` заблокирует коммит с `Closes #N`
+    - CI workflow `dod-check.yml` переоткроет issue если DoD отсутствует
 
 ## Kafka-интеграция
 30. **Kafka** — шина обмена данными между 1С и Go-сервисами. Все dev-агенты (11-15) обязаны учитывать.

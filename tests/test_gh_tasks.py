@@ -168,13 +168,25 @@ class TestArtifactCrossCheck:
         subprocess.run(["git", "commit", "-m", "changes"], cwd=str(repo), capture_output=True)
         return repo
 
+    def _dod_comment(self, artifacts_text):
+        """Helper: build a valid DoD comment with given artifacts text."""
+        return (
+            "## Результат\nUpdated files\n\n"
+            "## DoD\n"
+            "- [x] Tests pass\n"
+            "- [x] No regression\n"
+            "- [x] AC met\n"
+            f"- [x] Artifacts: {artifacts_text}\n"
+            "- [x] No hidden debt"
+        )
+
     def test_warns_on_missing_files(self, tmp_path):
         """Should warn when changed files are not mentioned in comment."""
         repo = self._create_git_repo_with_diff(tmp_path)
         # Comment mentions gh-tasks.sh but NOT COMMON_RULES.md
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "## Результат\nUpdated gh-tasks.sh\n## DoD\n- [x] Artifacts: gh-tasks.sh",
+            "--comment", self._dod_comment("gh-tasks.sh"),
             cwd=str(repo),
         )
         # Should contain warning about COMMON_RULES.md (not mentioned)
@@ -186,7 +198,7 @@ class TestArtifactCrossCheck:
         repo = self._create_git_repo_with_diff(tmp_path)
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "## Результат\nDone\n## DoD\n- [x] Artifacts: gh-tasks.sh, COMMON_RULES.md",
+            "--comment", self._dod_comment("gh-tasks.sh, COMMON_RULES.md"),
             cwd=str(repo),
         )
         output = result.stdout + result.stderr
@@ -197,7 +209,7 @@ class TestArtifactCrossCheck:
         repo = self._create_git_repo_with_diff(tmp_path)
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "Artifacts: scripts/gh-tasks.sh, agents/COMMON_RULES.md",
+            "--comment", self._dod_comment("scripts/gh-tasks.sh, agents/COMMON_RULES.md"),
             cwd=str(repo),
         )
         output = result.stdout + result.stderr
@@ -206,6 +218,19 @@ class TestArtifactCrossCheck:
 
 class TestGhTasksDoneGitCheck:
     """Tests for pre-close git state checks (uncommitted changes, unpushed commits)."""
+
+    @staticmethod
+    def _valid_dod(artifacts="README.md"):
+        """Build a valid DoD comment that passes _validate_dod_structure."""
+        return (
+            "## Результат\nDone\n\n"
+            "## DoD\n"
+            "- [x] Tests pass\n"
+            "- [x] No regression\n"
+            "- [x] AC met\n"
+            f"- [x] Artifacts: {artifacts}\n"
+            "- [x] No hidden debt"
+        )
 
     @staticmethod
     def _create_clean_repo(tmpdir: Path) -> Path:
@@ -233,7 +258,7 @@ class TestGhTasksDoneGitCheck:
         (repo / "README.md").write_text("modified")
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "## Результат\nDone\n## DoD\n- [x] All good",
+            "--comment", self._valid_dod(),
             cwd=str(repo),
         )
         assert result.returncode == 1
@@ -248,14 +273,14 @@ class TestGhTasksDoneGitCheck:
         subprocess.run(["git", "commit", "-m", "unpushed"], cwd=str(repo), capture_output=True)
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "## Результат\nDone\n## DoD\n- [x] All good\n- [x] Artifacts: README.md",
+            "--comment", self._valid_dod(),
             cwd=str(repo),
         )
         assert result.returncode == 1
         assert "незапушенные" in result.stdout.lower() or "unpushed" in result.stdout.lower()
 
     def test_force_bypasses_uncommitted_check(self, tmp_path):
-        """--force should bypass the uncommitted changes check."""
+        """--force should bypass the uncommitted changes check and DoD validation."""
         repo = self._create_clean_repo(tmp_path)
         (repo / "README.md").write_text("modified")
         result = run_gh_tasks(
@@ -268,7 +293,7 @@ class TestGhTasksDoneGitCheck:
         assert "незакоммиченные" not in result.stdout.lower()
 
     def test_force_bypasses_unpushed_check(self, tmp_path):
-        """--force should bypass the unpushed commits check."""
+        """--force should bypass the unpushed commits check and DoD validation."""
         repo = self._create_clean_repo(tmp_path)
         (repo / "README.md").write_text("new change")
         subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
@@ -286,7 +311,7 @@ class TestGhTasksDoneGitCheck:
         repo = self._create_clean_repo(tmp_path)
         result = run_gh_tasks(
             "done", "999",
-            "--comment", "## Результат\nDone\n## DoD\n- [x] All good\n- [x] Artifacts: README.md",
+            "--comment", self._valid_dod(),
             cwd=str(repo),
         )
         # Should not contain git-check errors (may fail later on gh, but not on git checks)
@@ -303,3 +328,62 @@ class TestGhTasksDoneGitCheck:
             cwd=str(repo),
         )
         assert "--force" in result.stdout
+
+
+class TestDoDValidation:
+    """Tests for DoD structure validation in gh-tasks.sh done."""
+
+    def test_rejects_empty_comment(self):
+        """done should reject comment without DoD structure."""
+        result = run_gh_tasks("done", "999", "--comment", "Всё сделано")
+        assert result.returncode == 1
+        assert "## Результат" in result.stdout or "Результат" in result.stdout
+
+    def test_rejects_missing_dod_section(self):
+        """done should reject comment without ## DoD section."""
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nСделал\n- [x] Tests\n- [x] AC\n- [x] Artifacts: f.md",
+        )
+        assert result.returncode == 1
+        assert "## DoD" in result.stdout
+
+    def test_rejects_few_checkboxes(self):
+        """done should reject comment with fewer than 3 checked DoD items."""
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] Tests\n- [x] Artifacts: f.md",
+        )
+        assert result.returncode == 1
+        assert "минимум: 3" in result.stdout
+
+    def test_rejects_missing_artifacts(self):
+        """done should reject comment without Artifacts mention."""
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "## Результат\nDone\n## DoD\n- [x] Tests pass\n- [x] No regression\n- [x] AC met",
+        )
+        assert result.returncode == 1
+        assert "артефакт" in result.stdout.lower() or "Artifacts" in result.stdout
+
+    def test_accepts_valid_dod(self, tmp_path):
+        """done should accept a properly structured DoD comment."""
+        # Use a clean repo so git checks pass too
+        repo = TestGhTasksDoneGitCheck._create_clean_repo(tmp_path)
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", TestGhTasksDoneGitCheck._valid_dod(),
+            cwd=str(repo),
+        )
+        # Should pass DoD validation and git checks (may fail on gh API, which is fine)
+        assert "не соответствует стандарту" not in result.stdout
+
+    def test_force_bypasses_dod_validation(self):
+        """--force should bypass DoD structure validation."""
+        result = run_gh_tasks(
+            "done", "999",
+            "--comment", "Минимальный комментарий",
+            "--force",
+        )
+        # Should NOT contain DoD validation error
+        assert "не соответствует стандарту" not in result.stdout
