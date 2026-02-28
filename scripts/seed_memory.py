@@ -207,8 +207,8 @@ AGENTS = [
             "Protocol: agents/ORCHESTRATOR_HELPER.md",
             "Subagent file: .claude/agents/helper-architect.md",
             "Manages: hooks, scripts, MCP servers, CI/CD, tests, agent protocols",
-            "Delegates FM content work to agents 0-8",
-            "Has Episodic Memory access (subagents do not)",
+            "Delegates FM content work to agents 0-2, 5, 7-15",
+            "Processes Graphiti queue (.graphiti-queue/) at session start",
         ],
     },
 ]
@@ -472,7 +472,7 @@ RULES = [
     ]},
     {"name": "rule_knowledge_graph", "entityType": "rule", "observations": [
         ".claude/rules/knowledge-graph.md",
-        "KG + Episodic Memory usage: what to record, when to search",
+        "KG + Graphiti + Agent Memory usage: what to record, when to search",
     ]},
     {"name": "rule_pipeline", "entityType": "rule", "observations": [
         ".claude/rules/pipeline.md",

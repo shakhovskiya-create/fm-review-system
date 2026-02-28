@@ -25,9 +25,12 @@ echo "CONFLUENCE_TOKEN=your_pat_here" >> .env
 
 ---
 
-## 2. Episodic Memory - ТРЕБУЕТСЯ РУЧНАЯ УСТАНОВКА
+## 2. ~~Episodic Memory~~ — DEPRECATED (2026-02-28)
 
-Семантическая память между сессиями Claude Code. Агенты "помнят" предыдущие аудиты ФМ.
+> **Не используется.** Заменено на: Graphiti (temporal KG) + MCP memory (KG) + Agent Memory (per-agent).
+> Конфигурация ниже оставлена для справки.
+
+~~Семантическая память между сессиями Claude Code. Агенты "помнят" предыдущие аудиты ФМ.~~
 
 ### Установка
 

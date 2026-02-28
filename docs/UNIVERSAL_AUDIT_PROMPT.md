@@ -78,7 +78,7 @@
 - [ ] .claude/skills/ — повторяемые операции оформлены как skills?
 - [ ] Subagents — есть ли? С memory: project? Модели подобраны?
 - [ ] Hooks — lifecycle покрыт? SessionStart/Stop, Pre/PostToolUse?
-- [ ] Memory — Knowledge Graph / Episodic / Agent Memory?
+- [ ] Memory — Knowledge Graph / Graphiti / Agent Memory?
 - [ ] MCP серверы — используются ли все доступные для стека проекта?
 - [ ] Тесты — покрытие? CI? Запускаются одной командой?
 - [ ] Observability — трейсинг? Логирование? Метрики?

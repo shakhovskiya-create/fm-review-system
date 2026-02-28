@@ -31,7 +31,6 @@ Data: `.claude-memory/memory.jsonl`. Seed: `python3 scripts/seed_memory.py`
 
 **Правило:** Начинай с уровня 1 (дёшево), спускайся ниже только если не нашёл.
 
-## Episodic Memory (session history search)
-Plugin `episodic-memory@superpowers-marketplace` — semantic search over Claude Code conversation history.
-Used by orchestrator to restore context before launching agents.
-Subagents use Knowledge Graph + `memory: project` (personal agent memory).
+## Agent Memory (personal per-agent memory)
+Each subagent uses `memory: project` — personal memory in `.claude/agent-memory/<name>/MEMORY.md`.
+Orchestrator restores context from HANDOFF.md + CONTEXT.md + Knowledge Graph + Graphiti.

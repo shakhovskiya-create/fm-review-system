@@ -60,7 +60,6 @@ description: "Карта всех файлов системы fm-review-system �
 ## Memory
 - **Knowledge Graph** (`@modelcontextprotocol/server-memory`): `.claude-memory/memory.jsonl`, seed: `scripts/seed_memory.py`
 - **Graphiti** (общий с cio-assistant): `scripts/mcp-graphiti.sh`, Neo4j + OpenAI embeddings, group_id=`ekf-shared`
-- **Episodic Memory** (`episodic-memory@superpowers-marketplace`): глобально в `~/.claude/settings.json`
 - **Agent Memory** (`memory: project`): `.claude/agent-memory/<name>/MEMORY.md`
 
 ## Skills
