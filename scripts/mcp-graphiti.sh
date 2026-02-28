@@ -25,6 +25,7 @@ if _infisical_universal_auth "$PROJECT_DIR"; then
         uv run python main.py \
             --transport stdio \
             --llm-provider openai \
+            --model gpt-5.2 \
             --embedder-provider openai \
             --database-provider neo4j \
             --group-id "$GROUP_ID"
@@ -37,6 +38,7 @@ if command -v infisical &>/dev/null && infisical export --format=dotenv-export &
         uv run python main.py \
             --transport stdio \
             --llm-provider openai \
+            --model gpt-5.2 \
             --embedder-provider openai \
             --database-provider neo4j \
             --group-id "$GROUP_ID"
@@ -50,6 +52,7 @@ if [[ -f "$PROJECT_DIR/.env" ]]; then
         exec uv run python main.py \
             --transport stdio \
             --llm-provider openai \
+            --model gpt-5.2 \
             --embedder-provider openai \
             --database-provider neo4j \
             --group-id "$GROUP_ID"
