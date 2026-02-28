@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Hook: SubagentStop - validate _summary.json creation after agent completion
-# Fires after custom agents (agent-0..8) complete their work.
+# Fires after custom agents (agent-0..15) complete their work.
 # Checks that the agent created a _summary.json file per FC-07A protocol.
+# Also queues summary for Graphiti ingestion via queue-graphiti-episode.sh.
 #
 # Environment:
 #   CLAUDE_PROJECT_DIR - project root directory

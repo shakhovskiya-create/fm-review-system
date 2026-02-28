@@ -50,7 +50,9 @@ QUEUE_FILE="$QUEUE_DIR/$(date +%Y%m%d-%H%M%S)-$(basename "$(dirname "$SUMMARY_PA
 
 python3 -c "
 import json, sys, os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+MSK = timezone(timedelta(hours=3))
 
 summary_path = sys.argv[1]
 queue_path = sys.argv[2]
@@ -101,7 +103,7 @@ queue_entry = {
     'source': 'text',
     'source_description': f'Agent {agent} output summary',
     'summary_path': summary_path,
-    'queued_at': datetime.now(timezone.utc).isoformat()
+    'queued_at': datetime.now(MSK).isoformat()
 }
 
 with open(queue_path, 'w') as out:
