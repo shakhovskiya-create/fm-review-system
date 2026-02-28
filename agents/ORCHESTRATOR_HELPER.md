@@ -144,6 +144,11 @@
 2. `HANDOFF.md` — что сделано в прошлой сессии
 3. `mcp__memory__search_nodes` — Knowledge Graph (проекты, агенты, решения)
 4. `mcp__plugin_episodic-memory_episodic-memory__search` — прошлые сессии (при необходимости)
+5. **Graphiti queue** — если `.graphiti-queue/` не пуста, обработать pending episodes ПЕРВЫМ ДЕЛОМ:
+   - Прочитать каждый `.json` файл из `.graphiti-queue/`
+   - Вызвать `mcp__graphiti__add_memory` с данными из файла (name, episode_body, group_id, source)
+   - Удалить обработанный файл
+   - Это страховка: SubagentStop ставит `_summary.json` в очередь, если агент не записал в Graphiti сам
 
 ### При завершении сессии:
 1. Обновить `CONTEXT.md` — что сделано, блокеры, открытые вопросы
