@@ -103,6 +103,10 @@ CONTEXT.md
 # Langfuse runtime state
 src/.langfuse_state/
 
+# Local RAG vector database and model cache
+.rag-db/
+.rag-models/
+
 # CSM/S3 auto-generated setup files
 .csm_setup_*
 .s3_setup_*

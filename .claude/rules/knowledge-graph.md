@@ -13,6 +13,24 @@ globs: .claude/agents/**, agents/**, scripts/seed_memory.py
 
 Data: `.claude-memory/memory.jsonl`. Seed: `python3 scripts/seed_memory.py`
 
+## Local RAG (semantic search over knowledge base)
+- **MCP server:** `local-rag` (mcp-local-rag, LanceDB + Xenova/all-MiniLM-L6-v2)
+- **Tools:** `query_documents` (semantic search), `ingest_file`, `list_files`, `status`
+- **Data:** `knowledge-base/*.md` → `.rag-db/` (auto-indexed on first query)
+- **Index script:** `scripts/index-rag.sh` (status, manual trigger)
+
+## 5-уровневая иерархия поиска
+
+| # | Инструмент | Что ищем | Когда |
+|---|-----------|---------|------|
+| 1 | **KB файлы** (`Read knowledge-base/*.md`) | Точный lookup | Знаешь какой файл нужен |
+| 2 | **Local RAG** (`mcp__local-rag__query_documents`) | Семантический поиск по KB | Не знаешь где, ищешь по смыслу |
+| 3 | **Graphiti** (`mcp__graphiti__search_nodes/facts`) | Сущности, связи, хронология | Нужны связи между объектами |
+| 4 | **MCP memory** (`mcp__memory__search_nodes`) | Оперативные заметки агентов | Решения, findings, контекст прошлых сессий |
+| 5 | **Confluence** (`confluence_search/get_page`) | Свежие данные ФМ | Нужна актуальная версия ФМ |
+
+**Правило:** Начинай с уровня 1 (дёшево), спускайся ниже только если не нашёл.
+
 ## Episodic Memory (session history search)
 Plugin `episodic-memory@superpowers-marketplace` — semantic search over Claude Code conversation history.
 Used by orchestrator to restore context before launching agents.

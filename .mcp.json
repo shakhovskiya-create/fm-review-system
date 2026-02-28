@@ -38,6 +38,16 @@
     "graphiti": {
       "command": "scripts/mcp-graphiti.sh",
       "args": []
+    },
+    "local-rag": {
+      "command": "npx",
+      "args": ["-y", "mcp-local-rag"],
+      "env": {
+        "BASE_DIR": "./knowledge-base",
+        "DB_PATH": "./.rag-db/",
+        "CACHE_DIR": "./.rag-models/",
+        "RAG_HYBRID_WEIGHT": "0.6"
+      }
     }
   }
 }

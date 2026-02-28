@@ -79,6 +79,7 @@ description: "Карта всех файлов системы fm-review-system �
 - `playwright` — Runtime UI verification (@playwright/mcp, headless Chromium, Agent 9, Agent 12, Agent 14)
 - `agentation` — Visual React UI annotation (agentation-mcp, 9 tools, Agent 9)
 - `graphiti` — Temporal Knowledge Graph (Graphiti + Neo4j, scripts/mcp-graphiti.sh, group_id=ekf-shared, все агенты)
+- `local-rag` — Semantic search по knowledge-base/ (mcp-local-rag, LanceDB + MiniLM embeddings, scripts/index-rag.sh)
 
 ## Task Tracking (GitHub Issues)
 - `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
