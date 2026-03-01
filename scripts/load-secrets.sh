@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Load secrets into environment variables.
 # Priority: Infisical (Universal Auth) -> system keyring -> .env file
-# Usage: source scripts/load-secrets.sh
+# Usage: source scripts/load-secrets.sh [--project PROJECT_NAME]
+#
+# Projects:
+#   (default)              — fm-review-system secrets (root path /)
+#   --project profitability-service — profitability-service secrets (/profitability-service)
 #
 # Setup:
 #   1. Infisical (recommended): Machine Identity credentials in infra/infisical/.env.machine-identity
@@ -14,6 +18,20 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/secrets.sh"
 SERVICE="fm-review"
+
+# --- Parse --project argument ---
+_INFISICAL_PATH="/"
+_PROJECT_NAME="fm-review-system"
+_prev_arg=""
+for _arg in "$@"; do
+    if [[ "$_prev_arg" == "--project" ]]; then
+        _PROJECT_NAME="$_arg"
+        _INFISICAL_PATH="/${_arg}"
+    fi
+    _prev_arg="$_arg"
+done
+unset _arg _prev_arg
+
 KEYS=(CONFLUENCE_TOKEN LANGFUSE_SECRET_KEY LANGFUSE_PUBLIC_KEY GITHUB_TOKEN MIRO_ACCESS_TOKEN ANTHROPIC_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID)
 
 # --- Priority 1: Infisical (Universal Auth) ---
@@ -31,9 +49,10 @@ if _infisical_universal_auth "$PROJECT_DIR"; then
     done < <(INFISICAL_TOKEN="$INFISICAL_TOKEN" \
         infisical export --format=dotenv-export \
         --projectId="${INFISICAL_PROJECT_ID}" --env=dev \
+        --path="${_INFISICAL_PATH}" \
         --domain="${INFISICAL_API_URL:-https://app.infisical.com/api}" 2>/dev/null)
     if [[ $_loaded -gt 0 ]]; then
-        echo "[load-secrets] Loaded $_loaded secrets from Infisical (Universal Auth)"
+        echo "[load-secrets] Loaded $_loaded secrets from Infisical (${_PROJECT_NAME}, path=${_INFISICAL_PATH})"
         return 0 2>/dev/null || exit 0
     fi
 fi

@@ -2,7 +2,11 @@
 # ═══════════════════════════════════════════════════════════════
 # CHECK-SECRETS.SH — Verify all required secrets are available
 # ═══════════════════════════════════════════════════════════════
-# Usage: ./scripts/check-secrets.sh [--verbose]
+# Usage: ./scripts/check-secrets.sh [--verbose] [--project PROJECT_NAME]
+#
+# Projects:
+#   (default)                           — fm-review-system
+#   --project profitability-service     — profitability-service
 #
 # Checks secrets availability in priority order:
 #   1. Infisical (Universal Auth or user session)
@@ -18,17 +22,37 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/secrets.sh"
 
-# Required secrets (pipeline won't work without these)
-REQUIRED_KEYS=(ANTHROPIC_API_KEY)
-
-# Important secrets (specific features need these)
-IMPORTANT_KEYS=(CONFLUENCE_TOKEN)
-
-# Optional secrets (nice to have)
-OPTIONAL_KEYS=(LANGFUSE_SECRET_KEY LANGFUSE_PUBLIC_KEY GITHUB_TOKEN MIRO_ACCESS_TOKEN TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID)
-
+# --- Parse arguments ---
 VERBOSE=false
-[[ "${1:-}" == "--verbose" || "${1:-}" == "-v" ]] && VERBOSE=true
+_PROJECT=""
+for arg in "$@"; do
+    case "$arg" in
+        --verbose|-v) VERBOSE=true ;;
+        --project) : ;; # next arg is the project name
+    esac
+done
+# Extract project name (arg after --project)
+for ((i=1; i<=$#; i++)); do
+    if [[ "${!i}" == "--project" ]]; then
+        j=$((i+1))
+        _PROJECT="${!j:-}"
+    fi
+done
+
+# --- Project-specific key lists ---
+if [[ "$_PROJECT" == "profitability-service" ]]; then
+    _INFISICAL_PATH="/profitability-service"
+    REQUIRED_KEYS=(PROFITABILITY_DB_URL WORKFLOW_DB_URL ANALYTICS_DB_URL INTEGRATION_DB_URL NOTIFICATION_DB_URL REDIS_URL KAFKA_BROKERS AD_BIND_PASSWORD JWT_SIGNING_KEY)
+    IMPORTANT_KEYS=(AI_MODEL_ANALYST AI_MODEL_INVESTIGATOR AI_DAILY_BUDGET_USD ELMA_API_KEY ODIN_C_API_KEY)
+    OPTIONAL_KEYS=(SMTP_PASSWORD WMS_API_KEY LOG_LEVEL OTEL_EXPORTER_OTLP_ENDPOINT AUTH_MFA_ENABLED INTEGRATION_MODE)
+    _PROJECT_LABEL="profitability-service"
+else
+    _INFISICAL_PATH="/"
+    REQUIRED_KEYS=(ANTHROPIC_API_KEY)
+    IMPORTANT_KEYS=(CONFLUENCE_TOKEN)
+    OPTIONAL_KEYS=(LANGFUSE_SECRET_KEY LANGFUSE_PUBLIC_KEY GITHUB_TOKEN MIRO_ACCESS_TOKEN TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID)
+    _PROJECT_LABEL="fm-review-system"
+fi
 
 # Colors
 RED='\033[0;31m'
@@ -95,10 +119,14 @@ detect_source() {
 
 # --- Load secrets first (so env check works) ---
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/load-secrets.sh" 2>/dev/null || true
+if [[ -n "$_PROJECT" ]]; then
+    source "$SCRIPT_DIR/load-secrets.sh" --project "$_PROJECT" 2>/dev/null || true
+else
+    source "$SCRIPT_DIR/load-secrets.sh" 2>/dev/null || true
+fi
 
 echo -e "${BOLD}═══════════════════════════════════════════${NC}"
-echo -e "  ${BOLD}Secret Verification${NC}"
+echo -e "  ${BOLD}Secret Verification: ${_PROJECT_LABEL}${NC}"
 echo -e "${BOLD}═══════════════════════════════════════════${NC}"
 
 # --- Check required ---
