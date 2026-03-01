@@ -1275,7 +1275,7 @@ message [Request] {
 }
 ```
 
-**Передача:** Agent 3 (Defender) читает `feasibility_review.json` при подготовке ответов на замечания. `needs_alternative` → Agent 3 классифицирует как H (RoleConflict) и предлагает компромисс.
+**Передача:** Agent 1 (Architect, defense mode) читает `feasibility_review.json` при подготовке ответов на замечания. `needs_alternative` → Agent 1 классифицирует как H (RoleConflict) и предлагает компромисс.
 
 ---
 
