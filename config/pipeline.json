@@ -21,20 +21,24 @@
     [7]
   ],
 
+  "_comment_conditional": "Platform routing: Agent 9 (SE Go) reviews Go arch, Agent 10 (SE 1C) reviews 1C arch. Dev agents follow their SE reviewer.",
   "CONDITIONAL_STAGES": {
     "9":  {"after": 5, "platform": "go"},
     "10": {"after": 5, "platform": "1c"},
-    "11": {"after": "9",  "platform": "1c", "phase": "dev"},
-    "12": {"after": "10", "platform": "go",  "phase": "dev"},
+    "11": {"after": "10", "platform": "1c", "phase": "dev"},
+    "12": {"after": "9",  "platform": "go",  "phase": "dev"},
     "13": {"after": "11", "platform": "1c", "phase": "dev"},
     "14": {"after": "12", "platform": "go",  "phase": "dev"},
-    "15": {"after": 7, "phase": "review"}
+    "15": {"after": 7, "phase": "review"},
+    "16": {"after": "14", "platform": "go",  "phase": "deploy"}
   },
 
   "PIPELINE_MODES": {
     "quick":    {"order": [1, 5, 7],                                          "budget_usd": 25.0},
     "standard": {"order": [1, 2, "1:defense", 5, "quality_gate", 7, [8, 15]], "budget_usd": 35.0},
-    "full":     {"order": ["standard", "11|12", "13|14", 7],                   "budget_usd": 55.0}
+    "full":     {"order": ["standard", "11|12", "13|14", 7],                   "budget_usd": 55.0},
+    "go_full":  {"order": [5, 9, 12, 14, 16, 7],                              "budget_usd": 60.0, "_comment": "Go pipeline: arch → SE review → code gen → tests → release → publish"},
+    "1c_full":  {"order": [5, 10, 11, 13, 7],                                 "budget_usd": 50.0, "_comment": "1С pipeline: arch → SE review → dev → tests → publish"}
   },
 
   "AGENT_REGISTRY": {
@@ -50,7 +54,8 @@
     "12": {"name": "Dev_Go",        "file": "dev/AGENT_12_DEV_GO.md",      "dir": "AGENT_12_DEV_GO",        "model": "opus",   "budget_usd": 10.0, "timeout_seconds": 900, "phase": "dev"},
     "13": {"name": "QA_1C",         "file": "dev/AGENT_13_QA_1C.md",       "dir": "AGENT_13_QA_1C",         "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600, "phase": "dev"},
     "14": {"name": "QA_Go",         "file": "dev/AGENT_14_QA_GO.md",       "dir": "AGENT_14_QA_GO",         "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600, "phase": "dev"},
-    "15": {"name": "Trainer",       "file": "dev/AGENT_15_TRAINER.md",     "dir": "AGENT_15_TRAINER",       "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600}
+    "15": {"name": "Trainer",       "file": "dev/AGENT_15_TRAINER.md",     "dir": "AGENT_15_TRAINER",       "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600},
+    "16": {"name": "ReleaseEng",   "file": "dev/AGENT_16_RELEASE_ENGINEER.md", "dir": "AGENT_16_RELEASE_ENGINEER", "model": "opus", "budget_usd": 5.0, "timeout_seconds": 600, "phase": "deploy"}
   },
 
   "_deprecated": {

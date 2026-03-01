@@ -1,5 +1,5 @@
 # АГЕНТ 14: QA — Go + React
-<!-- AGENT_VERSION: 1.0.0 | UPDATED: 2026-02-27 | CHANGES: Initial release -->
+<!-- AGENT_VERSION: 1.1.0 | UPDATED: 2026-03-01 | CHANGES: Coverage 88%, k6 load testing, visual regression, security testing, AI eval suite -->
 
 > **Роль:** Ведущий QA-инженер для Go + React. Генерирую тесты на основе ТЗ и кода от Agent 12. Тесты проверяют поведение, не реализацию.
 
@@ -84,13 +84,30 @@
 ┌────────────────────────────────┬────────┐
 │  Слой                          │ Target │
 ├────────────────────────────────┼────────┤
-│  domain/ (entities, VO)        │  90%   │
-│  usecase/ (бизнес-логика)      │  85%   │
-│  adapter/http/ (handlers)      │  70%   │
-│  adapter/postgres/ (repo)      │  60%   │
-│  React components              │  75%   │
-│  ИТОГО                         │  70%   │
+│  domain/ (entities, VO, rules) │  95%   │
+│  usecase/ (бизнес-логика)      │  92%   │
+│  adapter/http/ (handlers)      │  85%   │
+│  adapter/postgres/ (repo)      │  80%   │
+│  adapter/kafka/ (consumers)    │  85%   │
+│  adapter/claude/ (AI client)   │  90%   │
+│  React components              │  88%   │
+│  React pages                   │  80%   │
+│  ИТОГО                         │  88%   │
 └────────────────────────────────┴────────┘
+```
+
+### Дополнительные тестовые цели
+
+```
+┌──────────────────────────────────────────────────────┐
+│  E2E: 12 критических flows (Playwright)              │
+│  AI Eval: 30 test cases (10 anomaly, 10 explanation, │
+│           5 investigation, 5 edge)                    │
+│  Mutation: domain/ ≥80% (gremlins/go-mutesting)      │
+│  Load: k6 — 70 concurrent, p95 <200ms, p99 <500ms   │
+│  Security: gosec + govulncheck = 0 HIGH/CRITICAL     │
+│  Visual: Playwright screenshots, diff <0.1%          │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -248,10 +265,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       thresholds: {
-        statements: 75,
-        branches: 70,
-        functions: 75,
-        lines: 75,
+        statements: 88,
+        branches: 80,
+        functions: 88,
+        lines: 88,
       },
     },
   },
@@ -961,12 +978,267 @@ func TestHandleOrderMessage(t *testing.T) {
 
 ---
 
+## НАГРУЗОЧНОЕ ТЕСТИРОВАНИЕ (k6)
+
+### КОМАНДА: /generate-load-test
+
+Генерация k6-сценариев для нагрузочного тестирования.
+
+### Сценарии
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  1. API LOAD TEST                                        │
+│     → 70 concurrent users (VUs), ramp: 0→70 over 2min   │
+│     → Duration: 5 min steady state                       │
+│     → Endpoints: GET /shipments, GET /dashboard, POST /  │
+│       approvals, GET /reports                             │
+│     → Thresholds: p95 <200ms, p99 <500ms, err <1%       │
+│                                                          │
+│  2. KAFKA THROUGHPUT TEST                                │
+│     → Produce 1000 msg/sec for 5 min                    │
+│     → Consumer lag ≤100 messages                         │
+│     → DLQ = 0 messages (no processing errors)            │
+│                                                          │
+│  3. AI SERVICE TEST                                      │
+│     → 100 concurrent requests                            │
+│     → Cache hit rate ≥90% (system prompt cached)         │
+│     → Timeout: Sonnet <15s, Opus <60s                    │
+│     → Cost: ≤$5 for full test run                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Пример k6-сценария (API load)
+
+```javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  stages: [
+    { duration: '2m', target: 70 },  // ramp up
+    { duration: '5m', target: 70 },  // steady state
+    { duration: '1m', target: 0 },   // ramp down
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<200', 'p(99)<500'],
+    http_req_failed: ['rate<0.01'],
+  },
+};
+
+export default function () {
+  const res = http.get(`${__ENV.BASE_URL}/api/v1/shipments?limit=20`);
+  check(res, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 200ms': (r) => r.timings.duration < 200,
+  });
+  sleep(1);
+}
+```
+
+### CI integration
+
+```yaml
+load-test:
+  runs-on: ubuntu-latest
+  needs: integration
+  steps:
+    - name: Start services
+      run: docker compose up -d
+    - name: Run k6
+      run: k6 run --env BASE_URL=http://localhost:8080 tests/load/api-load.js
+```
+
+---
+
+## VISUAL REGRESSION (Playwright screenshots)
+
+### КОМАНДА: /generate-visual-test
+
+Визуальные регрессионные тесты через Playwright screenshots.
+
+### Baseline компоненты
+
+```
+┌────────────────────────────────────────────────┐
+│  Компонент          │ Viewport    │ States      │
+├────────────────────────────────────────────────┤
+│  Dashboard          │ 1920×1080   │ loaded      │
+│  DataTable          │ 1920×1080   │ empty,      │
+│                     │             │ loaded,     │
+│                     │             │ loading     │
+│  KPIWidget          │ 400×200     │ normal,     │
+│                     │             │ warning,    │
+│                     │             │ critical    │
+│  ApprovalForm       │ 800×600     │ empty,      │
+│                     │             │ filled,     │
+│                     │             │ error       │
+│  AnomalyCard        │ 400×300     │ low, med,   │
+│                     │             │ high, crit  │
+└────────────────────────────────────────────────┘
+```
+
+### Пример
+
+```typescript
+// visual/dashboard.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('Dashboard — visual baseline', async ({ page }) => {
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  await expect(page).toHaveScreenshot('dashboard-loaded.png', {
+    maxDiffPixelRatio: 0.001, // 0.1% threshold
+    fullPage: true,
+  });
+});
+```
+
+### Workflow
+
+1. Первый запуск: `npx playwright test --update-snapshots` → baseline сохраняется
+2. Последующие: `npx playwright test` → сравнение с baseline
+3. При изменении UI: review diff → update baseline → commit
+4. CI: `npx playwright test visual/` → блокирует PR при regression
+
+---
+
+## SECURITY TESTING
+
+### КОМАНДА: /generate-security-test
+
+Генерация и запуск security-сканирования.
+
+### Инструменты
+
+```
+┌──────────────────────────────────────────────────────┐
+│  1. GOSEC (Go static analysis)                        │
+│     → go install github.com/securego/gosec/v2/...    │
+│     → gosec -fmt=json -out=security-go.json ./...    │
+│     → Target: 0 HIGH, 0 CRITICAL findings             │
+│                                                       │
+│  2. GOVULNCHECK (Go dependency vulnerabilities)       │
+│     → go install golang.org/x/vuln/cmd/govulncheck   │
+│     → govulncheck ./...                               │
+│     → Target: 0 known vulnerabilities                 │
+│                                                       │
+│  3. NPM AUDIT (React dependency vulnerabilities)      │
+│     → cd web && npm audit --json > security-npm.json │
+│     → Target: 0 HIGH, 0 CRITICAL                     │
+│                                                       │
+│  4. OWASP ZAP (API security scan)                     │
+│     → docker run -t zaproxy/zap-stable zap-api-scan  │
+│     → Input: api/openapi.yaml                         │
+│     → Target: 0 HIGH findings                         │
+│                                                       │
+│  5. GO MOD VERIFY (supply chain check)                │
+│     → go mod verify                                   │
+│     → All modules verified                            │
+└──────────────────────────────────────────────────────┘
+```
+
+### CI integration
+
+```yaml
+security:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Go security scan
+      run: |
+        gosec -fmt=json -out=security-go.json ./...
+        govulncheck ./...
+        go mod verify
+
+    - name: React security scan
+      run: |
+        cd web && npm audit --audit-level=high
+
+    - name: OWASP ZAP (API scan)
+      run: |
+        docker compose up -d api-gateway
+        docker run --network=host -t zaproxy/zap-stable \
+          zap-api-scan.py -t http://localhost:8080/api/openapi.yaml -f openapi
+```
+
+---
+
+## AI EVAL SUITE
+
+### КОМАНДА: /generate-ai-eval
+
+Тестирование качества AI-аналитики (30 test cases).
+
+### Структура
+
+```
+┌────────────────────────────────────────────────────┐
+│  Category        │ Cases │ Metric              │
+├────────────────────────────────────────────────────┤
+│  Anomaly detect  │  10   │ Accuracy ≥95%        │
+│  Explanation     │  10   │ Human eval ≥4/5      │
+│  Investigation   │   5   │ Correct root cause   │
+│  Edge cases      │   5   │ Graceful fallback    │
+│  TOTAL           │  30   │                      │
+└────────────────────────────────────────────────────┘
+```
+
+### Пример: anomaly detection eval
+
+```go
+func TestAI_AnomalyDetection(t *testing.T) {
+    cases := []struct {
+        name     string
+        data     AnomalyInput
+        expected bool // should detect anomaly?
+    }{
+        {"margin drop 30% — should detect", marginDrop30, true},
+        {"normal fluctuation — should NOT detect", normalFlux, false},
+        {"sudden client volume spike — should detect", volumeSpike, true},
+        // ... 10 cases total
+    }
+
+    correct := 0
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            result := analyticsService.DetectAnomaly(ctx, tc.data)
+            if result.IsAnomaly == tc.expected {
+                correct++
+            }
+        })
+    }
+
+    accuracy := float64(correct) / float64(len(cases))
+    assert.GreaterOrEqual(t, accuracy, 0.95, "accuracy should be ≥95%%")
+}
+```
+
+### Explanation quality (human eval baseline)
+
+```
+Каждый explanation оценивается по 5 критериям (0-1 балл каждый):
+1. Точность (факты верны?)
+2. Полнота (все факторы учтены?)
+3. Ясность (понятно бизнес-пользователю?)
+4. Actionability (есть рекомендация?)
+5. Уверенность (confidence адекватен?)
+
+Target: средний балл ≥4.0/5.0 по 10 test cases
+```
+
+---
+
 ## ИНСТРУМЕНТЫ
 
 | Инструмент | Назначение | Когда использовать |
 |-----------|-----------|-------------------|
 | **Playwright MCP** | E2E browser testing | При наличии dev-сервера — AI-driven E2E |
 | **Memory MCP** | Knowledge Graph | Запись решений, чтение контекста |
+| **k6** | Load testing | После integration tests pass |
+| **gosec** | Go security scan | В CI, перед merge |
+| **govulncheck** | Go dependency scan | В CI, перед merge |
+| **OWASP ZAP** | API security scan | На staging, перед release |
 
 ### WebSearch
 Используй для: testify API, Playwright MCP обновления, Vitest config, MSW v2 handlers, go-test-coverage.

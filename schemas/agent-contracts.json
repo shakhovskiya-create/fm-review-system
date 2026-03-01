@@ -659,6 +659,82 @@
         },
         "fmVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
       }
+    },
+
+    "agentOutput_Agent16_ReleaseEngineer": {
+      "type": "object",
+      "description": "Output schema for Agent 16 (Release Engineer). Produced after deploy/release operations.",
+      "required": ["deployedVersion", "environment", "qualityGateResults", "rollbackAvailable"],
+      "properties": {
+        "deployedVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Semantic version deployed (e.g. 1.0.0)"
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["dev", "staging", "prod"],
+          "description": "Target environment"
+        },
+        "qualityGateResults": {
+          "type": "object",
+          "description": "Results of 12-point Quality Gate check",
+          "properties": {
+            "passed": { "type": "boolean" },
+            "totalChecks": { "type": "integer", "const": 12 },
+            "passedChecks": { "type": "integer", "minimum": 0, "maximum": 12 },
+            "failedChecks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "reason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "changelog": {
+          "type": "string",
+          "description": "Generated changelog from conventional commits"
+        },
+        "rollbackAvailable": {
+          "type": "boolean",
+          "description": "Whether rollback to previous version is available"
+        },
+        "rollbackVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Previous version for rollback (if available)"
+        },
+        "deployTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the deploy was executed"
+        },
+        "monitoringStatus": {
+          "type": "string",
+          "enum": ["pending", "monitoring", "healthy", "degraded", "rolled-back"],
+          "description": "Post-deploy monitoring status"
+        },
+        "errorRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Error rate during post-deploy monitoring (%)"
+        },
+        "notificationsSent": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "channel": { "type": "string", "enum": ["telegram", "confluence", "email"] },
+              "status": { "type": "string", "enum": ["sent", "failed"] }
+            }
+          }
+        }
+      }
     }
   }
 }

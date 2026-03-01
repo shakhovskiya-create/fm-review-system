@@ -1,6 +1,6 @@
 # Реестр субагентов и маршрутизация
 
-15 агентов зарегистрированы как Claude Code subagents в `.claude/agents/`:
+16 агентов зарегистрированы как Claude Code subagents в `.claude/agents/`:
 
 | Subagent | Модель | Протокол | Фаза |
 |----------|--------|----------|------|
@@ -18,6 +18,7 @@
 | `agent-13-qa-1c` | sonnet | `agents/dev/AGENT_13_QA_1C.md` | dev |
 | `agent-14-qa-go` | sonnet | `agents/dev/AGENT_14_QA_GO.md` | dev |
 | `agent-15-trainer` | sonnet | `agents/dev/AGENT_15_TRAINER.md` | review |
+| `agent-16-release-engineer` | opus | `agents/dev/AGENT_16_RELEASE_ENGINEER.md` | deploy |
 
 **DEPRECATED:** Agent 3 (Defender → merged into Agent 1), Agent 4 (QA → Agent 13+14), Agent 6 (Presenter → Agent 15)
 
@@ -44,6 +45,7 @@
 | "Протестируй 1С", "Vanessa тесты", "YAxUnit" | Agent 13 (QA 1С) | /auto |
 | "Протестируй Go", "Тесты React", "E2E тесты" | Agent 14 (QA Go+React) | /auto |
 | "Инструкции", "Обучение", "User guide", "FAQ" | Agent 15 (Trainer) | /auto |
+| "Релиз", "Деплой", "Deploy", "Release", "Откат" | Agent 16 (Release Engineer) | /release |
 | "Почини", "Настрой MCP", "Добавь хук" | Оркестратор | agents/ORCHESTRATOR_HELPER.md |
 | "Полный цикл", "Конвейер", "Запусти все" | Pipeline | workflows/PIPELINE_AUTO.md |
 | "Эволюция", "/evolve" | Evolve | agents/EVOLVE.md |
