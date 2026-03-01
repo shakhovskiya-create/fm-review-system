@@ -1,9 +1,9 @@
 """
 Tests for agent configuration validation.
 
-Validates all 13 active subagent frontmatter files (.claude/agents/agent-*.md).
+Validates all 14 active subagent frontmatter files (.claude/agents/agent-*.md).
 Agents 3, 4, 6 are deprecated (.md.deprecated) and excluded from active tests.
-Active agents: 0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15.
+Active agents: 0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16.
 """
 import json
 import os
@@ -29,9 +29,10 @@ WRITING_AGENTS = {"agent-0-creator", "agent-5-tech-architect",
                   "agent-7-publisher", "agent-8-bpmn-designer",
                   "agent-9-se-go", "agent-10-se-1c",
                   "agent-11-dev-1c", "agent-12-dev-go",
-                  "agent-13-qa-1c", "agent-14-qa-go", "agent-15-trainer"}
+                  "agent-13-qa-1c", "agent-14-qa-go", "agent-15-trainer",
+                  "agent-16-release-engineer"}
 # Active agent numbers (3, 4, 6 deprecated)
-ACTIVE_AGENT_NUMBERS = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+ACTIVE_AGENT_NUMBERS = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 
 def parse_frontmatter(file_path: Path) -> dict:
@@ -45,11 +46,11 @@ def parse_frontmatter(file_path: Path) -> dict:
 
 class TestAgentFileDiscovery:
     def test_active_agents_exist(self):
-        """All 13 active agent files exist in .claude/agents/ (3, 4, 6 deprecated)."""
-        assert len(AGENT_FILES) == 13, f"Expected 13 agents, found {len(AGENT_FILES)}"
+        """All 14 active agent files exist in .claude/agents/ (3, 4, 6 deprecated)."""
+        assert len(AGENT_FILES) == 14, f"Expected 14 agents, found {len(AGENT_FILES)}"
 
     def test_agent_numbering(self):
-        """Active agents have expected numbers (0-2, 5, 7-15, excluding 3/4/6)."""
+        """Active agents have expected numbers (0-2, 5, 7-16, excluding 3/4/6)."""
         numbers = []
         for f in AGENT_FILES:
             match = re.match(r"agent-(\d+)-", f.name)

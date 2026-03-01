@@ -41,13 +41,13 @@ PROJECT_DIR = PROJECT_ROOT / "projects" / "PROJECT_SHPMNT_PROFIT"
 
 
 class TestAgentRegistry:
-    def test_thirteen_agents_registered(self):
-        """All 13 active agents are in the registry (3, 4, 6 deprecated)."""
-        assert len(AGENT_REGISTRY) == 13
+    def test_fourteen_agents_registered(self):
+        """All 14 active agents are in the registry (3, 4, 6 deprecated)."""
+        assert len(AGENT_REGISTRY) == 14
 
     def test_agent_ids(self):
-        """Active agent IDs: 0-2, 5, 7-15 (3, 4, 6 deprecated)."""
-        expected = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        """Active agent IDs: 0-2, 5, 7-16 (3, 4, 6 deprecated)."""
+        expected = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
         assert sorted(AGENT_REGISTRY.keys()) == expected
 
     def test_each_agent_has_required_fields(self):

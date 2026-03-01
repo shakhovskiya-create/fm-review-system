@@ -55,7 +55,7 @@
     "13": {"name": "QA_1C",         "file": "dev/AGENT_13_QA_1C.md",       "dir": "AGENT_13_QA_1C",         "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600, "phase": "dev"},
     "14": {"name": "QA_Go",         "file": "dev/AGENT_14_QA_GO.md",       "dir": "AGENT_14_QA_GO",         "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600, "phase": "dev"},
     "15": {"name": "Trainer",       "file": "dev/AGENT_15_TRAINER.md",     "dir": "AGENT_15_TRAINER",       "model": "sonnet", "budget_usd": 5.0,  "timeout_seconds": 600},
-    "16": {"name": "ReleaseEng",   "file": "dev/AGENT_16_RELEASE_ENGINEER.md", "dir": "AGENT_16_RELEASE_ENGINEER", "model": "opus", "budget_usd": 5.0, "timeout_seconds": 600, "phase": "deploy"}
+    "16": {"name": "ReleaseEng",   "file": "dev/AGENT_16_RELEASE_ENGINEER.md", "dir": "AGENT_16_RELEASE_ENGINEER", "model": "opus", "budget_usd": 6.0, "timeout_seconds": 600, "phase": "deploy"}
   },
 
   "_deprecated": {
