@@ -80,15 +80,22 @@ description: "Карта всех файлов системы fm-review-system �
 - `agentation` — Visual React UI annotation (agentation-mcp, 9 tools, Agent 9)
 - `graphiti` — Temporal Knowledge Graph (Graphiti + Neo4j, scripts/mcp-graphiti.sh, group_id=ekf-shared, все агенты)
 - `local-rag` — Semantic search по knowledge-base/ (mcp-local-rag, LanceDB + MiniLM embeddings, scripts/index-rag.sh)
+- `jira` — Jira Server API (scripts/mcp-jira.sh, PAT через Infisical)
 
-## Task Tracking (GitHub Issues)
-- `scripts/gh-tasks.sh` — CLI обёртка для GitHub Issues (create/start/done/block/list/sprint)
+## Task Tracking (Jira EKFLAB)
+- **Проект:** `EKFLAB` на `https://jira.ekf.su`
+- **Доска #38:** Доска EKFLAB (все задачи)
+- **Доска #39:** Profitability Service (фильтр `product:profitability`)
+- `scripts/jira-tasks.sh` — CLI обёртка для Jira (create/start/done/block/list/sprint/children/my-tasks)
   - `create`: `--body` ОБЯЗАТЕЛЕН (образ результата + Acceptance Criteria)
   - `done`: `--comment` ОБЯЗАТЕЛЕН (результат + DoD checklist, правила 27-28)
-- Labels: `agent:*`, `sprint:*`, `status:*`, `priority:*`, `type:*`
-- SubagentStart-хук инжектирует назначенные issues при запуске агента
-- SubagentStop-хук напоминает DoD-шаблон при незакрытых issues
+- Labels: `agent:*`, `product:*` (спринты через customfield_10104)
+- SubagentStart-хук инжектирует назначенные задачи из Jira при запуске агента
+- SubagentStop-хук проверяет что все задачи агента закрыты с DoD
 - `.claude/rules/dod.md` — Definition of Done: 8 пунктов, шаблоны комментариев
+- `scripts/migrate-gh-to-jira.py` — скрипт миграции из GitHub Issues в Jira
+- `projects/PROJECT_SHPMNT_PROFIT/gh_to_jira_mapping.json` — маппинг GH#→EKFLAB-N
+- `scripts/gh-tasks.sh` — DEPRECATED (оставлен как fallback для GitHub Issues)
 
 ## Прочее
 - `CONTEXT.md` — эфемерный session state (в .gitignore, генерируется хуками)

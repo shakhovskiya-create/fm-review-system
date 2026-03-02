@@ -48,6 +48,10 @@
         "CACHE_DIR": "./.rag-models/",
         "RAG_HYBRID_WEIGHT": "0.6"
       }
+    },
+    "jira": {
+      "command": "scripts/mcp-jira.sh",
+      "args": []
     }
   }
 }

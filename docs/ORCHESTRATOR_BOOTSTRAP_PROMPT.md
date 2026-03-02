@@ -23,7 +23,7 @@
 
 ## Задачи
 
-GitHub Issues + Kanban (GitHub Project). Sprint dashboard: `bash scripts/gh-tasks.sh sprint`
+Jira EKFLAB (Scrum boards). Sprint dashboard: `bash scripts/jira-tasks.sh sprint`
 
 ## Правила
 
@@ -40,8 +40,8 @@ GitHub Issues + Kanban (GitHub Project). Sprint dashboard: `bash scripts/gh-task
 
 | Событие | Скрипт | Назначение |
 |---------|--------|------------|
-| SessionStart | session-start.sh | Контекст проекта + открытые GitHub Issues оркестратора |
-| SubagentStart (matcher: `agent-.*`) | subagent-start.sh | Инжекция GitHub Issues для агента |
+| SessionStart | session-start.sh | Контекст проекта + открытые Jira задачи оркестратора |
+| SubagentStart (matcher: `agent-.*`) | subagent-start.sh | Инжекция Jira задачи для агента |
 | PreToolUse Write | block-secrets.sh | Блокировка записи секретов в файлы |
 | PreToolUse Edit | block-secrets.sh | Блокировка записи секретов в файлы |
 | SubagentStop (matcher: `agent-.*`) | subagent-stop.sh | Проверка что агент обновил свои issues + DoD шаблон |
@@ -71,7 +71,7 @@ GitHub Issues + Kanban (GitHub Project). Sprint dashboard: `bash scripts/gh-task
 
 ### 2.1 session-start.sh (SessionStart)
 
-Показывает при старте сессии: имя проекта, открытые GitHub Issues оркестратора, sprint summary.
+Показывает при старте сессии: имя проекта, открытые Jira задачи оркестратора, sprint summary.
 
 ```bash
 #!/bin/bash
@@ -89,7 +89,7 @@ if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
     --label "agent:orchestrator" --state open --limit 10 \
     --json number,title,labels \
     --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
-  [ -n "$issues" ] && echo "GitHub Issues (orchestrator):" && echo "$issues"
+  [ -n "$issues" ] && echo "Jira задачи (orchestrator):" && echo "$issues"
 
   sprint_info=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
     --state open --limit 100 --json labels \
@@ -103,7 +103,7 @@ exit 0
 
 ### 2.2 subagent-start.sh (SubagentStart)
 
-Инжектирует назначенные GitHub Issues при старте субагента.
+Инжектирует назначенные Jira задачи при старте субагента.
 
 ```bash
 #!/bin/bash
@@ -133,9 +133,9 @@ issues=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
 
 if [ -n "$issues" ]; then
   echo ""
-  echo "GitHub Issues (назначены тебе):"
+  echo "Jira задачи (назначены тебе):"
   echo "$issues"
-  echo "ОБЯЗАТЕЛЬНО: прочитай issues, возьми приоритетную (gh-tasks.sh start N), по завершении закрой (gh-tasks.sh done N)"
+  echo "ОБЯЗАТЕЛЬНО: прочитай issues, возьми приоритетную (jira-tasks.sh start N), по завершении закрой (jira-tasks.sh done N)"
 fi
 
 exit 0
@@ -188,12 +188,12 @@ case "$AGENT_NAME" in
 esac
 
 open_issues=$(gh issue list --repo "${GH_OWNER}/${GH_REPO}" \
-  --label "agent:${AGENT_LABEL}" --label "status:in-progress" \
+  --label "agent:${AGENT_LABEL}" --label "статус "В работе"" \
   --state open --json number --jq 'length' 2>/dev/null || echo "0")
 
 if [ "$open_issues" -gt 0 ] 2>/dev/null; then
-  echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues (status:in-progress)."
-  echo "Закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
+  echo "WARNING: У агента ${AGENT_NAME} есть ${open_issues} незакрытых issues (статус "В работе")."
+  echo "Закрой: bash scripts/jira-tasks.sh done EKFLAB-N --comment 'Результат + DoD'"
   echo ""
   echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD):"
   echo "  ## Результат"
@@ -225,7 +225,7 @@ echo ""
 echo "WARNING: Контекстное окно переполнено."
 echo "ДЕЙСТВИЯ:"
 echo "  1) Зафиксируй текущий прогресс (commit или комментарий в issue)"
-echo "  2) Обнови GitHub Issues — закрой выполненные, добавь комментарии к незавершённым"
+echo "  2) Обнови Jira задачи — закрой выполненные, добавь комментарии к незавершённым"
 echo "  3) Если задача большая — сделай commit и сообщи пользователю"
 echo ""
 echo "========================================="
@@ -248,9 +248,9 @@ echo "$(date -Iseconds) | session_end" >> "$LOG_DIR/sessions.log"
 exit 0
 ```
 
-## Плагин 3: Task Tracking — scripts/gh-tasks.sh
+## Плагин 3: Task Tracking — scripts/jira-tasks.sh (Jira EKFLAB)
 
-Проверь есть ли `scripts/gh-tasks.sh`. Если нет — создай (chmod +x). Скрипт определяет OWNER/REPO из git remote (не хардкодь).
+Проверь есть ли `scripts/jira-tasks.sh`. Если нет — создай (chmod +x). Скрипт определяет OWNER/REPO из git remote (не хардкодь).
 
 ```bash
 # В начале скрипта:
@@ -269,9 +269,9 @@ fi
 | Команда | Описание | Enforcement |
 |---------|----------|-------------|
 | `create --title "..." --agent <name> --sprint <N> --body "..."` | Создать issue | **--body ОБЯЗАТЕЛЕН** → exit 1 если пустой |
-| `start <N>` | status:planned → status:in-progress + Kanban | — |
-| `done <N> --comment "..."` | Закрыть issue + Kanban "Done" | **--comment ОБЯЗАТЕЛЕН** → exit 1 если пустой |
-| `block <N> --reason "..."` | status:blocked | — |
+| `start EKFLAB-N` | статус "Сделать" → статус "В работе" + Kanban | — |
+| `done EKFLAB-N --comment "..."` | Закрыть issue + Kanban "Done" | **--comment ОБЯЗАТЕЛЕН** → exit 1 если пустой |
+| `block EKFLAB-N --reason "..."` | status:blocked | — |
 | `list [--agent X] [--sprint N] [--status S]` | Список issues | — |
 | `my-tasks --agent <name>` | Открытые задачи агента | — |
 | `sprint [N]` | Dashboard: In Progress / Planned / Blocked / Done | — |
@@ -283,18 +283,18 @@ fi
 
 При `create` — автоматически `gh project item-add` в Project board.
 
-Референс: github.com/shakhovskiya-create/fm-review-system/blob/main/scripts/gh-tasks.sh
+Референс: github.com/shakhovskiya-create/fm-review-system/blob/main/scripts/jira-tasks.sh
 
-## Плагин 4: GitHub Labels + Kanban — scripts/setup-project.sh
+## Плагин 4: Jira Labels + Kanban — scripts/setup-project.sh
 
 Проверь есть ли `scripts/setup-project.sh` (или аналог). Если нет — создай одноразовый скрипт (chmod +x).
 
 Что он делает:
 1. Определяет OWNER/REPO из git remote
-2. Создаёт GitHub Labels (idempotent — если label уже есть, пропускает):
+2. Создаёт Jira Labels (idempotent — если label уже есть, пропускает):
    - `agent:*` — по одному на каждого агента проекта (**адаптируй список**)
    - `sprint:1` ... `sprint:5`
-   - `status:planned`, `status:in-progress`, `status:blocked`
+   - `статус "Сделать"`, `статус "В работе"`, `status:blocked`
    - `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
    - `type:feature`, `type:bug`, `type:infra`, `type:finding`
 3. Создаёт GitHub Project (Kanban board) если не существует
@@ -318,22 +318,22 @@ fi
 3. Изменение scope — СПРОСИТЬ пользователя
 4. Противоречие плану — STOP, не продолжать
 
-### GitHub Issues — persistent task tracking (ОБЯЗАТЕЛЬНО)
+### Jira задачи — persistent task tracking (ОБЯЗАТЕЛЬНО)
 
 **Первое действие агента:**
 1. SubagentStart-хук инжектирует назначенные issues — прочитать их
-2. Если есть issue со status:in-progress — продолжить эту задачу
-3. Если есть issues со status:planned — взять приоритетную: `bash scripts/gh-tasks.sh start <N>`
+2. Если есть issue со статус "В работе" — продолжить эту задачу
+3. Если есть issues со статус "Сделать" — взять приоритетную: `bash scripts/jira-tasks.sh start EKFLAB-N`
 
 **Во время работы:**
-4. Обнаружил новую проблему → `bash scripts/gh-tasks.sh create ...`
-5. Встретил блокер → `bash scripts/gh-tasks.sh block <N> --reason "..."`
+4. Обнаружил новую проблему → `bash scripts/jira-tasks.sh create ...`
+5. Встретил блокер → `bash scripts/jira-tasks.sh block EKFLAB-N --reason "..."`
 
 **Последнее действие агента:**
-6. Закрыть выполненные: `bash scripts/gh-tasks.sh done <N> --comment "Результат + DoD"`
-7. Если не завершена — оставить status:in-progress, добавить комментарий с прогрессом
+6. Закрыть выполненные: `bash scripts/jira-tasks.sh done EKFLAB-N --comment "Результат + DoD"`
+7. Если не завершена — оставить статус "В работе", добавить комментарий с прогрессом
 
-**Железное правило:** ни один агент не завершает работу без обновления своих GitHub Issues.
+**Железное правило:** ни один агент не завершает работу без обновления своих Jira задачи.
 
 ### Definition of Done (DoD) — обязательный чеклист
 
@@ -349,9 +349,9 @@ fi
 - [x] No hidden debt
 ```
 
-`gh-tasks.sh done` НЕ закроет issue без `--comment`. Artifact cross-check сверяет git diff с комментарием.
+`jira-tasks.sh done` НЕ закроет issue без `--comment`. Artifact cross-check сверяет git diff с комментарием.
 
-### Обязательные комментарии к GitHub Issues
+### Обязательные комментарии к Jira задачи
 
 **При создании (`--body`):**
 ```
@@ -386,8 +386,8 @@ fi
 4. Запусти `bash scripts/setup-project.sh` — создаст labels + Kanban (если ещё нет)
 5. Smoke-тест хуков:
    - block-secrets.sh: safe → exit 0; с секретом → exit 2
-   - gh-tasks.sh без аргументов → usage
-   - gh-tasks.sh sprint → доска
+   - jira-tasks.sh без аргументов → usage
+   - jira-tasks.sh sprint → доска
 6. Проверь JSON: `python3 -c "import json; json.load(open('.claude/settings.json')); print('OK')"`
 7. Запусти тесты проекта — 0 failures
 8. Commit, push, CI: `gh run watch --exit-status`
@@ -399,12 +399,12 @@ fi
 [ ] .claude/settings.json — валидный JSON, все 7 хуков зарегистрированы
 [ ] .claude/hooks/ — скрипты chmod +x, exit 0 на safe input
 [ ] block-secrets.sh — БЛОКИРУЕТ реальные API-ключи и private keys
-[ ] scripts/gh-tasks.sh — create/start/done/block/list/sprint работают
-[ ] gh-tasks.sh create без --body → exit 1
-[ ] gh-tasks.sh done без --comment → exit 1
-[ ] gh-tasks.sh done с --comment → artifact cross-check WARNING если файлы не упомянуты
-[ ] GitHub Labels созданы (agent:*, sprint:*, status:*, priority:*, type:*)
-[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, GitHub Issues, DoD
+[ ] scripts/jira-tasks.sh — create/start/done/block/list/sprint работают
+[ ] jira-tasks.sh create без --body → exit 1
+[ ] jira-tasks.sh done без --comment → exit 1
+[ ] jira-tasks.sh done с --comment → artifact cross-check WARNING если файлы не упомянуты
+[ ] Jira Labels созданы (agent:*, sprint:*, status:*, priority:*, type:*)
+[ ] .claude/rules/common-rules.md — smoke-тесты, deviation rules, Jira задачи, DoD
 [ ] Тесты проекта — 0 failures
 [ ] git push + CI зелёный
 ```

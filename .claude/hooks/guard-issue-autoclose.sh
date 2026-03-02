@@ -2,10 +2,10 @@
 # Hook: PreToolUse -> Bash
 # Блокирует авто-закрытие GitHub Issues через commit message.
 # GitHub автоматически закрывает issues при push, если коммит содержит
-# "Closes #N", "Fixes #N", "Resolves #N" — это обходит gh-tasks.sh done
+# "Closes #N", "Fixes #N", "Resolves #N" — это обходит jira-tasks.sh done
 # и DoD checklist.
 #
-# Разрешено: "Refs #N", "Part of #N", "Related to #N", "See #N"
+# Разрешено: "Refs #N", "Refs EKFLAB-N", "Part of #N", "Related to #N", "See #N"
 # Exit 2 = block.
 
 set -euo pipefail
@@ -26,8 +26,8 @@ fi
 if echo "$COMMAND" | grep -qiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)\s+#[0-9]+'; then
     echo "BLOCKED: Коммит содержит 'Closes/Fixes/Resolves #N' — GitHub автозакроет issue без DoD." >&2
     echo "" >&2
-    echo "Используйте 'Refs #N' в commit message, затем закройте через:" >&2
-    echo "  scripts/gh-tasks.sh done <N> --comment \"...DoD...\"" >&2
+    echo "Используйте 'Refs EKFLAB-N' в commit message, затем закройте через:" >&2
+    echo "  scripts/jira-tasks.sh done EKFLAB-N --comment \"...DoD...\"" >&2
     echo "" >&2
     echo "Это гарантирует DoD checklist и artifact cross-check." >&2
     exit 2

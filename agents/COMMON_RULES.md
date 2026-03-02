@@ -56,13 +56,11 @@
     - **Не записывай**: промежуточные шаги, полные тексты документов
     - **Формат source**: `text` для текста, `json` для структурированных данных
     - **CIO-assistant читает наши данные** — пиши понятно для стороннего контекста
-26. **GitHub Issues**: подробнее `.claude/rules/agent-workflow.md`.
-29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
-31. **ЗАПРЕТ `Closes/Fixes/Resolves #N` в коммитах.** GitHub автозакрывает issues при push — это обходит DoD.
-    - В commit message используй **`Refs #N`** (ссылка без закрытия)
-    - Закрывай ТОЛЬКО через: `scripts/gh-tasks.sh done <N> --comment "...DoD..."`
-    - Hook `guard-issue-autoclose.sh` заблокирует коммит с `Closes #N`
-    - CI workflow `dod-check.yml` переоткроет issue если DoD отсутствует
+26. **Jira (EKFLAB)**: задачи ведутся в Jira. CLI: `scripts/jira-tasks.sh`. MCP: `mcp__jira__*`. Подробнее: `.claude/rules/agent-workflow.md`.
+29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent EKFLAB-N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
+31. **Commit message**: используй `Refs EKFLAB-N` для ссылки на Jira задачу (smart commit).
+    - Закрывай ТОЛЬКО через: `scripts/jira-tasks.sh done EKFLAB-N --comment "...DoD..."`
+    - Hook `guard-issue-autoclose.sh` блокирует `Closes/Fixes/Resolves #N` в коммитах
 
 ## Kafka-интеграция
 30. **Kafka** — шина обмена данными между 1С и Go-сервисами. Все dev-агенты (11-15) обязаны учитывать.

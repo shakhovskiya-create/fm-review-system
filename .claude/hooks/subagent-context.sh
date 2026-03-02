@@ -1,15 +1,40 @@
 #!/bin/bash
 # Hook: SubagentStart
-# Инжектирует краткий контекст проекта при запуске кастомного субагента (agent-0..8).
+# Инжектирует краткий контекст проекта при запуске кастомного субагента (agent-0..16).
 # Matcher: agent-.* (только наши агенты, не системные).
 #
-# БЛОКИРУЮЩАЯ ПРОВЕРКА: агент не может начать работу без issue в status:in-progress.
+# БЛОКИРУЮЩАЯ ПРОВЕРКА: агент не может начать работу без задачи в Jira status:В работе.
 # Whitelist: helper-architect (инфра-агент), --skip-issue-check в prompt.
-# Graceful degradation: если GitHub API недоступен — не блокируем (exit 0 с WARNING).
+# Graceful degradation: если Jira API недоступен — не блокируем (exit 0 с WARNING).
 
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+JIRA_BASE_URL="https://jira.ekf.su"
+JIRA_PROJECT="EKFLAB"
+
+# Загрузка JIRA_PAT (Infisical → env → .env)
+_load_jira_pat() {
+  if [ -n "${JIRA_PAT:-}" ]; then return 0; fi
+
+  # Попробовать Infisical
+  if [ -f "$PROJECT_DIR/scripts/lib/secrets.sh" ]; then
+    # shellcheck disable=SC1091
+    source "$PROJECT_DIR/scripts/lib/secrets.sh"
+    if _infisical_universal_auth "$PROJECT_DIR" 2>/dev/null; then
+      JIRA_PAT=$(infisical secrets get JIRA_PAT --projectId="${INFISICAL_PROJECT_ID}" --env=dev --plain 2>/dev/null || true)
+      if [ -n "$JIRA_PAT" ]; then export JIRA_PAT; return 0; fi
+    fi
+  fi
+
+  # Попробовать .env
+  if [ -f "$PROJECT_DIR/.env" ]; then
+    JIRA_PAT=$(grep -E '^JIRA_PAT=' "$PROJECT_DIR/.env" | cut -d= -f2- | tr -d '"' || true)
+    if [ -n "$JIRA_PAT" ]; then export JIRA_PAT; return 0; fi
+  fi
+
+  return 1
+}
 
 # Собираем контекст активных проектов
 context=""
@@ -41,7 +66,7 @@ if [ -f "$MEMORY_FILE" ]; then
   echo "Knowledge Graph available: use mcp__memory__search_nodes to find entities, decisions, findings."
 fi
 
-# GitHub Issues: задачи назначенные этому агенту + блокирующая проверка status:in-progress
+# Jira Tasks: задачи назначенные этому агенту + блокирующая проверка status:В работе
 INPUT=$(cat <&0 2>/dev/null || echo "")
 AGENT_NAME=$(echo "$INPUT" | jq -r '.subagent_name // empty' 2>/dev/null || true)
 AGENT_PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || true)
@@ -50,7 +75,6 @@ if [ -n "$AGENT_NAME" ]; then
   echo "$AGENT_NAME" > "$PROJECT_DIR/.claude/.current-subagent"
 
   # Извлекаем номер/имя агента: agent-0-creator -> 0-creator, helper-architect -> orchestrator
-  # Supports agents 0-15 including dev agents (11-dev-1c, 12-dev-go, 13-qa-1c, 14-qa-go, 15-trainer)
   AGENT_LABEL=""
   IS_ORCHESTRATOR=false
   case "$AGENT_NAME" in
@@ -69,80 +93,92 @@ if [ -n "$AGENT_NAME" ]; then
   fi
 
   if [ -n "$AGENT_LABEL" ]; then
-    REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
-    if [ -z "$REPO" ]; then
-      echo "WARNING: Не удалось определить GitHub repo. GitHub Issues недоступны."
+    # Загрузка PAT
+    if ! _load_jira_pat; then
+      echo "WARNING: JIRA_PAT не найден. Проверка задач Jira пропущена."
       exit 0
     fi
 
-    # Получаем все открытые issues для агента (одним запросом, парсим статусы в jq)
-    issues_json=$(timeout 4 gh issue list --repo "$REPO" \
-      --label "agent:${AGENT_LABEL}" --state open --limit 10 \
-      --json number,title,labels 2>/dev/null || echo "__GH_ERROR__")
+    # Получаем открытые задачи для агента через Jira REST API
+    JQL="project = ${JIRA_PROJECT} AND labels = \"agent:${AGENT_LABEL}\" AND statusCategory != Done"
+    issues_json=$(timeout 5 curl -s -G \
+      -H "Authorization: Bearer $JIRA_PAT" \
+      -H "Content-Type: application/json" \
+      --data-urlencode "jql=${JQL}" \
+      --data-urlencode "fields=summary,status,priority,labels" \
+      --data-urlencode "maxResults=15" \
+      "${JIRA_BASE_URL}/rest/api/2/search" 2>/dev/null || echo "__JIRA_ERROR__")
 
-    # Graceful degradation: GitHub API недоступен — не блокируем
-    if [ "$issues_json" = "__GH_ERROR__" ] || [ -z "$issues_json" ]; then
-      echo "WARNING: GitHub API недоступен или таймаут. Проверка issues пропущена."
+    # Graceful degradation: Jira API недоступен — не блокируем
+    if [ "$issues_json" = "__JIRA_ERROR__" ] || [ -z "$issues_json" ]; then
+      echo "WARNING: Jira API недоступен или таймаут. Проверка задач пропущена."
       exit 0
     fi
 
-    # Парсим issues: все, in-progress, и форматированный список
-    issues_total=$(echo "$issues_json" | jq 'length' 2>/dev/null || echo "0")
-    issues_in_progress=$(echo "$issues_json" | jq '[.[] | select(.labels[].name == "status:in-progress")] | length' 2>/dev/null || echo "0")
-    issues_formatted=$(echo "$issues_json" | jq -r '.[] | "#\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("priority:"))] | join(", "))]"' 2>/dev/null || true)
+    # Проверяем ошибку JQL
+    jira_errors=$(echo "$issues_json" | jq -r '.errorMessages[0] // empty' 2>/dev/null || true)
+    if [ -n "$jira_errors" ]; then
+      echo "WARNING: Jira JQL ошибка: $jira_errors. Проверка задач пропущена."
+      exit 0
+    fi
+
+    # Парсим задачи
+    issues_total=$(echo "$issues_json" | jq '.total // 0' 2>/dev/null || echo "0")
+    issues_in_progress=$(echo "$issues_json" | jq '[.issues[] | select(.fields.status.name == "В работе")] | length' 2>/dev/null || echo "0")
+    issues_formatted=$(echo "$issues_json" | jq -r '.issues[] | "\(.key): \(.fields.summary) [\(.fields.status.name), \(.fields.priority.name)]"' 2>/dev/null || true)
 
     echo ""
-    echo "=== GitHub Issues (ОБЯЗАТЕЛЬНО, правило 26+29) ==="
+    echo "=== Jira Tasks (ОБЯЗАТЕЛЬНО, правило 26+29) ==="
 
     if [ "$issues_total" -eq 0 ] 2>/dev/null; then
-      # Нет issues вообще
+      # Нет задач вообще
       if [ "$SKIP_ISSUE_CHECK" = true ]; then
         echo "WARNING: Нет задач для agent:${AGENT_LABEL}. Рекомендуется создать задачу."
         echo ""
-        echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
+        echo "  bash scripts/jira-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
         echo "============================================="
       else
-        echo "BLOCK: Нет задачи в GitHub Issues с status:in-progress для agent:${AGENT_LABEL}."
+        echo "BLOCK: Нет задачи в Jira со статусом 'В работе' для agent:${AGENT_LABEL}."
         echo ""
-        echo "Создай задачу через gh-tasks.sh create + start перед началом работы:"
-        echo "  1. bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
-        echo "  2. bash scripts/gh-tasks.sh start <N>"
+        echo "Создай задачу через jira-tasks.sh create + start перед началом работы:"
+        echo "  1. bash scripts/jira-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
+        echo "  2. bash scripts/jira-tasks.sh start EKFLAB-N"
         echo ""
-        echo "Составная задача (2+ шагов)? Создай epic + подзадачи (--parent N, правило 29)."
+        echo "Составная задача (2+ шагов)? Создай epic + подзадачи (--parent EKFLAB-N, правило 29)."
         echo "============================================="
         exit 2
       fi
 
     elif [ "$issues_in_progress" -eq 0 ] 2>/dev/null; then
-      # Есть issues, но ни одна не в status:in-progress
+      # Есть задачи, но ни одна не в статусе "В работе"
       echo "Твои задачи:"
       echo "$issues_formatted"
       echo ""
       if [ "$SKIP_ISSUE_CHECK" = true ]; then
-        echo "WARNING: Ни одна задача не имеет status:in-progress. Рекомендуется взять задачу:"
-        echo "  bash scripts/gh-tasks.sh start <N>"
+        echo "WARNING: Ни одна задача не имеет статус 'В работе'. Рекомендуется взять задачу:"
+        echo "  bash scripts/jira-tasks.sh start EKFLAB-N"
         echo "============================================="
       else
-        echo "BLOCK: Нет задачи в GitHub Issues с status:in-progress. Создай задачу через gh-tasks.sh create + start перед началом работы."
+        echo "BLOCK: Нет задачи в Jira со статусом 'В работе'. Возьми задачу перед началом работы."
         echo ""
         echo "Возьми одну из задач выше:"
-        echo "  bash scripts/gh-tasks.sh start <N>"
+        echo "  bash scripts/jira-tasks.sh start EKFLAB-N"
         echo ""
         echo "Или создай новую:"
-        echo "  bash scripts/gh-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
+        echo "  bash scripts/jira-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
         echo "============================================="
         exit 2
       fi
 
     else
-      # Есть issues в status:in-progress — пропускаем
+      # Есть задачи в статусе "В работе" — пропускаем
       echo "Твои задачи:"
       echo "$issues_formatted"
       echo ""
       echo "ДЕЙСТВИЯ:"
-      echo "  1. Работай над задачей status:in-progress"
-      echo "  2. По завершении закрой: bash scripts/gh-tasks.sh done <N> --comment 'Результат + DoD'"
-      echo "  3. Составная задача? Декомпозируй: --parent N (правило 29)"
+      echo "  1. Работай над задачей со статусом 'В работе'"
+      echo "  2. По завершении закрой: bash scripts/jira-tasks.sh done EKFLAB-N --comment 'Результат + DoD'"
+      echo "  3. Составная задача? Декомпозируй: --parent EKFLAB-N (правило 29)"
       echo "============================================="
     fi
   fi

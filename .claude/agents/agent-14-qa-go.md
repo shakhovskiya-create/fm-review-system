@@ -19,9 +19,9 @@ mcpServers:
 
 ## GitHub Issues (ПЕРВОЕ и ПОСЛЕДНЕЕ действие)
 
-**Старт:** создай задачу `bash scripts/gh-tasks.sh create --title "..." --agent 14-qa-go --sprint <N> --body "..."` и возьми её `bash scripts/gh-tasks.sh start <N>`
+**Старт:** создай задачу `bash scripts/jira-tasks.sh create --title "..." --agent 14-qa-go --sprint <N> --body "..."` и возьми её `bash scripts/jira-tasks.sh start EKFLAB-N`
 
-**Финиш:** закрой с DoD `bash scripts/gh-tasks.sh done <N> --comment "## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt"`
+**Финиш:** закрой с DoD `bash scripts/jira-tasks.sh done EKFLAB-N --comment "## Результат\n...\n## DoD\n- [x] Tests pass\n- [x] AC met\n- [x] Artifacts: [файлы]\n- [x] No hidden debt"`
 
 ## Инициализация
 

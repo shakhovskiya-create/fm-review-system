@@ -192,17 +192,22 @@ class TestAutoSaveContext:
 class TestSubagentContextIssueGate:
     """Tests for issue-gate blocking in subagent-context.sh (SubagentStart hook).
 
-    Agents MUST have at least one issue with status:in-progress to start work.
+    Agents MUST have at least one Jira task with status 'В работе' to start work.
     Exceptions: helper-architect (whitelist), --skip-issue-check in prompt.
+    Hook now uses curl to query Jira REST API (not gh CLI).
     """
 
-    def _make_gh_mock(self, tmp_path, script_body):
-        """Create a mock 'gh' script that returns controlled data."""
+    def _make_curl_mock(self, tmp_path, jira_response_json):
+        """Create a mock 'curl' script that returns Jira API responses."""
         mock_dir = tmp_path / "mock_bin"
         mock_dir.mkdir(exist_ok=True)
-        mock_gh = mock_dir / "gh"
-        mock_gh.write_text(script_body)
-        mock_gh.chmod(0o755)
+        # Also mock 'timeout' to just exec the rest of its args
+        mock_timeout = mock_dir / "timeout"
+        mock_timeout.write_text('#!/bin/bash\nshift; exec "$@"\n')
+        mock_timeout.chmod(0o755)
+        mock_curl = mock_dir / "curl"
+        mock_curl.write_text(f'#!/bin/bash\necho \'{jira_response_json}\'\n')
+        mock_curl.chmod(0o755)
         return str(mock_dir)
 
     def _setup_project_dir(self, tmp_path):
@@ -211,90 +216,76 @@ class TestSubagentContextIssueGate:
         claude_dir.mkdir(parents=True, exist_ok=True)
         return str(tmp_path)
 
+    def _jira_response(self, issues):
+        """Build a Jira search response JSON string."""
+        return json.dumps({"total": len(issues), "issues": issues})
+
+    def _jira_issue(self, key, summary, status_name, priority="Medium", labels=None):
+        """Build a single Jira issue dict."""
+        return {
+            "key": key,
+            "fields": {
+                "summary": summary,
+                "status": {"name": status_name},
+                "priority": {"name": priority},
+                "labels": labels or [],
+            }
+        }
+
     def test_blocks_when_no_in_progress_issues(self, tmp_path):
-        """Agent with open issues but none in-progress should be BLOCKED (exit 2)."""
+        """Agent with open issues but none in 'В работе' should be BLOCKED (exit 2)."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[{"number":42,"title":"Test issue","labels":[{"name":"agent:1-architect"},{"name":"status:planned"}]}]'
-        ;;
-esac
-''')
+        issue = self._jira_issue("EKFLAB-42", "Test issue", "Сделать")
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([issue]))
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 2
         assert "BLOCK" in result.stdout
 
     def test_passes_when_in_progress_issue_exists(self, tmp_path):
-        """Agent with status:in-progress issue should pass (exit 0)."""
+        """Agent with 'В работе' issue should pass (exit 0)."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[{"number":42,"title":"Audit FM","labels":[{"name":"agent:1-architect"},{"name":"status:in-progress"}]}]'
-        ;;
-esac
-''')
+        issue = self._jira_issue("EKFLAB-42", "Audit FM", "В работе")
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([issue]))
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
-        assert "#42" in result.stdout
+        assert "EKFLAB-42" in result.stdout
 
     def test_blocks_when_no_issues_at_all(self, tmp_path):
         """Agent with zero issues should be BLOCKED (exit 2)."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[]'
-        ;;
-esac
-''')
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([]))
         stdin = json.dumps({"subagent_name": "agent-0-creator"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 2
         assert "BLOCK" in result.stdout
-        assert "gh-tasks.sh create" in result.stdout
+        assert "jira-tasks.sh create" in result.stdout
 
     def test_helper_architect_not_blocked(self, tmp_path):
         """helper-architect (orchestrator) should never be blocked, only warned."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[]'
-        ;;
-esac
-''')
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([]))
         stdin = json.dumps({"subagent_name": "helper-architect"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
@@ -303,16 +294,7 @@ esac
     def test_skip_issue_check_flag(self, tmp_path):
         """--skip-issue-check in prompt bypasses blocking for any agent."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[]'
-        ;;
-esac
-''')
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([]))
         stdin = json.dumps({
             "subagent_name": "agent-1-architect",
             "prompt": "Do something --skip-issue-check"
@@ -320,19 +302,28 @@ esac
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
         assert "WARNING" in result.stdout
 
-    def test_graceful_degradation_gh_unavailable(self, tmp_path):
-        """If gh CLI fails, hook should not block (exit 0)."""
+    def test_graceful_degradation_jira_unavailable(self, tmp_path):
+        """If Jira API fails, hook should not block (exit 0)."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '#!/bin/bash\nexit 1\n')
+        mock_dir = tmp_path / "mock_bin"
+        mock_dir.mkdir(exist_ok=True)
+        mock_timeout = mock_dir / "timeout"
+        mock_timeout.write_text('#!/bin/bash\nshift; exec "$@"\n')
+        mock_timeout.chmod(0o755)
+        mock_curl = mock_dir / "curl"
+        mock_curl.write_text('#!/bin/bash\nexit 1\n')
+        mock_curl.chmod(0o755)
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
         env = {
-            "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
+            "PATH": f"{str(mock_dir)}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
@@ -344,49 +335,38 @@ esac
         assert result.returncode == 0
 
     def test_mixed_issues_only_in_progress_passes(self, tmp_path):
-        """Mix of planned and in-progress: should pass because in-progress exists."""
+        """Mix of statuses: should pass because 'В работе' exists."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[{"number":10,"title":"Task A","labels":[{"name":"agent:5-tech-architect"},{"name":"status:planned"}]},{"number":11,"title":"Task B","labels":[{"name":"agent:5-tech-architect"},{"name":"status:in-progress"}]}]'
-        ;;
-esac
-''')
+        issues = [
+            self._jira_issue("EKFLAB-10", "Task A", "Сделать"),
+            self._jira_issue("EKFLAB-11", "Task B", "В работе"),
+        ]
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response(issues))
         stdin = json.dumps({"subagent_name": "agent-5-tech-architect"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
-        assert "#10" in result.stdout
-        assert "#11" in result.stdout
+        assert "EKFLAB-10" in result.stdout
+        assert "EKFLAB-11" in result.stdout
 
     def test_block_message_instructs_start(self, tmp_path):
-        """Block message should instruct to run gh-tasks.sh start."""
+        """Block message should instruct to run jira-tasks.sh start."""
         project_dir = self._setup_project_dir(tmp_path)
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"issue list"*)
-        echo '[{"number":55,"title":"Review code","labels":[{"name":"agent:9-se-go"},{"name":"status:planned"}]}]'
-        ;;
-esac
-''')
+        issue = self._jira_issue("EKFLAB-55", "Review code", "Сделать")
+        mock_path = self._make_curl_mock(tmp_path, self._jira_response([issue]))
         stdin = json.dumps({"subagent_name": "agent-9-se-go"})
         env = {
             "PATH": f"{mock_path}:{os.environ.get('PATH', '')}",
             "CLAUDE_PROJECT_DIR": project_dir,
+            "JIRA_PAT": "test-token",
         }
         result = run_hook("subagent-context.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 2
-        assert "gh-tasks.sh start" in result.stdout
+        assert "jira-tasks.sh start" in result.stdout
 
 
 class TestValidateSummary:
@@ -419,86 +399,84 @@ class TestValidateSummary:
 
 
 class TestValidateSummaryEnforcement:
-    """Tests for GitHub Issues enforcement in validate-summary.sh."""
+    """Tests for Jira task enforcement in validate-summary.sh."""
 
-    def _make_gh_mock(self, tmp_path, script_body):
-        """Create a mock 'gh' script that returns controlled data."""
+    def _make_curl_mock(self, tmp_path, all_response, open_response):
+        """Create mock curl that returns different Jira responses based on JQL query."""
         mock_dir = tmp_path / "mock_bin"
         mock_dir.mkdir(exist_ok=True)
-        mock_gh = mock_dir / "gh"
-        mock_gh.write_text(script_body)
-        mock_gh.chmod(0o755)
+        mock_timeout = mock_dir / "timeout"
+        mock_timeout.write_text('#!/bin/bash\nshift; exec "$@"\n')
+        mock_timeout.chmod(0o755)
+        # The hook makes 2 curl calls: first for all issues (any status), then for open issues (statusCategory != Done)
+        # We use a counter file to distinguish first vs second call
+        counter_file = tmp_path / "curl_call_count"
+        mock_curl = mock_dir / "curl"
+        mock_curl.write_text(f'''#!/bin/bash
+COUNTER_FILE="{counter_file}"
+if [ ! -f "$COUNTER_FILE" ]; then
+    echo "1" > "$COUNTER_FILE"
+    echo '{all_response}'
+else
+    echo '{open_response}'
+fi
+''')
+        mock_curl.chmod(0o755)
         return str(mock_dir)
+
+    def _jira_response(self, issues):
+        return json.dumps({"total": len(issues), "issues": issues})
+
+    def _jira_issue(self, key, summary, status_name="Сделать"):
+        return {"key": key, "fields": {"summary": summary, "status": {"name": status_name}}}
 
     def test_blocks_when_open_issues_exist(self, tmp_path):
         """Agent with open issues should be BLOCKED (exit 2)."""
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"--state all"*)
-        echo '[{"number":42}]'
-        ;;
-    *"--state open"*)
-        echo '[{"number":42,"title":"Test issue"}]'
-        ;;
-esac
-''')
+        issue = self._jira_issue("EKFLAB-42", "Test issue")
+        all_resp = self._jira_response([issue])
+        open_resp = self._jira_response([issue])
+        mock_path = self._make_curl_mock(tmp_path, all_resp, open_resp)
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
-        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}", "JIRA_PAT": "test-token"}
         result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 2
         assert "BLOCKED" in result.stdout
-        assert "#42" in result.stdout
+        assert "EKFLAB-42" in result.stdout
 
     def test_passes_when_no_open_issues(self, tmp_path):
         """Agent with all issues closed should pass (exit 0)."""
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"--state all"*)
-        echo '[{"number":42}]'
-        ;;
-    *"--state open"*)
-        echo '[]'
-        ;;
-esac
-''')
+        issue = self._jira_issue("EKFLAB-42", "Test issue", "Готово")
+        all_resp = self._jira_response([issue])
+        open_resp = self._jira_response([])
+        mock_path = self._make_curl_mock(tmp_path, all_resp, open_resp)
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
-        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}", "JIRA_PAT": "test-token"}
         result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
 
     def test_warns_when_no_issues_at_all(self, tmp_path):
         """Agent with zero issues gets WARNING (not BLOCK)."""
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"--state all"*)
-        echo '[]'
-        ;;
-    *"--state open"*)
-        echo '[]'
-        ;;
-esac
-''')
+        all_resp = self._jira_response([])
+        open_resp = self._jira_response([])
+        mock_path = self._make_curl_mock(tmp_path, all_resp, open_resp)
         stdin = json.dumps({"subagent_name": "agent-2-simulator"})
-        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}", "JIRA_PAT": "test-token"}
         result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0  # WARNING, not BLOCK
         assert "WARNING" in result.stdout
 
-    def test_graceful_when_gh_unavailable(self, tmp_path):
-        """Without gh CLI, hook should pass gracefully."""
-        # Mock gh that always fails (simulating unavailable gh)
-        mock_path = self._make_gh_mock(tmp_path, '#!/bin/bash\nexit 1\n')
+    def test_graceful_when_jira_unavailable(self, tmp_path):
+        """If Jira API fails, hook should pass gracefully."""
+        mock_dir = tmp_path / "mock_bin"
+        mock_dir.mkdir(exist_ok=True)
+        mock_timeout = mock_dir / "timeout"
+        mock_timeout.write_text('#!/bin/bash\nshift; exec "$@"\n')
+        mock_timeout.chmod(0o755)
+        mock_curl = mock_dir / "curl"
+        mock_curl.write_text('#!/bin/bash\nexit 1\n')
+        mock_curl.chmod(0o755)
         stdin = json.dumps({"subagent_name": "agent-1-architect"})
-        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        env = {"PATH": f"{str(mock_dir)}:{os.environ.get('PATH', '')}", "JIRA_PAT": "test-token"}
         result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 0
         assert "WARNING" in result.stdout
@@ -510,25 +488,19 @@ esac
 
     def test_blocks_multiple_open_issues(self, tmp_path):
         """Multiple open issues all listed in BLOCKED message."""
-        mock_path = self._make_gh_mock(tmp_path, '''#!/bin/bash
-case "$*" in
-    *"repo view"*)
-        echo '{"nameWithOwner":"test/repo"}'
-        ;;
-    *"--state all"*)
-        echo '[{"number":10},{"number":20},{"number":30}]'
-        ;;
-    *"--state open"*)
-        echo '[{"number":10,"title":"First task"},{"number":20,"title":"Second task"}]'
-        ;;
-esac
-''')
+        issues = [
+            self._jira_issue("EKFLAB-10", "First task"),
+            self._jira_issue("EKFLAB-20", "Second task"),
+        ]
+        all_resp = self._jira_response(issues + [self._jira_issue("EKFLAB-30", "Third done", "Готово")])
+        open_resp = self._jira_response(issues)
+        mock_path = self._make_curl_mock(tmp_path, all_resp, open_resp)
         stdin = json.dumps({"subagent_name": "agent-4-qa-tester"})
-        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}"}
+        env = {"PATH": f"{mock_path}:{os.environ.get('PATH', '')}", "JIRA_PAT": "test-token"}
         result = run_hook("validate-summary.sh", stdin_data=stdin, env_extra=env)
         assert result.returncode == 2
-        assert "#10" in result.stdout
-        assert "#20" in result.stdout
+        assert "EKFLAB-10" in result.stdout
+        assert "EKFLAB-20" in result.stdout
         assert "2 незакрытых" in result.stdout
 
 
@@ -604,7 +576,7 @@ class TestGuardIssueAutoclose:
     """Tests for guard-issue-autoclose.sh (PreToolUse -> Bash hook).
 
     Prevents GitHub auto-close of issues via 'Closes/Fixes/Resolves #N'
-    in commit messages. Forces use of gh-tasks.sh done for DoD compliance.
+    in commit messages. Forces use of jira-tasks.sh done for DoD compliance.
     """
 
     @pytest.mark.parametrize("keyword", ["Closes", "closes", "Close", "Fixed", "Fixes", "Resolves", "Resolved"])
@@ -639,12 +611,12 @@ class TestGuardIssueAutoclose:
         result = run_hook("guard-issue-autoclose.sh", stdin)
         assert result.returncode == 0
 
-    def test_suggests_refs_and_gh_tasks(self):
-        """Error message should suggest 'Refs #N' and gh-tasks.sh done."""
+    def test_suggests_refs_and_jira_tasks(self):
+        """Error message should suggest 'Refs EKFLAB-N' and jira-tasks.sh done."""
         stdin = json.dumps({"tool_input": {"command": 'git commit -m "Closes #99"'}})
         result = run_hook("guard-issue-autoclose.sh", stdin)
-        assert "Refs #N" in result.stderr
-        assert "gh-tasks.sh done" in result.stderr
+        assert "Refs EKFLAB-N" in result.stderr
+        assert "jira-tasks.sh done" in result.stderr
 
     def test_handles_empty_input(self):
         """Empty input should pass through."""

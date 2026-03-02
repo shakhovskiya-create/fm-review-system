@@ -238,11 +238,14 @@ SCRIPTS = [
         "Checks: _summary.json exists, findings covered, no CRITICAL unresolved",
         "Exit codes: 0=ready, 1=critical block, 2=warnings",
     ]},
-    {"name": "gh_tasks_sh", "entityType": "script", "observations": [
-        "scripts/gh-tasks.sh",
-        "CLI wrapper for GitHub Issues: create/start/done/block/list/sprint",
+    {"name": "jira_tasks_sh", "entityType": "script", "observations": [
+        "scripts/jira-tasks.sh",
+        "CLI wrapper for Jira EKFLAB: create/start/done/block/list/sprint/children/my-tasks",
+        "Auth: Infisical -> env -> .env (JIRA_PAT)",
         "Enforces --body on create, --comment on done (DoD)",
         "Artifact cross-check: warns if files from git diff not mentioned in comment",
+        "Sprint IDs: 27=109, 28=110, 29=111, 30=112, 31=113",
+        "Replaced scripts/gh-tasks.sh (deprecated)",
     ]},
     {"name": "orchestrate_sh", "entityType": "script", "observations": [
         "scripts/orchestrate.sh",
@@ -345,6 +348,11 @@ MCP_SERVERS = [
         "GitHub MCP server via scripts/mcp-github.sh",
         "Tools: issues, PRs, code search, repository management",
     ]},
+    {"name": "mcp_jira", "entityType": "mcp_server", "observations": [
+        "Jira MCP server via scripts/mcp-jira.sh (mcp-jira-server npm)",
+        "Tools: jira_get_issue, jira_search_issues, jira_create_issue, jira_update_issue, jira_add_comment, jira_get_projects, jira_get_issue_types",
+        "Project: EKFLAB at https://jira.ekf.su",
+    ]},
     {"name": "mcp_langfuse", "entityType": "mcp_server", "observations": [
         "Langfuse observability MCP via scripts/mcp-langfuse.sh",
         "Tools: get_traces, get_observations",
@@ -429,15 +437,17 @@ DECISIONS = [
         "ADR: Mandatory Quality Gate before publishing to Confluence",
         "Checks: summary exists, CRITICAL findings addressed, tests pass",
     ]},
-    {"name": "decision_github_issues", "entityType": "decision", "observations": [
-        "ADR: GitHub Issues as persistent task tracking for agents",
-        "Labels: agent:*, sprint:*, status:*, priority:*, type:*",
+    {"name": "decision_jira_ekflab", "entityType": "decision", "observations": [
+        "ADR: Jira EKFLAB as persistent task tracking for agents (replaced GitHub Issues)",
+        "Project: EKFLAB on https://jira.ekf.su, Board #38 (all), Board #39 (profitability)",
+        "Labels: agent:*, product:* (sprints via customfield_10104)",
+        "CLI: scripts/jira-tasks.sh, MCP: mcp__jira__*",
         "DoD enforcement: --comment required on close",
     ]},
     {"name": "decision_dod_enforcement", "entityType": "decision", "observations": [
-        "ADR: Definition of Done checklist mandatory for every issue closure",
+        "ADR: Definition of Done checklist mandatory for every task closure",
         "8 points: tests, regression, AC, artifacts, docs, debt",
-        "Enforced by gh-tasks.sh: rejects close without comment",
+        "Enforced by jira-tasks.sh: rejects close without comment",
     ]},
 ]
 
@@ -450,8 +460,8 @@ RULES = [
     ]},
     {"name": "rule_dod", "entityType": "rule", "observations": [
         ".claude/rules/dod.md",
-        "Definition of Done: 8 mandatory points for issue closure",
-        "Path-scoped: scripts/gh-tasks.sh, .claude/agents/**",
+        "Definition of Done: 8 mandatory points for task closure",
+        "Path-scoped: scripts/jira-tasks.sh, .claude/agents/**",
     ]},
     {"name": "rule_subagents_registry", "entityType": "rule", "observations": [
         ".claude/rules/subagents-registry.md",
@@ -743,7 +753,7 @@ RELATIONS = [
     ("publish_to_confluence_py", "confluence_utils", "uses"),
     ("export_from_confluence_py", "confluence_utils", "uses"),
     ("quality_gate_sh", "FM_Pipeline", "gates"),
-    ("gh_tasks_sh", "mcp_github", "wraps"),
+    ("jira_tasks_sh", "mcp_jira", "wraps"),
     # Hooks to scripts
     ("hook_guard_confluence_write", "publish_to_confluence_py", "enforces_use_of"),
     ("hook_validate_summary", "quality_gate_sh", "prepares_for"),
@@ -758,7 +768,7 @@ RELATIONS = [
     ("decision_confluence_only", "Agent7_Publisher", "affects"),
     ("decision_lock_backup_retry", "confluence_utils", "implemented_in"),
     ("decision_quality_gate", "quality_gate_sh", "implemented_in"),
-    ("decision_github_issues", "gh_tasks_sh", "implemented_in"),
+    ("decision_jira_ekflab", "jira_tasks_sh", "implemented_in"),
 ]
 
 

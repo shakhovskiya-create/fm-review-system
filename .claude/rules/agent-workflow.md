@@ -1,5 +1,5 @@
 ---
-description: Agent workflow rules for plan-implement-fix cycle, GitHub Issues tracking, and task decomposition
+description: Agent workflow rules for plan-implement-fix cycle, Jira task tracking, and task decomposition
 ---
 
 # Agent Workflow: Plan -> Implement -> Fix
@@ -17,31 +17,33 @@ Trivial edits (typos, one-liners) — allowed without plan.
 3. **Scope change** (new feature, extra file) — warn user, proceed only with confirmation
 4. **Contradicts plan** — **STOP**. AskUserQuestion.
 
-## GitHub Issues (persistent tracking)
+## Jira Tasks (persistent tracking)
+
+**Project:** EKFLAB | **CLI:** `scripts/jira-tasks.sh` | **MCP:** `mcp__jira__*`
 
 ### At start (FIRST action):
-- SubagentStart hook injects assigned issues — read them
-- `status:in-progress` → continue that task
-- `status:planned` → take priority one, `bash scripts/gh-tasks.sh start <N>`
+- SubagentStart hook injects assigned Jira issues — read them
+- Status "В работе" → continue that task
+- Status "Сделать" → take priority one, `bash scripts/jira-tasks.sh start EKFLAB-N`
 
 ### Decomposition (ОБЯЗАТЕЛЬНО для задач с 2+ шагами):
 **Проблема:** одна issue "Сделать всё" — не видно прогресса, непонятно что сделано.
 
 **Правило:** Если задача требует 2+ самостоятельных действий — РАЗБЕЙ на подзадачи.
 
-1. Создай epic (label `type:epic`) с общим описанием
+1. Создай epic (type=Epic) с общим описанием
 2. Декомпозируй на 3-7 задач, каждая = 1 конкретный deliverable
-3. Каждая подзадача: `gh-tasks.sh create --parent <epic_N> --title "..." ...`
+3. Каждая подзадача: `jira-tasks.sh create --parent EKFLAB-N --title "..." ...`
 4. Закрывай подзадачи по одной с DoD
 5. Epic закрывается ПОСЛЕДНИМ, когда все подзадачи done
 
 **Пример:**
 ```
-Epic #90: "Аудит ФМ v1.0.6" (type:epic, agent:1-architect)
-  #91: "Проверить бизнес-правила" (--parent 90)
-  #92: "Проверить интеграции с SBS" (--parent 90)
-  #93: "Проверить UI/UX для УТ 10.2" (--parent 90)
-  #94: "Написать audit_summary.json" (--parent 90)
+Epic EKFLAB-3: "Phase 3A: Project Scaffold"
+  EKFLAB-28: "3.1 Repository init" (--parent EKFLAB-3)
+  EKFLAB-29: "3.2 Go tooling setup" (--parent EKFLAB-3)
+  EKFLAB-30: "3.3 React project setup" (--parent EKFLAB-3)
+  EKFLAB-31: "3.4 Docker infrastructure" (--parent EKFLAB-3)
 ```
 
 **Когда НЕ декомпозировать:**
@@ -49,13 +51,17 @@ Epic #90: "Аудит ФМ v1.0.6" (type:epic, agent:1-architect)
 - Задача тривиальна (< 10 минут работы)
 
 ### During work:
-- New problem → `bash scripts/gh-tasks.sh create --title "..." --agent <name> --sprint <N> --priority <P> --body "..."`
-- Blocker → `bash scripts/gh-tasks.sh block <N> --reason "..."`
-- Check epic progress → `bash scripts/gh-tasks.sh children <epic_N>`
+- New problem → `bash scripts/jira-tasks.sh create --title "..." --agent <name> --sprint <N> --priority <P> --body "..."`
+- Blocker → `bash scripts/jira-tasks.sh block EKFLAB-N --reason "..."`
+- Check epic progress → `bash scripts/jira-tasks.sh children EKFLAB-N`
 
 ### At end (LAST action):
-- Close done issues: `bash scripts/gh-tasks.sh done <N> --comment "Result: ..."`
-- Unfinished → leave `status:in-progress`, add progress comment
-- Epic: close ONLY when all children closed (script validates)
+- Close done issues: `bash scripts/jira-tasks.sh done EKFLAB-N --comment "Result: ..."`
+- Unfinished → leave "В работе", add progress comment via MCP
+- Epic: close ONLY when all children closed (check via `jira-tasks.sh children`)
 
-**Iron rule:** No agent finishes without updating its GitHub Issues.
+**Iron rule:** No agent finishes without updating its Jira tasks.
+
+### Commit messages:
+- Reference Jira: `Refs EKFLAB-N` (NOT `Closes #N`)
+- Example: `feat: add domain entities (Refs EKFLAB-28)`

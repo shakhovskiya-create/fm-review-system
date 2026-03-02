@@ -56,7 +56,7 @@ jobs:
                   'Эта issue была закрыта без обязательного DoD-комментария.',
                   'Закрытие через `Closes #N` в коммитах запрещено — используйте:',
                   '```bash',
-                  `scripts/gh-tasks.sh done ${issueNumber} --comment "## Результат\\n...\\n## DoD\\n- [x] Tests pass\\n..."`,
+                  `scripts/jira-tasks.sh done EKFLAB-N --comment "## Результат\\n...\\n## DoD\\n- [x] Tests pass\\n..."`,
                   '```',
                   '',
                   'Требования: [.claude/rules/dod.md](../blob/main/.claude/rules/dod.md)',

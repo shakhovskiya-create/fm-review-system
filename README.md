@@ -123,7 +123,8 @@ Options: `--parallel`, `--agents 1,2,4`, `--resume`, `--dry-run`
 | `scripts/orchestrate.sh` | Main menu (14 options) |
 | `scripts/run_agent.py` | SDK pipeline runner (Claude Code SDK + Langfuse) |
 | `scripts/quality_gate.sh` | FM readiness check (9 sections) |
-| `scripts/gh-tasks.sh` | GitHub Issues CLI (create/start/done/block) |
+| `scripts/jira-tasks.sh` | Jira EKFLAB CLI (create/start/done/block/sprint) |
+| `scripts/gh-tasks.sh` | GitHub Issues CLI — DEPRECATED (use jira-tasks.sh) |
 | `scripts/publish_to_confluence.py` | Confluence update (v3.0, lock+backup+retry) |
 | `scripts/check-secrets.sh` | Secrets verification (Infisical/keyring/.env) |
 | `scripts/cost-report.sh` | Monthly cost breakdown by agent |
