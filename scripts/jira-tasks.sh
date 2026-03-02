@@ -239,10 +239,56 @@ cmd_done() {
     done
 
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
-    [[ -z "$comment" ]] && { echo "ERROR: --comment is required (DoD checklist)" >&2; exit 1; }
+    [[ -z "$comment" ]] && { echo "ERROR: --comment is required (результат + было→стало)" >&2; exit 1; }
 
-    # Step 1: Add closing comment FIRST (before status change)
-    _jira_post "/rest/api/2/issue/${issue_key}/comment" \
+    # Step 0: Verify Smart Checklist — ALL items must be checked (+)
+    local checklist_raw
+    checklist_raw=$(_jira_get "/rest/api/2/issue/${issue_key}/properties/com.railsware.SmartChecklist.checklist" 2>/dev/null || true)
+    if [[ -n "$checklist_raw" ]] && echo "$checklist_raw" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+        local checklist_status
+        checklist_status=$(echo "$checklist_raw" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+value = data.get('value', '')
+lines = [l.strip() for l in value.strip().split('\n') if l.strip()]
+total = len(lines)
+checked = sum(1 for l in lines if l.startswith('+'))
+unchecked = [l for l in lines if l.startswith('-') or l.startswith('~')]
+if unchecked:
+    print('FAIL')
+    for u in unchecked:
+        print(f'  {u}')
+elif total == 0:
+    print('EMPTY')
+else:
+    print('OK')
+" 2>/dev/null)
+
+        case "$(echo "$checklist_status" | head -1)" in
+            FAIL)
+                echo "ERROR: Smart Checklist не полностью выполнен для ${issue_key}:" >&2
+                echo "$checklist_status" | tail -n +2 >&2
+                echo "" >&2
+                echo "Закройте все пункты чеклиста перед закрытием задачи." >&2
+                exit 1
+                ;;
+            EMPTY)
+                echo "ERROR: Smart Checklist пуст для ${issue_key}." >&2
+                echo "Заполните DoD-чеклист перед закрытием задачи." >&2
+                exit 1
+                ;;
+            OK)
+                ;; # All good
+        esac
+    else
+        echo "ERROR: Smart Checklist не найден для ${issue_key}." >&2
+        echo "Заполните DoD-чеклист перед закрытием задачи." >&2
+        echo "API: PUT /rest/api/2/issue/${issue_key}/properties/com.railsware.SmartChecklist.checklist" >&2
+        exit 1
+    fi
+
+    # Step 1: Add closing comment (результат, NOT DoD — DoD is in Smart Checklist)
+    _jira_post "/rest/api/2/issue/${issue_key}/comment?notifyUsers=false" \
         "{\"body\": $(python3 -c "import json; print(json.dumps('$comment'))")}" > /dev/null
 
     # Step 2: Transition to Готово
