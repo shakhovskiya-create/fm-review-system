@@ -87,7 +87,7 @@
 | 1.0.6 | 26.02.2026 | Зависимости от SBS (SBS-58/59/63/130), формула НПСС → SBS-58 (6 мес), счёт P1 68 |
 | 1.0.7 | 26.02.2026 | SBS-ссылки → кликабельные гиперссылки Confluence (24 шт) |
 
-## 143 объекта архитектуры (v1.0.7)
+## 143 объекта архитектуры 1С (v1.0.7)
 
 - 6 справочников, 6 документов
 - 5 регистров накопления, 13 регистров сведений
@@ -96,3 +96,41 @@
 - 9 ролей, 11 перечислений, 10 констант
 - 6 функциональных опций
 - 25 контрольных точек мониторинга
+
+## Go+React реализация (profitability-service)
+
+> Решение 2026-03-01: ФМ реализуется как отдельный Go+React сервис. 1С:УТ остаётся source of truth.
+
+### Архитектура (Phase 1, Sprint 25 — завершён 2026-03-02)
+
+**6 Go микросервисов (Clean Architecture):**
+- `api-gateway` — auth (AD LDAP/JWT RS256), RBAC 5 ролей, rate limiting, routing
+- `profitability-service` — расчёт маржи, пороги, кэш НПСС (Redis TTL 1h)
+- `workflow-service` — state machine согласования (7 состояний), SLA tracking, ELMA интеграция
+- `analytics-service` — 3-level AI: L1 deterministic (Z-score, ARIMA), L2 Sonnet 4.6, L3 Opus 4.6 agentic
+- `integration-service` — Kafka 44 topics (9 inbound, 24 internal, 3 outbound, 8 DLQ), Mini MDM temporal tables
+- `notification-service` — Telegram + Email + 1С push, throttling 10/hour/user
+
+**React Frontend (Next.js 15 App Router):**
+- Dashboard: KPI row, 30-day trend chart, alert feed
+- Shipment Analysis: DataTable с drill-down, cursor-based pagination
+- Approval Queue: task cards с SLA countdown, batch operations
+- AI Insights: anomaly cards, investigation timeline, chat interface
+- Reports: 8 P1 reports, Excel/PDF export
+- Settings: thresholds, roles, notifications, feature flags
+
+**DDD Domain Model (84 бизнес-правила):**
+- 8 Aggregates: LocalEstimate, Shipment, ApprovalProcess, ProfitabilityCalculation, Client, Sanction, PriceSheet, EmergencyApproval
+- 8 Value Objects: Money, Percentage, SLADeadline, ProfitabilityThreshold, ApprovalDecision, PriceCorrection, DateRange, AggregateLimit
+- Формула маржи: (нетто-выручка - себестоимость) / нетто-выручка × 100
+- Порог автосогласования: ≤1.00 п.п., лимиты: 20K/day менеджер, 100K/day БЮ
+
+**17 интеграций:**
+- 1С→Kafka: заказы, отгрузки, возвраты, НПСС, клиенты, ЛС (9 topics)
+- Kafka→1С: результат согласования, санкция, блок отгрузки (3 topics)
+- ELMA: согласование, circuit breaker (5 failures → 30s cooldown)
+- ЦБ РФ: курсы валют (daily cron)
+- WMS: двусторонний обмен (отгрузки/факты)
+- AD: LDAP bind, group query
+
+**Документы архитектуры:** `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/phase1*.md`
