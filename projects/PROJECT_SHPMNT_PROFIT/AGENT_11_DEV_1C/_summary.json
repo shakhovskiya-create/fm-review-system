@@ -1,19 +1,29 @@
 {
   "agent": "Agent11_Dev1C",
   "command": "/auto",
-  "timestamp": "2026-03-02T16:00:00+03:00",
+  "timestamp": "2026-03-02T18:30:00+03:00",
   "fmVersion": "1.0.5",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
   "counts": {
-    "total": 14,
+    "total": 19,
     "critical": 0,
     "high": 0,
     "medium": 0,
     "low": 0
   },
   "outputFiles": [
-    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/phase1_5_extension.md"
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/phase1_5_extension.md",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/phase1_5_extension_v2.md"
   ],
-  "notes": "Phase 1.5: 1С Extension for Kafka integration. 14 metadata objects: 6 constants, 2 info registers, 3 common modules, 1 HTTP service (3 endpoints), 3 event subscriptions, 3 scheduled jobs. All code follows ITS 455, no managed forms, compatible with UT 10.2 on platform 8.3. Callback business logic is scaffolded (journal logging only) - full implementation in Phase 2."
+  "notes": "Phase 1.5 v2: Added 5 missing outbound event types (SE-EXT-001 remediation). Coverage: 9/9 events (100%). New subscriptions: ekf_ПриЗаписиНПСС (price.npss-updated), ekf_ПриЗаписиЦенКонтрагентов (price.purchase-changed), ekf_ПриЗаписиКонтрагента (client.updated), ekf_ПриПроведенииЛокальнойСметы (ls.created), ekf_ПриПроведенииЛокальнойСметыПлан (ls.plan-changed). 19 metadata objects total (+5 subscriptions). 64 test scenarios (+32). All code follows ITS 455, compatible with UT 10.2 on platform 8.3.",
+  "v2_delta": {
+    "issue": "#411",
+    "se_finding": "SE-EXT-001",
+    "new_subscriptions": 5,
+    "new_payload_functions": 5,
+    "new_test_scenarios": 32,
+    "outbound_coverage": "9/9 (100%)",
+    "lines_added": 600
+  }
 }
