@@ -48,6 +48,8 @@ fi
 
 # Get commits since last push (last 5 commits on current branch)
 REPO_URL=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null | sed 's/\.git$//' || echo "")
+# Strip credentials from URL (e.g., https://user:token@github.com/... → https://github.com/...)
+REPO_URL=$(echo "$REPO_URL" | sed 's|https://[^@]*@|https://|')
 # Convert SSH URL to HTTPS if needed
 REPO_URL=$(echo "$REPO_URL" | sed 's|git@github.com:|https://github.com/|')
 
@@ -75,7 +77,7 @@ while IFS='|' read -r sha author message; do
         existing=$(timeout 3 curl -s \
             -H "Authorization: Bearer $JIRA_PAT" \
             "${JIRA_BASE_URL}/rest/api/2/issue/${key}/comment" 2>/dev/null | \
-            jq -r ".comments[].body" 2>/dev/null | grep -c "$short_sha" || echo "0")
+            jq -r ".comments[].body" 2>/dev/null | grep -c "$short_sha") || existing=0
 
         if [ "$existing" -gt 0 ]; then
             continue
