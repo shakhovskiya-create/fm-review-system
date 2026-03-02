@@ -88,7 +88,7 @@ while IFS='|' read -r sha author message; do
             -X POST \
             -H "Authorization: Bearer $JIRA_PAT" \
             -H "Content-Type: application/json" \
-            "${JIRA_BASE_URL}/rest/api/2/issue/${key}/comment" \
+            "${JIRA_BASE_URL}/rest/api/2/issue/${key}/comment?notifyUsers=false" \
             -d "{\"body\": $(echo "$comment" | jq -Rs .)}" 2>/dev/null || echo "000")
 
         if [ "$result" = "201" ]; then
