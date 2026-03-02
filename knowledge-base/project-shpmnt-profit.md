@@ -134,3 +134,23 @@
 - AD: LDAP bind, group query
 
 **Документы архитектуры:** `projects/PROJECT_SHPMNT_PROFIT/AGENT_5_TECH_ARCHITECT/phase1*.md`
+
+### 1С Extension (Phase 1.5, Sprint 26 — завершён 2026-03-02)
+
+Расширение .cfe для 1С:УТ 10.2 — интеграция с profitability-service через HTTP→Kafka:
+- 14 объектов метаданных: 6 констант, 2 регистра сведений, 3 общих модуля, 1 HTTP-сервис, 3 подписки, 3 рег.задания
+- Outbound: 4 из 9 событий (order.created/updated, shipment.posted/returned) — 5 событий в backlog (#410)
+- Inbound: 3 callback endpoint (approval, sanction, block)
+- Retry queue с exponential backoff (30s→2h, 100 попыток), kill switch, UUID-идемпотентность
+
+### SE Review (Phase 2, Sprint 26 — завершён 2026-03-02)
+
+**Go+React архитектура:** CONDITIONAL PASS — 31 findings (2 CRITICAL, 8 HIGH)
+- SE-001 CRIT: Money overflow в Add/Multiply (#408)
+- SE-002 CRIT: float64 для Quantity → IEEE 754 rounding (#409)
+- Утверждено: service decomposition, tech stack, DDD model, coverage targets (88%/95%), AI eval suite (30 tests)
+
+**1С Extension:** CONDITIONAL PASS — 12 findings (0 CRIT, 1 HIGH)
+- SE-EXT-001 HIGH: 5 из 9 event types отсутствуют (#410)
+
+**Документы review:** `projects/PROJECT_SHPMNT_PROFIT/AGENT_9_SE_GO/`, `projects/PROJECT_SHPMNT_PROFIT/AGENT_10_SE_1C/`
