@@ -9,15 +9,16 @@ Usage:
     python3 scripts/migrate-gh-to-jira.py [--dry-run] [--sprint N]
 """
 
+import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import time
-import subprocess
-import argparse
-import requests
 from pathlib import Path
+
+import requests
 
 # --- Config ---
 JIRA_BASE = "https://jira.ekf.su"
@@ -288,7 +289,7 @@ def main():
     with open(mapping_file, "w") as f:
         json.dump(gh_to_jira, f, indent=2)
 
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"Created: {len(gh_to_jira)} issues in Jira")
     print(f"Mapping saved to: {mapping_file}")
 
