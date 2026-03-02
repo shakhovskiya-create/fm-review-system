@@ -67,7 +67,6 @@ while IFS='|' read -r sha author message; do
     first_line=$(echo "$message" | head -c 120)
 
     comment="*Коммит:* [${short_sha}|${commit_url}]
-*Автор:* ${author}
 *Сообщение:* ${first_line}
 *Ветка:* $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo 'main')"
 
