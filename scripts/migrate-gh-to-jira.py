@@ -225,7 +225,7 @@ def main():
     parser = argparse.ArgumentParser(description="Migrate GitHub Issues to Jira")
     parser.add_argument("--dry-run", action="store_true", help="Don't actually create issues")
     parser.add_argument("--sprint", type=str, help="Only migrate specific sprint (e.g., 27)")
-    parser.add_argument("--input", default="/tmp/gh_issues_full.json", help="Input JSON file")
+    parser.add_argument("--input", default="/tmp/gh_issues_full.json", help="Input JSON file")  # nosec B108
     args = parser.parse_args()
 
     # Load issues
@@ -285,7 +285,7 @@ def main():
         time.sleep(0.3)  # Rate limiting
 
     # Save mapping
-    mapping_file = "/tmp/gh_to_jira_mapping.json"
+    mapping_file = "/tmp/gh_to_jira_mapping.json"  # nosec B108 one-time migration script
     with open(mapping_file, "w") as f:
         json.dump(gh_to_jira, f, indent=2)
 
