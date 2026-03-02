@@ -12,63 +12,75 @@ jobs:
       JIRA_BASE_URL: https://jira.ekf.su
     steps:
       - name: Link commits to Jira issues
-        shell: bash
-        run: |
-          if [ -z "$JIRA_PAT" ]; then
-            echo "JIRA_PAT not configured, skipping."
-            exit 0
-          fi
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const jiraBase = process.env.JIRA_BASE_URL;
+            const jiraPat = process.env.JIRA_PAT;
 
-          REPO_URL="https://github.com/${{ github.repository }}"
-          COMMITS='${{ toJSON(github.event.commits) }}'
+            if (!jiraPat) {
+              console.log('JIRA_PAT not configured, skipping.');
+              return;
+            }
 
-          if [ "$COMMITS" = "null" ] || [ -z "$COMMITS" ]; then
-            echo "No commits in push event."
-            exit 0
-          fi
+            const commits = context.payload.commits || [];
+            if (commits.length === 0) {
+              console.log('No commits in push event.');
+              return;
+            }
 
-          LINKED=0
-          COUNT=$(echo "$COMMITS" | jq 'length')
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+            const jiraKeyPattern = /EKFLAB-\d+/g;
+            let linked = 0;
 
-          for i in $(seq 0 $((COUNT - 1))); do
-            SHA=$(echo "$COMMITS" | jq -r ".[$i].id")
-            MESSAGE=$(echo "$COMMITS" | jq -r ".[$i].message")
-            AUTHOR=$(echo "$COMMITS" | jq -r ".[$i].author.name")
-            TIMESTAMP=$(echo "$COMMITS" | jq -r ".[$i].timestamp")
+            for (const commit of commits) {
+              const message = commit.message || '';
+              const keys = [...new Set(message.match(jiraKeyPattern) || [])];
+              if (keys.length === 0) continue;
 
-            # Extract EKFLAB-N keys
-            KEYS=$(echo "$MESSAGE" | grep -oE 'EKFLAB-[0-9]+' | sort -u || true)
-            [ -z "$KEYS" ] && continue
+              const shortSha = commit.id.substring(0, 7);
+              const commitUrl = `${repoUrl}/commit/${commit.id}`;
+              const firstLine = message.split('\n')[0].substring(0, 120);
+              const author = commit.author?.name || 'unknown';
+              const ts = (commit.timestamp || '').substring(0, 19).replace('T', ' ');
 
-            SHORT_SHA="${SHA:0:7}"
-            COMMIT_URL="${REPO_URL}/commit/${SHA}"
-            FIRST_LINE=$(echo "$MESSAGE" | head -1 | cut -c1-120)
-            DATE="${TIMESTAMP:0:19}"
-            DATE="${DATE/T/ }"
+              const comment = [
+                `*Коммит:* [${shortSha}|${commitUrl}]`,
+                `*Автор:* ${author}`,
+                `*Сообщение:* ${firstLine}`,
+                `*Ветка:* main`,
+                `*Дата:* ${ts}`,
+              ].join('\n');
 
-            COMMENT="*Коммит:* [${SHORT_SHA}|${COMMIT_URL}]\n*Автор:* ${AUTHOR}\n*Сообщение:* ${FIRST_LINE}\n*Ветка:* main\n*Дата:* ${DATE}"
+              const bodyJson = JSON.stringify({ body: comment });
 
-            for KEY in $KEYS; do
-              BODY=$(jq -n --arg body "$COMMENT" '{body: $body}')
+              for (const key of keys) {
+                try {
+                  const curlCmd = [
+                    'curl', '-s', '-o', '/tmp/jira_resp.txt',
+                    '-w', '%{http_code}',
+                    '--connect-timeout', '10',
+                    '--max-time', '15',
+                    '-X', 'POST',
+                    '-H', `Authorization: Bearer ${jiraPat}`,
+                    '-H', 'Content-Type: application/json',
+                    `${jiraBase}/rest/api/2/issue/${key}/comment`,
+                    '-d', bodyJson,
+                  ];
+                  const result = execSync(curlCmd.join(' '), { encoding: 'utf-8' }).trim();
 
-              HTTP_CODE=$(curl -s -o /tmp/jira_response.txt -w "%{http_code}" \
-                --connect-timeout 10 \
-                --max-time 15 \
-                -X POST \
-                -H "Authorization: Bearer $JIRA_PAT" \
-                -H "Content-Type: application/json" \
-                "${JIRA_BASE_URL}/rest/api/2/issue/${KEY}/comment" \
-                -d "$BODY" 2>/dev/null || echo "000")
+                  if (result === '201') {
+                    console.log(`Linked commit ${shortSha} to ${key}`);
+                    linked++;
+                  } else {
+                    const resp = require('fs').readFileSync('/tmp/jira_resp.txt', 'utf-8').substring(0, 200);
+                    console.log(`Failed ${key}: HTTP ${result} — ${resp}`);
+                  }
+                } catch (err) {
+                  console.log(`Error on ${key}: ${err.message.substring(0, 200)}`);
+                }
+              }
+            }
 
-              if [ "$HTTP_CODE" = "201" ]; then
-                echo "Linked commit ${SHORT_SHA} to ${KEY}"
-                LINKED=$((LINKED + 1))
-              else
-                echo "Failed to comment on ${KEY}: HTTP ${HTTP_CODE}"
-                cat /tmp/jira_response.txt 2>/dev/null | head -3 || true
-                echo ""
-              fi
-            done
-          done
-
-          echo "Processed ${COUNT} commits, linked ${LINKED}."
+            console.log(`Processed ${commits.length} commits, linked ${linked}.`);
