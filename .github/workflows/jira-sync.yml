@@ -1,0 +1,82 @@
+name: Jira Commit Sync
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Link commits to Jira issues
+        uses: actions/github-script@v7
+        env:
+          JIRA_PAT: ${{ secrets.JIRA_PAT }}
+          JIRA_BASE_URL: https://jira.ekf.su
+        with:
+          script: |
+            const jiraBase = process.env.JIRA_BASE_URL;
+            const jiraPat = process.env.JIRA_PAT;
+
+            if (!jiraPat) {
+              console.log('JIRA_PAT not configured, skipping.');
+              return;
+            }
+
+            // Get commits from the push event
+            const commits = context.payload.commits || [];
+            if (commits.length === 0) {
+              console.log('No commits in push event.');
+              return;
+            }
+
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+            const jiraKeyPattern = /EKFLAB-\d+/g;
+
+            for (const commit of commits) {
+              const message = commit.message || '';
+              const keys = [...new Set(message.match(jiraKeyPattern) || [])];
+
+              if (keys.length === 0) continue;
+
+              const shortSha = commit.id.substring(0, 7);
+              const commitUrl = `${repoUrl}/commit/${commit.id}`;
+              const firstLine = message.split('\n')[0].substring(0, 120);
+              const author = commit.author?.name || 'unknown';
+              const timestamp = commit.timestamp || new Date().toISOString();
+
+              const comment = [
+                `*Коммит:* [${shortSha}|${commitUrl}]`,
+                `*Автор:* ${author}`,
+                `*Сообщение:* ${firstLine}`,
+                `*Ветка:* main`,
+                `*Дата:* ${timestamp.substring(0, 19).replace('T', ' ')}`,
+              ].join('\n');
+
+              for (const key of keys) {
+                try {
+                  const response = await fetch(
+                    `${jiraBase}/rest/api/2/issue/${key}/comment`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${jiraPat}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ body: comment }),
+                    }
+                  );
+
+                  if (response.ok) {
+                    console.log(`Linked commit ${shortSha} to ${key}`);
+                  } else {
+                    const text = await response.text();
+                    console.log(`Failed to comment on ${key}: ${response.status} ${text.substring(0, 200)}`);
+                  }
+                } catch (err) {
+                  console.log(`Error commenting on ${key}: ${err.message}`);
+                }
+              }
+            }
+
+            console.log(`Processed ${commits.length} commits.`);
