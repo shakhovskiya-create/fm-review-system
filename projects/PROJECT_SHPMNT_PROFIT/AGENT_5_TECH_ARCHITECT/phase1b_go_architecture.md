@@ -229,7 +229,7 @@ CREATE TABLE local_estimate_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     local_estimate_id UUID NOT NULL REFERENCES local_estimates(id),
     product_id UUID NOT NULL,
-    quantity DOUBLE PRECISION NOT NULL CHECK (quantity > 0),
+    quantity NUMERIC(18,6) NOT NULL CHECK (quantity > 0), -- shopspring/decimal, 6 знаков дробной части
     price BIGINT NOT NULL, -- копейки
     amount BIGINT NOT NULL, -- копейки
     npss BIGINT NOT NULL, -- копейки (зафиксированная НПСС)
@@ -299,7 +299,7 @@ CREATE TABLE shipment_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     shipment_id UUID NOT NULL REFERENCES shipments(id),
     product_id UUID NOT NULL,
-    quantity DOUBLE PRECISION NOT NULL CHECK (quantity > 0),
+    quantity NUMERIC(18,6) NOT NULL CHECK (quantity > 0), -- shopspring/decimal, 6 знаков дробной части
     price BIGINT NOT NULL, -- копейки
     amount BIGINT NOT NULL, -- копейки
     npss BIGINT NOT NULL, -- копейки (из ЛС)
@@ -347,7 +347,7 @@ CREATE TABLE calculation_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     calculation_id UUID NOT NULL REFERENCES profitability_calculations(id),
     product_id UUID NOT NULL,
-    quantity DOUBLE PRECISION NOT NULL,
+    quantity NUMERIC(18,6) NOT NULL, -- shopspring/decimal, 6 знаков дробной части
     price BIGINT NOT NULL,
     npss BIGINT NOT NULL,
     profitability BIGINT NOT NULL,

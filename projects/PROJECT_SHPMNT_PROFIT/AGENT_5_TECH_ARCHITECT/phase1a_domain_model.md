@@ -5,7 +5,7 @@
 **Дата:** 01.03.2026
 **Автор:** Шаховский А.С.
 **Платформа:** Go + React (Clean Architecture)
-**Стек:** chi, sqlc, franz-go, Wire, connect-go, anthropic-sdk-go
+**Стек:** chi, sqlc, franz-go, Wire, connect-go, anthropic-sdk-go, shopspring/decimal
 
 ---
 
@@ -113,7 +113,7 @@ type LocalEstimate struct {
 type LocalEstimateLineItem struct {
     ID             uuid.UUID
     ProductID      uuid.UUID
-    Quantity       float64
+    Quantity       Quantity // shopspring/decimal, NUMERIC(18,6) в БД
     Price          Money
     Amount         Money
     NPSS           Money // зафиксированная НПСС
@@ -208,7 +208,7 @@ type Shipment struct {
 type ShipmentLineItem struct {
     ID                uuid.UUID
     ProductID         uuid.UUID
-    Quantity          float64
+    Quantity          Quantity // shopspring/decimal, NUMERIC(18,6) в БД
     Price             Money
     Amount            Money
     NPSS              Money    // из ЛС (зафиксированная)
@@ -470,7 +470,7 @@ type ProfitabilityCalculation struct {
 
 type LineItemCalculation struct {
     ProductID     uuid.UUID
-    Quantity      float64
+    Quantity      Quantity // shopspring/decimal, NUMERIC(18,6) в БД
     Price         Money
     NPSS          Money
     Profitability Percentage
@@ -720,16 +720,33 @@ const (
 ```go
 // Money -- неизменяемый объект денежной суммы.
 // Precision: 2 знака после запятой. Все операции округляют до копеек.
+// Overflow protection: все арифметические операции проверяют переполнение int64
+// и возвращают ошибку вместо silent wrap-around.
+// Максимальное значение: math.MaxInt64 / 100 = 92 233 720 368 547 758.07 руб.
 type Money struct {
     amount int64  // в копейках (centesimal)
     // currency всегда RUB для данного домена
 }
 
+// MaxMoneyCents -- максимальное значение в копейках (math.MaxInt64).
+const MaxMoneyCents int64 = math.MaxInt64 // 9_223_372_036_854_775_807
+
 func NewMoney(rubles float64) (Money, error) {
     if rubles < 0 {
         return Money{}, ErrNegativeMoney
     }
-    return Money{amount: int64(math.Round(rubles * 100))}, nil
+    cents := math.Round(rubles * 100)
+    if cents > float64(MaxMoneyCents) {
+        return Money{}, ErrMoneyOverflow
+    }
+    return Money{amount: int64(cents)}, nil
+}
+
+func NewMoneyFromCents(cents int64) (Money, error) {
+    if cents < 0 {
+        return Money{}, ErrNegativeMoney
+    }
+    return Money{amount: cents}, nil
 }
 
 func (m Money) Amount() float64 {
@@ -740,10 +757,19 @@ func (m Money) AmountCents() int64 {
     return m.amount
 }
 
-func (m Money) Add(other Money) Money {
-    return Money{amount: m.amount + other.amount}
+// Add складывает две суммы с проверкой переполнения.
+// Возвращает ErrMoneyOverflow если результат > MaxInt64 копеек.
+func (m Money) Add(other Money) (Money, error) {
+    result := m.amount + other.amount
+    // Проверка переполнения: если оба слагаемых положительны,
+    // результат не может быть меньше любого из них.
+    if m.amount > 0 && other.amount > 0 && result < m.amount {
+        return Money{}, ErrMoneyOverflow
+    }
+    return Money{amount: result}, nil
 }
 
+// Subtract вычитает сумму с проверкой на отрицательный результат.
 func (m Money) Subtract(other Money) (Money, error) {
     result := m.amount - other.amount
     if result < 0 {
@@ -752,8 +778,19 @@ func (m Money) Subtract(other Money) (Money, error) {
     return Money{amount: result}, nil
 }
 
-func (m Money) Multiply(factor float64) Money {
-    return Money{amount: int64(math.Round(float64(m.amount) * factor))}
+// Multiply умножает на коэффициент с проверкой переполнения.
+// Используется decimal-арифметика промежуточного результата для точности.
+// Возвращает ErrMoneyOverflow если результат > MaxInt64 копеек.
+func (m Money) Multiply(factor float64) (Money, error) {
+    if factor < 0 {
+        return Money{}, ErrNegativeMultiplier
+    }
+    product := float64(m.amount) * factor
+    rounded := math.Round(product)
+    if rounded > float64(MaxMoneyCents) || math.IsInf(product, 0) || math.IsNaN(product) {
+        return Money{}, ErrMoneyOverflow
+    }
+    return Money{amount: int64(rounded)}, nil
 }
 
 func (m Money) IsZero() bool {
@@ -763,9 +800,102 @@ func (m Money) IsZero() bool {
 func (m Money) Equals(other Money) bool {
     return m.amount == other.amount
 }
+
+func (m Money) GreaterThan(other Money) bool {
+    return m.amount > other.amount
+}
+
+func (m Money) LessOrEqual(other Money) bool {
+    return m.amount <= other.amount
+}
 ```
 
-### 3.2. Percentage
+### 3.2. Quantity
+
+```go
+// Quantity -- неизменяемый объект количества товара.
+// Использует shopspring/decimal для точных финансовых вычислений:
+// float64 имеет лишь 15-17 значащих цифр (IEEE 754), что приводит
+// к rounding errors при умножении цена * количество.
+// Пример: float64(0.1 + 0.2) != 0.3 (= 0.30000000000000004).
+//
+// Precision: 6 знаков после запятой (позволяет дробные единицы:
+// метры, кг, литры и т.п.).
+// DB: NUMERIC(18,6) -- точное хранение без потери точности.
+//
+// Зависимость: github.com/shopspring/decimal
+import "github.com/shopspring/decimal"
+
+type Quantity struct {
+    value decimal.Decimal
+}
+
+// NewQuantity создает количество из строки (предпочтительный способ).
+// Принимает: "1.5", "100", "0.000001".
+// Не допускает отрицательные и нулевые значения.
+func NewQuantity(s string) (Quantity, error) {
+    d, err := decimal.NewFromString(s)
+    if err != nil {
+        return Quantity{}, ErrInvalidQuantity
+    }
+    if d.LessThanOrEqual(decimal.Zero) {
+        return Quantity{}, ErrNonPositiveQuantity
+    }
+    return Quantity{value: d.Round(6)}, nil
+}
+
+// NewQuantityFromFloat создает количество из float64 (для обратной совместимости
+// с данными из 1С, где количество передается как число).
+// ВНИМАНИЕ: используй NewQuantity(string) когда возможно, чтобы избежать
+// потери точности при конвертации float64 -> decimal.
+func NewQuantityFromFloat(f float64) (Quantity, error) {
+    d := decimal.NewFromFloat(f)
+    if d.LessThanOrEqual(decimal.Zero) {
+        return Quantity{}, ErrNonPositiveQuantity
+    }
+    return Quantity{value: d.Round(6)}, nil
+}
+
+// Float64 возвращает значение как float64 (для Kafka payload / JSON).
+// Используется ТОЛЬКО для сериализации, не для расчетов.
+func (q Quantity) Float64() float64 {
+    f, _ := q.value.Float64()
+    return f
+}
+
+// String возвращает строковое представление (для логов, отладки).
+func (q Quantity) String() string {
+    return q.value.String()
+}
+
+// Decimal возвращает внутреннее значение для расчетов.
+func (q Quantity) Decimal() decimal.Decimal {
+    return q.value
+}
+
+// MultiplyByMoney -- Количество * Цена = Сумма (Money).
+// Результат округляется до копеек (2 знака).
+// Пример: Quantity("1.5") * Money(10000 коп) = Money(15000 коп)
+func (q Quantity) MultiplyByMoney(price Money) (Money, error) {
+    priceDec := decimal.NewFromInt(price.AmountCents())
+    resultDec := q.value.Mul(priceDec).Round(0) // округление до копеек
+    if !resultDec.IsPositive() && !resultDec.IsZero() {
+        return Money{}, ErrNegativeMoney
+    }
+    // Проверка переполнения int64
+    if resultDec.GreaterThan(decimal.NewFromInt(MaxMoneyCents)) {
+        return Money{}, ErrMoneyOverflow
+    }
+    return NewMoneyFromCents(resultDec.IntPart())
+}
+
+// Equals проверяет равенство с точностью до 6 знаков.
+func (q Quantity) Equals(other Quantity) bool {
+    return q.value.Equal(other.value)
+}
+```
+
+### 3.3. Percentage
 
 ```go
 // Percentage -- неизменяемый процент с точностью 2 знака.
@@ -1953,9 +2083,13 @@ import "errors"
 // Ошибки расчета
 var (
     ErrNegativeMoney              = errors.New("money amount cannot be negative")
+    ErrMoneyOverflow              = errors.New("money overflow: result exceeds int64 (> 92 quadrillion kopecks)")
+    ErrNegativeMultiplier         = errors.New("money multiplier cannot be negative")
     ErrDivisionByZero             = errors.New("division by zero in profitability calculation")
     ErrNPSSIsZero                 = errors.New("NPSS is zero: line item blocked")
     ErrPriceIsZero                = errors.New("price is zero: line item blocked")
+    ErrInvalidQuantity            = errors.New("invalid quantity format")
+    ErrNonPositiveQuantity        = errors.New("quantity must be positive")
 )
 
 // Ошибки согласования
@@ -2092,7 +2226,7 @@ type AnomalyRepository interface {
 |-----------|-----------|--------|
 | Bounded Contexts | 4 | Profitability, Workflow, Analytics, Integration |
 | Aggregates | 8 | LocalEstimate, Shipment, ApprovalProcess, ProfitabilityCalculation, Client, Sanction, PriceSheet, EmergencyApproval |
-| Value Objects | 8 | Money, Percentage, SLADeadline, ProfitabilityThreshold, ApprovalDecisionValue, PriceCorrection, DateRange, AggregateLimit |
+| Value Objects | 9 | Money, Quantity, Percentage, SLADeadline, ProfitabilityThreshold, ApprovalDecisionValue, PriceCorrection, DateRange, AggregateLimit |
 | Domain Events | 40+ | Profitability (6), Workflow (11), Integration (5), 1С inbound (9), Commands outbound (3), AI (3+) |
 | Domain Services | 6 | ProfitabilityCalculator, ApprovalRouter, SLATracker, SanctionManager, ThresholdEvaluator, CrossValidator |
 | Business Rules | 44 | BR-001..006 (расчет), BR-010..021 (согласование), BR-030..035 (экстренные), BR-040..043 (ELMA fallback), BR-050..056 (НПСС), BR-060..063 (ЛС), BR-070..071 (нагрузка), BR-080..084 (санкции) |
