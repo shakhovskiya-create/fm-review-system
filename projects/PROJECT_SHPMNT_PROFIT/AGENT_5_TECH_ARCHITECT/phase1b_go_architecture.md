@@ -127,18 +127,18 @@ message CalculationResponse {
   string calculation_id = 1;
   string shipment_id = 2;
   string local_estimate_id = 3;
-  double planned_profitability = 4;
-  double order_profitability = 5;
-  double cumulative_plus_order = 6;
-  double remainder_profitability = 7;
-  double deviation = 8;
+  int64 planned_profitability_bp = 4;  // basis points (сотые доли %)
+  int64 order_profitability_bp = 5;    // basis points
+  int64 cumulative_plus_order_bp = 6;  // basis points
+  int64 remainder_profitability_bp = 7; // basis points
+  int64 deviation_bp = 8;              // basis points
   string required_level = 9; // auto/rbu/dp/gd
 }
 
 message RecalculateRequest {
   string local_estimate_id = 1;
-  double old_plan = 2;
-  double new_plan = 3;
+  int64 old_plan_bp = 2;  // basis points
+  int64 new_plan_bp = 3;  // basis points
 }
 
 message RecalculateResponse {
@@ -149,7 +149,7 @@ message CrossValidationResult {
   string shipment_id = 1;
   string old_level = 2;
   string new_level = 3;
-  double new_deviation = 4;
+  int64 new_deviation_bp = 4;  // basis points
   bool requires_reapproval = 5;
 }
 
@@ -166,8 +166,8 @@ message ShipmentHistoryResponse {
 message ShipmentSummary {
   string id = 1;
   string external_id = 2;
-  double order_profitability = 3;
-  double deviation = 4;
+  int64 order_profitability_bp = 3;  // basis points
+  int64 deviation_bp = 4;            // basis points
   string status = 5;
   string created_at = 6; // RFC 3339
 }
@@ -179,15 +179,15 @@ message WhatIfRequest {
 
 message WhatIfLineItem {
   string product_id = 1;
-  double quantity = 2;
-  double price = 3;
+  string quantity = 2;  // shopspring/decimal string (lossless)
+  int64 price_cents = 3;  // копейки
 }
 
 message WhatIfResponse {
-  double order_profitability = 1;
-  double cumulative_plus_order = 2;
-  double remainder_profitability = 3;
-  double deviation = 4;
+  int64 order_profitability_bp = 1;    // basis points
+  int64 cumulative_plus_order_bp = 2;  // basis points
+  int64 remainder_profitability_bp = 3; // basis points
+  int64 deviation_bp = 4;              // basis points
   string required_level = 5;
 }
 ```
@@ -483,9 +483,10 @@ message CreateApprovalRequest {
   string shipment_id = 1;
   string local_estimate_id = 2;
   string initiator_id = 3;
-  double deviation = 4;
+  int64 deviation_bp = 4;  // basis points (сотые доли %)
   string priority = 5; // P1/P2
   bool is_small_order = 6; // < 100 т.р.
+  int64 order_amount_cents = 7; // сумма заказа в копейках
 }
 
 message ApprovalProcessResponse {
@@ -652,6 +653,7 @@ CREATE TABLE approval_processes (
         CHECK (mode IN ('standard','fallback')),
     cross_validation_reason TEXT,
     correction_iteration INT NOT NULL DEFAULT 0 CHECK (correction_iteration <= 5),
+    is_small_order BOOLEAN NOT NULL DEFAULT false, -- < 100 т.р., влияет на SLA
 
     -- State machine
     state VARCHAR(30) NOT NULL DEFAULT 'pending'
@@ -709,11 +711,12 @@ CREATE TABLE sla_tracking (
     process_id UUID NOT NULL REFERENCES approval_processes(id),
     level VARCHAR(10) NOT NULL,
     priority VARCHAR(5) NOT NULL,
+    is_small_order BOOLEAN NOT NULL DEFAULT false, -- < 100 т.р., отдельная колонка SLA
     sla_hours INT NOT NULL,
     started_at TIMESTAMPTZ NOT NULL,
     deadline TIMESTAMPTZ NOT NULL,
-    escalation_threshold TIMESTAMPTZ NOT NULL, -- 80% of SLA
-    notification_threshold TIMESTAMPTZ NOT NULL, -- 50% of SLA
+    escalation_threshold TIMESTAMPTZ NOT NULL, -- 80% of SLA (business hours)
+    notification_threshold TIMESTAMPTZ NOT NULL, -- 50% of SLA (business hours)
     resolved_at TIMESTAMPTZ,
     breached BOOLEAN NOT NULL DEFAULT false,
     breached_at TIMESTAMPTZ,
@@ -855,15 +858,15 @@ service AnalyticsService {
 message CheckAnomalyRequest {
   string shipment_id = 1;
   string local_estimate_id = 2;
-  double deviation = 3;
-  double order_profitability = 4;
+  int64 deviation_bp = 3;            // basis points
+  int64 order_profitability_bp = 4;  // basis points
   string client_id = 5;
   string manager_id = 6;
 }
 
 message CheckAnomalyResponse {
   bool is_anomaly = 1;
-  double z_score = 2;
+  int64 z_score_bp = 2;  // z-score * 100 (2 знака точности)
   string level = 3; // "1", "2", "3"
   string anomaly_id = 4; // UUID, empty if not anomaly
 }
@@ -874,7 +877,7 @@ message AnomalySummaryRequest {
 
 message AnomalySummaryResponse {
   string description = 1;
-  double confidence = 2;
+  int32 confidence_pct = 2;  // 0-100 (целые проценты)
   repeated string recommendations = 3;
   string investigation_status = 4;
 }
@@ -1424,6 +1427,21 @@ CREATE TABLE mdm_business_units (
     deputy_id UUID
 );
 
+-- Календарь праздников для SLA (бизнес-часы)
+-- Обновляется ежегодно администратором через POST /api/v1/mdm/holidays
+-- Используется: addBusinessHours() в domain service SLA calendar
+-- Зависимость: github.com/rickar/cal/v2
+CREATE TABLE mdm_holidays (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    year INT NOT NULL,
+    date DATE NOT NULL,
+    name VARCHAR(200) NOT NULL,          -- "Новый год", "День защитника Отечества"
+    is_working_day BOOLEAN NOT NULL DEFAULT false, -- true для переносов (рабочая суббота)
+    UNIQUE(year, date)
+);
+
+CREATE INDEX idx_holidays_year ON mdm_holidays(year);
+
 -- Kafka dedup (idempotency)
 CREATE TABLE kafka_dedup (
     message_id VARCHAR(100) PRIMARY KEY,
@@ -1825,7 +1843,7 @@ All migrations are defined in sections 2.3, 3.5, 4.5, 5.6, 6.5 above.
 | profitability | 7 | local_estimates, shipments, profitability_calculations, price_sheet_cache, auto_approval_counters |
 | workflow | 7 | approval_processes, bu_approvals, routing_history, sla_tracking, fallback_queue, emergency_approvals |
 | analytics | 6 | anomalies, investigations, investigation_evidence, ai_audit_log, forecasts |
-| integration | 10 | mdm_clients, mdm_products, mdm_price_sheets, mdm_exchange_rates, mdm_employees, mdm_business_units, kafka_dedup, sanctions, mdm_audit_log |
+| integration | 11 | mdm_clients, mdm_products, mdm_price_sheets, mdm_exchange_rates, mdm_employees, mdm_business_units, mdm_holidays, kafka_dedup, sanctions, mdm_audit_log |
 | notification | 4 | notifications, notification_templates, user_notification_preferences, notification_throttle |
 | **Total** | **34** + 5 outbox tables = **39** | |
 
@@ -1912,6 +1930,36 @@ Format: `{source}.{domain}.{event}.v{N}`
 - Level 2: retry after 30s
 - Level 3: retry after 5min
 - After Level 3 failure: move to DLQ with error headers (`X-Error-Message`, `X-Original-Topic`, `X-Retry-Count`)
+
+### 9.7. Kafka Broker Configuration
+
+```yaml
+# Обязательные настройки broker (KRaft mode)
+message.max.bytes: 2097152          # 2MB (default 1MB недостаточно для ЛС с 1000 позициями)
+replica.fetch.max.bytes: 2097152    # = message.max.bytes
+max.request.size: 2097152           # producer-side limit (franz-go config)
+
+# Обоснование лимита 2MB:
+# - ЛС с 1000 line items: ~200 bytes/item * 1000 = ~200KB (well within 2MB)
+# - Максимальный JSON payload с метаданными: ~500KB
+# - Запас 4x для edge cases и расширения формата
+```
+
+**Валидация payload в integration-service HTTP handler:**
+```go
+const MaxPayloadSize = 1_500_000 // 1.5MB (оставить 500KB запас до broker limit)
+
+func (h *EventHandler) HandleEvent(w http.ResponseWriter, r *http.Request) {
+    r.Body = http.MaxBytesReader(w, r.Body, MaxPayloadSize)
+    // ... parse body
+    // При превышении: http.MaxBytesReader возвращает 413 Request Entity Too Large
+}
+```
+
+**Документирование для команды 1С extension:**
+- Максимальный размер JSON payload: 1.5MB
+- Рекомендация: для ЛС с > 500 позициями — отправлять header + line items отдельными batch
+- При превышении: HTTP 413, событие НЕ попадает в Kafka
 
 ### 9.6. Topic Summary
 

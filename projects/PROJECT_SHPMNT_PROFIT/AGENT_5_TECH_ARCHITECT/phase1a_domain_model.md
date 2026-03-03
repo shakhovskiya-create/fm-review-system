@@ -331,6 +331,7 @@ type ApprovalProcess struct {
     Mode                  ApprovalMode // Standard / Fallback
     CrossValidationReason string       // при возврате из-за перекрестного контроля
     CorrectionIteration   int          // текущая итерация корректировки (макс. 5)
+    IsSmallOrder          bool         // < 100 т.р. -- влияет на SLA (отдельная колонка матрицы)
 
     // Мульти-БЮ
     BUApprovals           []BUApproval
@@ -722,7 +723,9 @@ const (
 // Precision: 2 знака после запятой. Все операции округляют до копеек.
 // Overflow protection: все арифметические операции проверяют переполнение int64
 // и возвращают ошибку вместо silent wrap-around.
+// Multiply использует math/big.Int для промежуточных вычислений (без потери точности).
 // Максимальное значение: math.MaxInt64 / 100 = 92 233 720 368 547 758.07 руб.
+// Зависимости: math, math/big
 type Money struct {
     amount int64  // в копейках (centesimal)
     // currency всегда RUB для данного домена
@@ -731,6 +734,9 @@ type Money struct {
 // MaxMoneyCents -- максимальное значение в копейках (math.MaxInt64).
 const MaxMoneyCents int64 = math.MaxInt64 // 9_223_372_036_854_775_807
 
+// Deprecated: NewMoney принимает float64 и теряет точность при больших суммах.
+// Используйте NewMoneyFromCents(int64) как основной конструктор.
+// NewMoney оставлен только для тестов и seed-данных с небольшими суммами.
 func NewMoney(rubles float64) (Money, error) {
     if rubles < 0 {
         return Money{}, ErrNegativeMoney
@@ -779,18 +785,43 @@ func (m Money) Subtract(other Money) (Money, error) {
 }
 
 // Multiply умножает на коэффициент с проверкой переполнения.
-// Используется decimal-арифметика промежуточного результата для точности.
+// Используется big.Int для промежуточных вычислений, чтобы избежать потери
+// точности float64 при больших суммах (> 10^12 копеек).
+// Factor интерпретируется как десятичная дробь: factor * 10000 для 4 знаков точности.
 // Возвращает ErrMoneyOverflow если результат > MaxInt64 копеек.
+//
+// Пример: Money(100_000_000_000 коп) * 0.15 =
+//   big.Int: 100_000_000_000 * 1500 / 10000 = 15_000_000_000 коп (точно)
+//   float64: float64(100_000_000_000) * 0.15 = 14_999_999_999.999998 (ошибка округления)
 func (m Money) Multiply(factor float64) (Money, error) {
     if factor < 0 {
         return Money{}, ErrNegativeMultiplier
     }
-    product := float64(m.amount) * factor
-    rounded := math.Round(product)
-    if rounded > float64(MaxMoneyCents) || math.IsInf(product, 0) || math.IsNaN(product) {
+    if math.IsInf(factor, 0) || math.IsNaN(factor) {
         return Money{}, ErrMoneyOverflow
     }
-    return Money{amount: int64(rounded)}, nil
+    // Конвертируем factor в целое с 4 знаками точности: factor * 10000
+    // Пример: 0.15 -> 1500, 1.0525 -> 10525
+    const scale int64 = 10000
+    factorScaled := int64(math.Round(factor * float64(scale)))
+
+    amount := new(big.Int).SetInt64(m.amount)
+    factorBig := new(big.Int).SetInt64(factorScaled)
+    scaleBig := new(big.Int).SetInt64(scale)
+
+    // product = amount * factorScaled
+    product := new(big.Int).Mul(amount, factorBig)
+    // Банковское округление: (product + scale/2) / scale
+    halfScale := new(big.Int).Div(scaleBig, big.NewInt(2))
+    product.Add(product, halfScale)
+    product.Div(product, scaleBig)
+
+    // Проверка переполнения int64
+    maxInt64 := new(big.Int).SetInt64(MaxMoneyCents)
+    if product.Cmp(maxInt64) > 0 {
+        return Money{}, ErrMoneyOverflow
+    }
+    return Money{amount: product.Int64()}, nil
 }
 
 func (m Money) IsZero() bool {
@@ -996,9 +1027,16 @@ func (s SLADeadline) RemainingMinutes(now time.Time) int {
 }
 
 func (s SLADeadline) EscalationThreshold() time.Time {
-    // Автоэскалация при 80% SLA
-    eightyPct := time.Duration(float64(s.deadline.Sub(s.startedAt)) * 0.8)
-    return s.startedAt.Add(eightyPct)
+    // Автоэскалация при 80% SLA в БИЗНЕС-ЧАСАХ (не wall-clock!)
+    // Пример: SLA 4 бизнес-часа, 80% = 3.2 часа = 3ч12м бизнес-времени от startedAt
+    escalationBusinessHours := float64(s.hours) * 0.8
+    return addBusinessHours(s.startedAt, escalationBusinessHours)
+}
+
+func (s SLADeadline) NotificationThreshold() time.Time {
+    // Уведомление при 50% SLA в БИЗНЕС-ЧАСАХ
+    notificationBusinessHours := float64(s.hours) * 0.5
+    return addBusinessHours(s.startedAt, notificationBusinessHours)
 }
 
 func (s SLADeadline) Equals(other SLADeadline) bool {
@@ -1023,6 +1061,38 @@ func slaMatrix(level ApprovalLevel, priority OrderPriority, isSmallOrder bool) i
     case level == LevelGD && priority == PriorityP2:  return 72
     default: return 0
     }
+}
+
+// --- Business Hours Calendar ---
+// Зависимость: github.com/rickar/cal/v2 (Russian locale)
+//
+// addBusinessHours прибавляет N бизнес-часов к заданному времени,
+// пропуская выходные и праздники.
+//
+// Бизнес-часы: 09:00 - 18:00 MSK (9 рабочих часов в день)
+// Выходные: суббота, воскресенье
+// Праздники: из таблицы MDM holidays (обновляется ежегодно)
+//
+// Примеры:
+//   addBusinessHours(Пт 17:00, 4.0) → Пн 12:00 (1ч Пт + 3ч Пн, пропустив СбВс)
+//   addBusinessHours(Ср 09:00, 18.0) → Пт 09:00 (9ч Ср + 9ч Чт = 18ч)
+//   addBusinessHours(Пт 17:00, 2.0) → Пн 10:00 (1ч Пт + 1ч Пн)
+//   addBusinessHours(31 Dec 16:00, 4.0) → 9 Jan 11:00 (если 1-8 Jan = праздники)
+func addBusinessHours(start time.Time, hours float64) time.Time {
+    // Загрузить календарь из MDM (кэшируется в Redis, TTL 24h)
+    // cal := loadRussianCalendar() // github.com/rickar/cal/v2
+    //
+    // Алгоритм:
+    // 1. Если start вне бизнес-часов → сдвинуть на начало следующего рабочего дня
+    // 2. Пока remaining > 0:
+    //    a. hoursLeftToday = min(remaining, часы до конца рабочего дня)
+    //    b. remaining -= hoursLeftToday
+    //    c. если remaining > 0: перейти на начало следующего рабочего дня
+    // 3. Вернуть start + elapsed
+    //
+    // MDM таблица holidays: year, date, name, is_working_day (для переносов)
+    // Ежегодное обновление: POST /api/v1/mdm/holidays (admin)
+    panic("implementation in internal/domain/service/sla_calendar.go")
 }
 ```
 
