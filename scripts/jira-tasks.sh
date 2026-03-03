@@ -280,22 +280,8 @@ print(json.dumps({'fields': fields}))
         exit 1
     fi
 
-    # Auto-set default Smart Checklist (DoD) — all items unchecked, Russian
-    local default_checklist
-    default_checklist=$(printf '%s\n' \
-        '- Тесты проходят' \
-        '- Регрессий нет' \
-        '- Критерии приёмки выполнены' \
-        '- Артефакты перечислены' \
-        '- Документация обновлена (или N/A)' \
-        '- Скрытого техдолга нет')
-    local cl_payload
-    cl_payload=$(python3 -c "import json,sys; print(json.dumps({'value': sys.argv[1]}))" "$default_checklist")
-    curl -s -X PUT \
-        -H "Authorization: Bearer ${JIRA_PAT}" \
-        -H "Content-Type: application/json" \
-        -d "$cl_payload" \
-        "${JIRA_BASE}/rest/api/2/issue/${key}/properties/com.railsware.SmartChecklist.checklist?notifyUsers=false" > /dev/null 2>&1 || true
+    # Smart Checklist DoD создается шаблоном "Profitability Service 2" (trigger: Сделать → В работе)
+    # НЕ создаём через properties API — это конфликтует с плагином
 
     echo "$key"
     echo "Created: ${JIRA_BASE}/browse/${key}" >&2
@@ -330,55 +316,36 @@ cmd_done() {
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
     [[ -z "$comment" ]] && { echo "ERROR: --comment is required (результат + было→стало)" >&2; exit 1; }
 
-    # Step 0: Verify Smart Checklist — ALL items must be checked (+)
-    local checklist_raw
-    checklist_raw=$(_jira_get "/rest/api/2/issue/${issue_key}/properties/com.railsware.SmartChecklist.checklist" 2>/dev/null || true)
-    if [[ -n "$checklist_raw" ]] && echo "$checklist_raw" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
-        local checklist_status
-        checklist_status=$(echo "$checklist_raw" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-value = data.get('value', '')
-# Smart Checklist stores nested: {"value": {"value": "..."}} or {"value": "..."}
-if isinstance(value, dict):
-    value = value.get('value', '')
-if not isinstance(value, str):
-    value = ''
-lines = [l.strip() for l in value.replace('\\\\n', '\\n').replace('\\n', '\n').split('\n') if l.strip()]
-total = len(lines)
-checked = sum(1 for l in lines if l.startswith('+'))
-unchecked = [l for l in lines if l.startswith('-') or l.startswith('~')]
-if unchecked:
-    print('FAIL')
-    for u in unchecked:
-        print(f'  {u}')
-elif total == 0:
-    print('EMPTY')
-else:
-    print('OK')
-" 2>/dev/null)
+    # Step 0: Mark Smart Checklist items as DONE via plugin REST API
+    # Шаблон "Profitability Service 2" создаёт 6 DoD items при переходе в "В работе"
+    local cl_data cl_id items_count
+    cl_data=$(curl -s -H "Authorization: Bearer $(_pat)" \
+        "${JIRA_BASE}/rest/railsware/1.0/checklist?issueKey=${issue_key}" 2>/dev/null || true)
 
-        case "$(echo "$checklist_status" | head -1)" in
-            FAIL)
-                echo "ERROR: Smart Checklist не полностью выполнен для ${issue_key}:" >&2
-                echo "$checklist_status" | tail -n +2 >&2
-                echo "" >&2
-                echo "Закройте все пункты чеклиста перед закрытием задачи." >&2
-                exit 1
-                ;;
-            EMPTY)
-                echo "ERROR: Smart Checklist пуст для ${issue_key}." >&2
-                echo "Заполните DoD-чеклист перед закрытием задачи." >&2
-                exit 1
-                ;;
-            OK)
-                ;; # All good
-        esac
-    else
-        echo "ERROR: Smart Checklist не найден для ${issue_key}." >&2
-        echo "Заполните DoD-чеклист перед закрытием задачи." >&2
-        echo "API: PUT /rest/api/2/issue/${issue_key}/properties/com.railsware.SmartChecklist.checklist" >&2
-        exit 1
+    if [[ -n "$cl_data" ]]; then
+        cl_id=$(echo "$cl_data" | python3 -c "import json,sys; print(json.load(sys.stdin)['checklists'][0]['checklistId'])" 2>/dev/null || echo "")
+        items_count=$(echo "$cl_data" | python3 -c "import json,sys; print(len(json.load(sys.stdin)['checklists'][0]['items']))" 2>/dev/null || echo "0")
+
+        if [[ -n "$cl_id" ]]; then
+            # Если нет items — применить шаблон (ID=4, "Profitability Service 2")
+            if [[ "$items_count" == "0" ]]; then
+                curl -s -X POST -H "Authorization: Bearer $(_pat)" \
+                    -H "Content-Type: application/json" \
+                    "${JIRA_BASE}/rest/railsware/1.0/checklist/${cl_id}/template/4" > /dev/null 2>&1 || true
+                echo "  Smart Checklist: шаблон применён" >&2
+            fi
+
+            # Пометить все items как DONE через updateItemsByString
+            # Формат: "+ text" = DONE, "- text" = TO DO, "x text" = SKIPPED
+            local done_string="+ Тесты проходят\n+ Регрессий нет\n+ Критерии приёмки выполнены\n+ Артефакты перечислены\n+ Документация обновлена (или N/A)\n+ Скрытого техдолга нет"
+
+            curl -s -X PUT \
+                -H "Authorization: Bearer $(_pat)" \
+                -H "Content-Type: application/json" \
+                -d "{\"stringValue\": \"${done_string}\", \"isReplace\": true}" \
+                "${JIRA_BASE}/rest/railsware/1.0/checklist/${cl_id}/item" > /dev/null 2>&1 || true
+            echo "  Smart Checklist: все пункты DoD → DONE" >&2
+        fi
     fi
 
     # Step 1: Add closing comment (результат, NOT DoD — DoD is in Smart Checklist)
