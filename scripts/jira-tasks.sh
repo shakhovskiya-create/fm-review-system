@@ -283,7 +283,6 @@ print(json.dumps({'fields': fields}))
     # Auto-set default Smart Checklist (DoD) — all items unchecked, Russian
     local default_checklist
     default_checklist=$(printf '%s\n' \
-        '---' \
         '- Тесты проходят' \
         '- Регрессий нет' \
         '- Критерии приёмки выполнены' \
