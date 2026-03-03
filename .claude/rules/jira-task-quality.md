@@ -63,7 +63,7 @@ h2. Scope
 Smart Checklist содержит **только DoD** (Definition of Done). AC — в description чекбоксами.
 
 ### Дефолтный шаблон
-Настроен в Jira UI (trigger: Issue created, все типы задач, проект EKFLAB):
+Настроен в Jira UI (trigger: Issue created + смена статуса, все типы задач, проект EKFLAB):
 ```
 - Тесты проходят
 - Регрессий нет
