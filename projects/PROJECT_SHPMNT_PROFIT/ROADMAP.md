@@ -1,17 +1,17 @@
 # ROADMAP: profitability-service — Go+React FM-LS-PROFIT
 
-> **Version:** 1.0.0 | **Date:** 2026-03-01 | **Status:** APPROVED
-> **Plan source:** `.claude/plans/jaunty-wibbling-ember.md`
+> **Version:** 1.1.0 | **Date:** 2026-03-03 | **Status:** IN PROGRESS
+> **Jira Plan:** [Portfolio Plan](https://jira.ekf.su/secure/PortfolioReportView.jspa?r=i5SUF) | **Board:** [Profitability Service](https://jira.ekf.su/secure/RapidBoard.jspa?rapidView=39)
 
 ## Executive Summary
 
 FM-LS-PROFIT (контроль рентабельности отгрузок по ЛС) реализуется как отдельный Go+React сервис. 1С:УТ 10.2 остаётся source of truth. Go-сервис добавляет AI-аналитику, dashboard, автономные расследования.
 
-**Key numbers:**
-- **~195 задач** across 7 phases
-- **11 weeks** timeline
-- **6 Go microservices** + React frontend
-- **17 integrations** (8 from FM + 9 new)
+**Ключевые цифры:**
+- **245 задач** в Jira (33 эпика, 8 спринтов)
+- **121 завершены** (49%), **124 осталось**
+- **6 Go-микросервисов** + React frontend
+- **17 интеграций** (8 из ФМ + 9 новых)
 - **88% test coverage** target (domain 95%)
 - **3-level AI** (deterministic → LLM → agentic)
 
@@ -29,86 +29,41 @@ FM-LS-PROFIT (контроль рентабельности отгрузок п�
 | Queue | Kafka (KRaft, franz-go) | Exactly-once, DLQ, outbox pattern |
 | Environments | Dev → Staging → Prod | Dev: mocks, Staging: tunnel, Prod: corporate |
 
-**Full context:** `../../memory/profitability-service-decisions.md`
+**Full context:** [profitability-service-decisions.md](../../memory/profitability-service-decisions.md)
 
 ---
 
 ## Gantt Chart
 
 ```
-Phase 0: Protocols & Infrastructure
-Week 1  |████████████████████████████████████████|
-         0.1 Agent16  0.2 Agent5  0.3-0.4 Agent14  0.5-0.7 Config  0.8 Secrets
+Sprint 24: Phase 0 — Инфраструктура                              ✅ DONE
+  |████████████████████████████████████████|
+  Agent 16, протоколы, pipeline, secrets
 
-Phase 1A-1B: Domain Model + Go Services Architecture (Agent 5)
-Week 2  |████████████████████████████████████████|
-         1.1-1.6 Aggregates, VOs, Events, Services, Rules, Sagas
-Week 3  |████████████████████████████████████████|
-         1.7-1.15 profitability, workflow, analytics, integration, notification, API GW, OpenAPI, DB, Kafka
+Sprint 25: Phase 1 — Архитектура и ТЗ                            ✅ DONE
+  |████████████████████████████████████████|
+  Доменная модель, 6 сервисов, OpenAPI, AI, Frontend, Integrations
 
-Phase 1C-1E: Frontend + AI + Integrations (Agent 5)
-Week 3  |████████████████████░░░░░░░░░░░░░░░░░░░░| (parallel with 1B tail)
-Week 4  |████████████████████████████████████████|
-         1.16-1.22 Dashboard, Shipment, Approval, AI, Reports, Settings, Components
-         1.23-1.27 AI Levels, Prompt Caching, Guardrails
-         1.28-1.31 1С→Kafka, Go→1С, ELMA, External
+Sprint 26: Phase 1.5+2 — 1С Extension + SE Review                ✅ DONE
+  |████████████████████████████████████████|
+  BSL код, SE-ревью Go+React (0 CRIT, 0 HIGH)
 
-Phase 1.5: 1С Extension (Agent 11 + Agent 10 review)
-Week 3  |░░░░░░░░████████████████████████░░░░░░░░| (parallel with 1C-1E)
-         1.5.1-1.5.3 HTTP-сервис, Подписки, Фоновое задание
-         1.5.4 Agent 10 SE Review
+Sprint 27: Phase 3A-3C — Scaffold + Domain + UseCases             ✅ DONE
+  |████████████████████████████████████████|
+  Репозиторий, Go тулинг, React, Docker, Domain, UseCases
 
-Phase 2: SE Review (Agent 9)
-Week 5  |████████████████████████████████████████|
-         2.1-2.9 Architecture, API, Data, Security, Performance, AI, Integration, Coverage, AI Eval
+Sprint 28: Phase 3D-3H — Адаптеры + AI + Frontend + Infra        🔄 ACTIVE
+  |██████████████████████░░░░░░░░░░░░░░░░░░| 53%
+  PostgreSQL, Kafka, Redis, Claude AI, ELMA, React pages, Grafana
 
-Phase 3A-3C: Scaffold + Domain + UseCases (Agent 12)
-Week 6  |████████████████████████████████████████|
-         3.1-3.4 Repo, Go tooling, React, Docker
-         3.5-3.10 Entities, VOs, Events, Errors, Ports, Services
-         3.11-3.16 Calculate, Approve, Detect, Sanction, Price, Report
+Sprint 29: Phase 4A-4D — Unit + Integration + Contract тесты     ⏳ FUTURE
+  |░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|
 
-Phase 3D-3E: Adapters + AI Service (Agent 12)
-Week 7  |████████████████████████████████████████|
-         3.17-3.26 HTTP, PG, Kafka, Redis, Claude, ELMA, WMS, CBR, Notifications
-         3.27-3.30 Deterministic, Claude integration, Agentic pipeline, AI audit
+Sprint 30: Phase 4E-4K + 5 — E2E + Load + Docs                   ⏳ FUTURE
+  |░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|
 
-Phase 3F-3H: Frontend + Infra + Cross-Cutting (Agent 12)
-Week 8  |████████████████████████████████████████|
-         3.31-3.38 Components, Dashboard, Shipment, Approval, AI, Reports, Settings, Auth
-         3.39-3.42 Migrations, Kafka topics, Seed data, Wire DI
-         3.43-3.50 Logging, Tracing, Shutdown, Mocks, Grafana, Errors, Outbox, DevExp
-
-Phase 4A-4D: Unit + Integration + Contract Tests (Agent 14)
-Week 9  |████████████████████████████████████████|
-         4.1-4.4 Domain, UseCase, HTTP, AI tests
-         4.5-4.7 React components, pages, forms
-         4.8-4.13 PG, Kafka, DLQ, Redis, LDAP, API contract, Kafka schema
-
-Phase 4E-4K: E2E + Load + Security + Mutation (Agent 14)
-Week 10 |████████████████████████████████████████|
-         4.14-4.18 Playwright E2E (12 flows)
-         4.19-4.21 k6 load tests
-         4.22-4.23 Visual regression
-         4.24-4.26 AI eval suite
-         4.27-4.29 Security testing
-         4.30-4.32 Data consistency + mutation
-
-Phase 5: Documentation (Agent 15) — parallel with Phase 4E-4K
-Week 10 |████████████████████░░░░░░░░░░░░░░░░░░░░|
-         5.1-5.8 User Guide, Admin, Quick Start, FAQ, API, Release Notes, Runbook, AI Guide
-
-Phase 6A-6C: Repo + Data Migration + Backup (Agent 16)
-Week 11 |████████████████████████████████████████|
-         6.1-6.3 GitHub repo, Push code, CI/CD
-         6.4-6.6 Data seed plan, Dev migration, Staging migration
-         6.7-6.9 Backup strategy, DR plan, Retention policy
-
-Phase 6D-6F: Deploy + Release + Publish (Agent 16 + Agent 7)
-Week 12 |████████████████████████████████████████|
-         6.10-6.13 Deploy Dev, Smoke test, Deploy Staging, E2E on Staging
-         6.14-6.17 Quality Gate, Deploy Prod, Monitor, Capacity planning
-         6.18-6.19 Confluence publish
+Sprint 31: Phase 6 — Deploy & Release                             ⏳ FUTURE
+  |░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░|
 ```
 
 **Critical path:** Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 6D
@@ -118,17 +73,19 @@ Week 12 |███████████████████████�
 
 ## Phase Summary Table
 
-| Phase | Description | Agent(s) | Weeks | Tasks | Dependencies |
-|-------|-------------|----------|-------|-------|--------------|
-| **0** | Protocols & Infrastructure | Orchestrator | 1 | 9 | - |
-| **1** | Architecture & TZ | Agent 5 (opus) | 2-4 | 31 | Phase 0 |
-| **1.5** | 1С Extension | Agent 11 + Agent 10 | 3 | 4 | Phase 1 (task 1.28) |
-| **2** | SE Review | Agent 9 (opus) | 5 | 9 | Phase 1 |
-| **3** | Code Generation | Agent 12 (opus) | 6-8 | 50 | Phase 2 |
-| **4** | Testing | Agent 14 (sonnet) | 9-10 | 32 | Phase 3 |
-| **5** | Documentation | Agent 15 (sonnet) | 10 | 8 | Phase 4 (partial) |
-| **6** | Deploy & Release | Agent 16 + Agent 7 | 11-12 | 19 | Phase 4+5 |
-| | | **TOTAL** | **~12** | **~162 explicit + subtasks** | |
+| Phase | Description | Sprint | Status | Tasks |
+|-------|-------------|--------|--------|-------|
+| **0** | Подготовка инфраструктуры и протоколов | 24 | ✅ Done | 9 |
+| **1** | Архитектура и ТЗ Go+React | 25 | ✅ Done | 32 |
+| **1.5** | Расширение 1С для Kafka | 26 | ✅ Done | 5 |
+| **2** | SE-ревью архитектуры Go+React | 26 | ✅ Done | 10 |
+| **3A-3C** | Scaffold + Domain + UseCases | 27 | ✅ Done | 20 |
+| **3D-3H** | Адаптеры + AI + Frontend + Infra | 28 | 🔄 In Progress | 79 |
+| **4A-4D** | Unit + Integration + Contract тесты | 29 | ⏳ Planned | 27 |
+| **4E-4K** | E2E + Load + Security + Mutation | 30 | ⏳ Planned | 36 |
+| **5** | Документация | 30 | ⏳ Planned | — |
+| **6** | Deploy & Release | 31 | ⏳ Planned | 26 |
+| | **TOTAL** | **24-31** | | **~245** |
 
 ---
 
@@ -153,97 +110,88 @@ Week 12 |███████████████████████�
 
 ## Milestones
 
-| Milestone | Target | Deliverable | Success Criteria |
-|-----------|--------|------------|------------------|
-| M0 | Week 1 | Infrastructure ready | Agent 16 created, protocols updated, pipeline fixed |
-| M1 | Week 4 | Architecture complete | Domain model, 6 service specs, OpenAPI, DB schemas, AI design |
-| M1.5 | Week 3 | 1С extension ready | BSL code, SE review passed, extension compiles |
-| M2 | Week 5 | SE review passed | 0 CRITICAL, 0 HIGH findings, all corrections applied |
-| M3 | Week 8 | Code complete | All services build, lint passes, basic tests pass, `docker compose up` works |
-| M4 | Week 10 | Tests complete | 88% coverage, E2E passes, load tests pass, security scan clean |
-| M5 | Week 10 | Docs complete | User guide, admin guide, FAQ, API docs, runbook |
-| M6 | Week 12 | Production release | v1.0.0 deployed, monitored 15min, error rate <1% |
+| Milestone | Sprint | Deliverable | Status |
+|-----------|--------|------------|--------|
+| M0 | 24 | Инфраструктура готова | ✅ Done |
+| M1 | 25 | Архитектура спроектирована | ✅ Done |
+| M1.5 | 26 | Расширение 1С готово | ✅ Done |
+| M2 | 26 | SE-ревью пройдено (0 CRIT, 0 HIGH) | ✅ Done |
+| M3 | 28 | Код написан, docker compose up работает | 🔄 In Progress |
+| M4 | 30 | Тесты пройдены (88% coverage) | ⏳ Planned |
+| M5 | 30 | Документация готова | ⏳ Planned |
+| M6 | 31 | Production release v1.0.0 | ⏳ Planned |
 
 ---
 
-## GitHub Issues Structure
+## Jira Structure
 
-All tasks tracked as GitHub Issues with labels:
-- `sprint:24` — Phase 0
-- `sprint:25` — Phase 1
-- `sprint:26` — Phase 1.5 + Phase 2
-- `sprint:27` — Phase 3A-3C
-- `sprint:28` — Phase 3D-3H
-- `sprint:29` — Phase 4A-4D
-- `sprint:30` — Phase 4E-4K + Phase 5
-- `sprint:31` — Phase 6
+**Трекер:** [Jira EKFLAB](https://jira.ekf.su/secure/RapidBoard.jspa?rapidView=39) | **Plan:** [Portfolio](https://jira.ekf.su/secure/PortfolioReportView.jspa?r=i5SUF)
 
-Epic hierarchy:
+Все задачи с label `product:profitability`, fixVersion, component, epic link, sprint.
+
+### Sprints
+
+| Sprint | ID | Phase | Status |
+|--------|----|-------|--------|
+| 24 | 119 | Phase 0: Инфраструктура | ✅ Closed |
+| 25 | 120 | Phase 1: Архитектура | ✅ Closed |
+| 26 | 121 | Phase 1.5+2: 1С + SE Review | ✅ Closed |
+| 27 | 109 | Phase 3A-3C: Scaffold + Domain | ✅ Closed |
+| 28 | 110 | Phase 3D-3H: Адаптеры + Frontend | 🔄 Active |
+| 29 | 111 | Phase 4A-4D: Тесты (unit, integration) | ⏳ Future |
+| 30 | 112 | Phase 4E-4K + 5: Тесты + Документация | ⏳ Future |
+| 31 | 113 | Phase 6: Deploy & Release | ⏳ Future |
+
+### Epics
+
 ```
-#126 Phase 0: Protocols & Infrastructure
-  ├── #127 Agent 16 creation
-  ├── #128 Agent 5 update
-  ├── #129 Agent 14 coverage
-  ├── #130 Agent 14 k6 + visual
-  ├── #131 Schema update
-  ├── #132 Pipeline fix
-  ├── #133 Routing update
-  ├── #134 Secrets management
-  └── #135 Verification
-
-Phase 1: Architecture (epic TBD)
-  ├── 1.1-1.6 Domain Model (6 tasks)
-  ├── 1.7-1.15 Go Services (9 tasks)
-  ├── 1.16-1.22 Frontend (7 tasks)
-  ├── 1.23-1.27 AI Analytics (5 tasks)
-  └── 1.28-1.31 Integrations (4 tasks)
-
-Phase 1.5: 1С Extension (epic TBD)
-  ├── 1.5.1-1.5.3 Extension code (3 tasks)
-  └── 1.5.4 SE Review (1 task)
-
-Phase 2: SE Review (epic TBD)
-  └── 2.1-2.9 Review areas (9 tasks)
-
-Phase 3: Code Generation (epic TBD)
-  ├── 3A Scaffold (4 tasks)
-  ├── 3B Domain Layer (6 tasks)
-  ├── 3C Use Cases (6 tasks)
-  ├── 3D Adapters (10 tasks)
-  ├── 3E AI Analytics (4 tasks)
-  ├── 3F React Frontend (8 tasks)
-  ├── 3G Infrastructure (4 tasks)
-  └── 3H Cross-Cutting (8 tasks)
-
-Phase 4: Testing (epic TBD)
-  ├── 4A Go Unit Tests (4 tasks)
-  ├── 4B React Tests (3 tasks)
-  ├── 4C Integration Tests (5 tasks)
-  ├── 4D Contract Tests (3 tasks)
-  ├── 4E E2E Tests (5+ tasks)
-  ├── 4F Load Tests (3 tasks)
-  ├── 4G Visual Regression (2 tasks)
-  ├── 4H AI Eval Suite (3 tasks)
-  ├── 4I Security Testing (3 tasks)
-  ├── 4J Data Consistency (2 tasks)
-  └── 4K Mutation Testing (1 task)
-
-Phase 5: Documentation (epic TBD)
-  └── 5.1-5.8 Docs (8 tasks)
-
-Phase 6: Deploy & Release (epic TBD)
-  ├── 6A Repo & CI/CD (3 tasks)
-  ├── 6B Data Migration (3 tasks)
-  ├── 6C Backup & DR (3 tasks)
-  ├── 6D Deploy (4 tasks)
-  ├── 6E Release (4 tasks)
-  └── 6F Publish (2 tasks)
+EKFLAB-194: Фаза 0: Подготовка инфраструктуры ✅
+EKFLAB-204: Фаза 1: Архитектура и ТЗ Go+React ✅
+EKFLAB-236: Фаза 1.5: Расширение 1С для Kafka ✅
+EKFLAB-241: Фаза 2: SE-ревью Go+React ✅
+EKFLAB-3:   Фаза 3A: Scaffold проекта ✅
+EKFLAB-136: Фаза 3B: Domain Layer ✅
+EKFLAB-4:   Фаза 3C: Use Cases ✅
+EKFLAB-5:   Фаза 3D: Адаптеры 🔄
+EKFLAB-6:   Фаза 3E: AI-аналитика 🔄
+EKFLAB-7:   Фаза 3F: React-фронтенд 🔄
+EKFLAB-8:   Фаза 3G: Инфраструктура 🔄
+EKFLAB-9:   Фаза 3H: Сквозные компоненты 🔄
+EKFLAB-10:  Фаза 4A: Unit-тесты Go ⏳
+EKFLAB-11:  Фаза 4B: Тесты React ⏳
+EKFLAB-12:  Фаза 4C: Интеграционные тесты ⏳
+EKFLAB-13:  Фаза 4D: Контрактные тесты ⏳
+EKFLAB-14:  Фаза 4E: E2E-тесты Playwright ⏳
+EKFLAB-15:  Фаза 4F: Нагрузочные тесты k6 ⏳
+EKFLAB-16:  Фаза 4G: Визуальная регрессия ⏳
+EKFLAB-17:  Фаза 4H: AI Eval Suite ⏳
+EKFLAB-18:  Фаза 4I: Тесты безопасности ⏳
+EKFLAB-19:  Фаза 4J: Тесты целостности данных ⏳
+EKFLAB-20:  Фаза 4K: Мутационное тестирование ⏳
+EKFLAB-21:  Фаза 5: Документация ⏳
+EKFLAB-22:  Фаза 6A: Репозиторий и CI/CD ⏳
+EKFLAB-23:  Фаза 6B: Миграция данных ⏳
+EKFLAB-24:  Фаза 6C: Бэкап и DR ⏳
+EKFLAB-25:  Фаза 6D: Деплой ⏳
+EKFLAB-26:  Фаза 6E: Релиз ⏳
+EKFLAB-27:  Фаза 6F: Публикация в Confluence ⏳
+EKFLAB-193: Верификация спринтов и Quality Gate 🔄
 ```
 
 ---
 
-## Next Steps
+## Current Status (2026-03-03)
 
-1. Phase 0 in progress — update protocols, fix pipeline, configure secrets
-2. After Phase 0 verification → start Phase 1 with Agent 5
-3. Each phase starts ONLY after previous phase verification passes
+**Active sprint:** Sprint 28 — Phase 3D-3H (Адаптеры + AI + Frontend + Infra)
+**Completed:** Phase 0, 1, 1.5, 2, 3A-3C (52 задачи из архитектуры + 20 из scaffold/domain)
+**Next:** Завершение Sprint 28, затем Sprint 29 (тестирование)
+
+### Key artifacts
+
+| Артефакт | Расположение |
+|----------|-------------|
+| ФМ FM-LS-PROFIT | [Confluence](https://confluence.ekf.su/pages/viewpage.action?pageId=83951683) |
+| ТЗ Go+React | [Confluence](https://confluence.ekf.su/pages/viewpage.action?pageId=86049879) |
+| Архитектура Go+React | [Confluence](https://confluence.ekf.su/pages/viewpage.action?pageId=86049880) |
+| Jira Plan | [Portfolio](https://jira.ekf.su/secure/PortfolioReportView.jspa?r=i5SUF) |
+| Код | `/home/dev/projects/claude-agents/profitability-service/` |

@@ -64,7 +64,7 @@
 | React-архитектура | [Phase 1C: React Architecture](https://confluence.ekf.su/pages/viewpage.action?pageId=86049883) |
 | AI-аналитика | [Phase 1D: AI Analytics](https://confluence.ekf.su/pages/viewpage.action?pageId=86049884) |
 | Интеграции | [Phase 1E: Integration Architecture](https://confluence.ekf.su/pages/viewpage.action?pageId=86049885) |
-| Дорожная карта | [Jira — Profitability Service](https://jira.ekf.su/secure/RapidBoard.jspa?rapidView=39) |
+| Дорожная карта | [Jira Plan](https://jira.ekf.su/secure/PortfolioReportView.jspa?r=i5SUF) |
 
 ### 1.4. Основные формулы
 
