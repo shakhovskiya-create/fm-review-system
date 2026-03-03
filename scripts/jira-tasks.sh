@@ -208,6 +208,16 @@ cmd_create() {
         exit 1
     fi
 
+    # Auto-set default Smart Checklist (DoD) — all items unchecked
+    local default_checklist='- Tests pass\n- No regression\n- AC met\n- Artifacts listed\n- Docs updated (or N/A)\n- No hidden debt'
+    local cl_payload
+    cl_payload=$(python3 -c "import json,sys; print(json.dumps({'value': sys.argv[1]}))" "$default_checklist")
+    curl -s -X PUT \
+        -H "Authorization: Bearer ${JIRA_PAT}" \
+        -H "Content-Type: application/json" \
+        -d "$cl_payload" \
+        "${JIRA_BASE}/rest/api/2/issue/${key}/properties/com.railsware.SmartChecklist.checklist?notifyUsers=false" > /dev/null 2>&1 || true
+
     echo "$key"
     echo "Created: ${JIRA_BASE}/browse/${key}" >&2
 }
