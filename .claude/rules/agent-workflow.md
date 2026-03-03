@@ -55,12 +55,18 @@ Epic EKFLAB-3: "Phase 3A: Project Scaffold"
 - Blocker → `bash scripts/jira-tasks.sh block EKFLAB-N --reason "..."`
 - Check epic progress → `bash scripts/jira-tasks.sh children EKFLAB-N`
 
-### At end (LAST action):
-- Close done issues: `bash scripts/jira-tasks.sh done EKFLAB-N --comment "Result: ..."`
-- Unfinished → leave "В работе", add progress comment via MCP
-- Epic: close ONLY when all children closed (check via `jira-tasks.sh children`)
+### At end (ПОСЛЕДНЕЕ действие перед return):
+1. **Проверь:** `bash scripts/jira-tasks.sh my-tasks --agent <name>` — список ВСЕХ твоих задач
+2. **Закрой ВСЕ** выполненные: `bash scripts/jira-tasks.sh done EKFLAB-N --comment "Результат: ..."`
+3. Незавершённые → оставь "В работе" + добавь комментарий с прогрессом
+4. Epic: закрой ТОЛЬКО когда все подзадачи done (`jira-tasks.sh children`)
+5. **Контрольная проверка:** снова `my-tasks` — должно быть 0 задач "В работе" (кроме незавершённых)
 
-**Iron rule:** No agent finishes without updating its Jira tasks.
+**БЛОКИРУЮЩЕЕ ПРАВИЛО:** SubagentStop хук проверяет задачи с меткой `agent:<name>`.
+Если есть незакрытые задачи → хук блокирует (exit 2) → ты НЕ ЗАВЕРШИШЬСЯ.
+Закрой задачи → хук пропустит → ты сможешь вернуть результат.
+
+**Ответственность:** Оркестратор НЕ должен закрывать задачи за тебя. Каждый агент сам.
 
 ### Commit messages:
 - Reference Jira: `Refs EKFLAB-N` (NOT `Closes #N`)

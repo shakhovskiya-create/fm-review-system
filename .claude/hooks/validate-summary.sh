@@ -141,24 +141,18 @@ if [ -n "$AGENT_NAME" ]; then
         open_count=$(echo "$open_json" | jq '.total // 0' 2>/dev/null || echo "0")
 
         if [ "$open_count" -gt 0 ] 2>/dev/null; then
-            echo "BLOCKED: У агента ${AGENT_NAME} есть ${open_count} незакрытых задач в Jira:"
+            echo "====================================================================="
+            echo "BLOCKED: ${open_count} НЕЗАКРЫТЫХ ЗАДАЧ у агента ${AGENT_NAME}!"
+            echo "====================================================================="
             echo ""
-            echo "$open_json" | jq -r '.issues[] | "  \(.key): \(.fields.summary)"' 2>/dev/null || true
+            echo "Задачи которые НАДО ЗАКРЫТЬ ПРЯМО СЕЙЧАС:"
             echo ""
-            echo "Закрой КАЖДУЮ через: bash scripts/jira-tasks.sh done EKFLAB-N --comment 'Результат + DoD'"
+            echo "$open_json" | jq -r '.issues[] | "  bash scripts/jira-tasks.sh done \(.key) --comment \"Результат: ...\""' 2>/dev/null || true
             echo ""
-            echo "ОБЯЗАТЕЛЬНЫЙ формат --comment (DoD, правило 27):"
-            echo "  ## Результат"
-            echo "  [Что сделано]"
-            echo "  ## Было -> Стало"
-            echo "  - [Изменение]"
-            echo "  ## DoD"
-            echo "  - [x] Tests pass"
-            echo "  - [x] No regression"
-            echo "  - [x] AC met"
-            echo "  - [x] Artifacts: [файлы]"
-            echo "  - [x] Docs updated (N/A)"
-            echo "  - [x] No hidden debt"
+            echo "ПРАВИЛО 26a: Закрой ВСЕ задачи ПЕРЕД завершением."
+            echo "Сначала установи Smart Checklist, потом закрой задачу."
+            echo "Оркестратор НЕ должен закрывать за тебя — это ТВОЯ ответственность."
+            echo ""
             BLOCK=true
         fi
     fi
