@@ -250,7 +250,12 @@ cmd_done() {
 import sys, json
 data = json.load(sys.stdin)
 value = data.get('value', '')
-lines = [l.strip() for l in value.strip().split('\n') if l.strip()]
+# Smart Checklist stores nested: {"value": {"value": "..."}} or {"value": "..."}
+if isinstance(value, dict):
+    value = value.get('value', '')
+if not isinstance(value, str):
+    value = ''
+lines = [l.strip() for l in value.replace('\\\\n', '\\n').replace('\\n', '\n').split('\n') if l.strip()]
 total = len(lines)
 checked = sum(1 for l in lines if l.startswith('+'))
 unchecked = [l for l in lines if l.startswith('-') or l.startswith('~')]
