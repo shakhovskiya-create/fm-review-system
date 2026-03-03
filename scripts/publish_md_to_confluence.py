@@ -100,9 +100,10 @@ def linkify_cross_refs(md_text: str) -> str:
         short = base.replace('_domain_model', '').replace('_go_architecture', '') \
                      .replace('_react_architecture', '').replace('_ai_analytics', '') \
                      .replace('_integration_architecture', '')
+        _title, _url = title, url  # bind for lambda closure
         md_text = re.sub(
             rf'(?<!\[){re.escape(short)}(?:,\s*секци[яию]\s*[\d.]+)',
-            lambda m: f'[{title}, {m.group(0).split(",", 1)[1].strip()}]({url})',
+            lambda m, t=_title, u=_url: f'[{t}, {m.group(0).split(",", 1)[1].strip()}]({u})',
             md_text
         )
 
@@ -117,7 +118,7 @@ def linkify_cross_refs(md_text: str) -> str:
 
     # Pattern 5: Confluence PAGE_ID NNNN
     md_text = re.sub(
-        rf'Confluence\s+PAGE_ID\s+(\d+)',
+        r'Confluence\s+PAGE_ID\s+(\d+)',
         lambda m: (
             f'[{KNOWN_PAGES.get(m.group(1), "Confluence")}]'
             f'({CONFLUENCE_URL}/pages/viewpage.action?pageId={m.group(1)})'
