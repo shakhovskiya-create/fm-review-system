@@ -54,17 +54,17 @@
 
 ### 1.3. Ссылки на документы
 
-| Документ | Расположение |
-|----------|-------------|
-| Функциональная модель | Confluence, PAGE_ID 83951683, v1.0.7 |
-| Архитектура 1С | ARCHITECTURE-v1.0.7.md |
-| ТЗ на 1С | TZ-v1.0.7.md |
-| Доменная модель (DDD) | phase1a_domain_model.md |
-| Go-архитектура | phase1b_go_architecture.md |
-| React-архитектура | phase1c_react_architecture.md |
-| Аналитика | phase1d_ai_analytics.md |
-| Интеграции | phase1e_integration_architecture.md |
-| Дорожная карта | ROADMAP.md |
+| Документ | Ссылка |
+|----------|--------|
+| Функциональная модель | [ФМ FM-LS-PROFIT](https://confluence.ekf.su/pages/viewpage.action?pageId=83951683) |
+| Архитектура 1С | [Архитектура 1С](https://confluence.ekf.su/pages/viewpage.action?pageId=86049550) |
+| ТЗ на 1С | [ТЗ 1С](https://confluence.ekf.su/pages/viewpage.action?pageId=86049548) |
+| Доменная модель (DDD) | [Phase 1A: Domain Model](https://confluence.ekf.su/pages/viewpage.action?pageId=86049881) |
+| Go-архитектура | [Phase 1B: Go Architecture](https://confluence.ekf.su/pages/viewpage.action?pageId=86049882) |
+| React-архитектура | [Phase 1C: React Architecture](https://confluence.ekf.su/pages/viewpage.action?pageId=86049883) |
+| AI-аналитика | [Phase 1D: AI Analytics](https://confluence.ekf.su/pages/viewpage.action?pageId=86049884) |
+| Интеграции | [Phase 1E: Integration Architecture](https://confluence.ekf.su/pages/viewpage.action?pageId=86049885) |
+| Дорожная карта | [Jira — Profitability Service](https://jira.ekf.su/secure/RapidBoard.jspa?rapidView=39) |
 
 ### 1.4. Основные формулы
 

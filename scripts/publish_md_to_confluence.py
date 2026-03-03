@@ -46,16 +46,16 @@ CROSS_REFS = {
     "phase1c_react_architecture.md": ("86049883", "Phase 1C: React Architecture"),
     "phase1d_ai_analytics.md": ("86049884", "Phase 1D: AI Analytics"),
     "phase1e_integration_architecture.md": ("86049885", "Phase 1E: Integration Architecture"),
-    "TZ-GO-v1.0.md": ("86049879", "TZ-GO-PROFIT"),
+    "TZ-GO-v1.0.md": ("86049879", "ТЗ Go+React"),
 }
 
 # Additional well-known page IDs
 KNOWN_PAGES = {
     "83951683": "ФМ FM-LS-PROFIT",
-    "86049548": "ТЗ 1С (TS-FM-PROFIT)",
-    "86049550": "Архитектура 1С (ARC-FM-PROFIT)",
-    "86049879": "ТЗ Go+React (TZ-GO-PROFIT)",
-    "86049880": "Архитектура Go+React (ARC-GO-PROFIT)",
+    "86049548": "ТЗ 1С",
+    "86049550": "Архитектура 1С",
+    "86049879": "ТЗ Go+React",
+    "86049880": "Архитектура Go+React",
 }
 
 
