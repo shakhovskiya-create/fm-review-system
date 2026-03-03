@@ -17,8 +17,8 @@ import ssl
 import sys
 
 import markdown
-from markdown.extensions.tables import TableExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
+from markdown.extensions.tables import TableExtension
 from markdown.extensions.toc import TocExtension
 
 # Load secrets
