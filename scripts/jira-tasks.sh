@@ -133,6 +133,8 @@ _usage() {
     echo "  my-tasks --agent <name>"
     echo "  sprint   [N]"
     echo "  children <EKFLAB-N>                    (list child tasks of an epic)"
+    echo "  xray-register --test-plan EKFLAB-N --exec EKFLAB-N --tests 'EKFLAB-170,171' --reqs 'EKFLAB-38,39' --sprint N"
+    echo "                                         (register tests: sprint, labels, plan, reqs, exec, status, close)"
     exit 1
 }
 
@@ -226,8 +228,8 @@ cmd_start() {
     local issue_key="$1"
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
 
-    # Add agent:in-progress label
-    _jira_put "/rest/api/2/issue/${issue_key}" '{"update":{"labels":[{"add":"status:in-progress"}]}}'
+    # Add status:in-progress label (removed by cmd_done)
+    _jira_put "/rest/api/2/issue/${issue_key}?notifyUsers=false" '{"update":{"labels":[{"add":"status:in-progress"}]}}'
 
     # Transition to В работе
     if _transition_issue "$issue_key" "В работе"; then
@@ -313,6 +315,9 @@ else:
         echo "ERROR: Could not close ${issue_key}" >&2
         exit 1
     fi
+
+    # Step 2b: Remove status:in-progress label (added by cmd_start)
+    _jira_put "/rest/api/2/issue/${issue_key}?notifyUsers=false" '{"update":{"labels":[{"remove":"status:in-progress"}]}}' 2>/dev/null || true
 
     # Step 3: Artifact cross-check
     local diff_files
@@ -491,18 +496,163 @@ for i in issues:
 " 2>/dev/null
 }
 
+cmd_xray_register() {
+    # Full Xray workflow: sprint, labels, plan, requirements, execution, status, close
+    local test_plan="" test_exec="" tests="" reqs="" sprint=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --test-plan) test_plan="$2"; shift 2 ;;
+            --exec) test_exec="$2"; shift 2 ;;
+            --tests) tests="$2"; shift 2 ;;
+            --reqs) reqs="$2"; shift 2 ;;
+            --sprint) sprint="$2"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+
+    [[ -z "$tests" ]] && { echo "ERROR: --tests required (comma-separated EKFLAB-N)" >&2; exit 1; }
+    [[ -z "$sprint" ]] && { echo "ERROR: --sprint required" >&2; exit 1; }
+
+    local sid="${SPRINT_IDS[$sprint]:-}"
+    [[ -z "$sid" ]] && { echo "ERROR: Unknown sprint ${sprint}" >&2; exit 1; }
+
+    # Parse test keys
+    IFS=',' read -ra TEST_KEYS <<< "$tests"
+    local all_xray_keys=("${TEST_KEYS[@]}")
+    [[ -n "$test_plan" ]] && all_xray_keys+=("$test_plan")
+    [[ -n "$test_exec" ]] && all_xray_keys+=("$test_exec")
+
+    echo "=== Xray Register: ${#TEST_KEYS[@]} tests, sprint ${sprint} ==="
+
+    # Step 1: Add all Xray issues to sprint
+    local issues_json=""
+    for key in "${all_xray_keys[@]}"; do
+        [[ -n "$issues_json" ]] && issues_json+=","
+        issues_json+="\"${key}\""
+    done
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        -H "Authorization: Bearer $(_pat)" \
+        -H "Content-Type: application/json" \
+        "$JIRA_BASE/rest/agile/1.0/sprint/${sid}/issue" \
+        -d "{\"issues\":[${issues_json}]}")
+    echo "  [1/7] Sprint ${sprint}: ${#all_xray_keys[@]} issues → HTTP ${http_code}"
+
+    # Step 2: Add product:profitability label to all
+    for key in "${all_xray_keys[@]}"; do
+        _jira_put "/rest/api/2/issue/${key}?notifyUsers=false" \
+            '{"update":{"labels":[{"add":"product:profitability"}]}}' > /dev/null
+    done
+    echo "  [2/7] Labels: product:profitability → ${#all_xray_keys[@]} issues"
+
+    # Step 3: Set Test Type = Generic + update description (for test issues only)
+    for key in "${TEST_KEYS[@]}"; do
+        _jira_put "/rest/api/2/issue/${key}?notifyUsers=false" \
+            '{"fields":{"customfield_11500":{"id":"11802"}}}' > /dev/null
+    done
+    echo "  [3/7] Test Type = Generic → ${#TEST_KEYS[@]} tests"
+
+    # Step 4: Add tests to Test Plan
+    if [[ -n "$test_plan" ]]; then
+        local add_json=""
+        for key in "${TEST_KEYS[@]}"; do
+            [[ -n "$add_json" ]] && add_json+=","
+            add_json+="\"${key}\""
+        done
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $(_pat)" \
+            -H "Content-Type: application/json" \
+            "$JIRA_BASE/rest/raven/1.0/api/testplan/${test_plan}/test" \
+            -d "{\"add\":[${add_json}]}")
+        echo "  [4/7] Test Plan ${test_plan}: ${#TEST_KEYS[@]} tests → HTTP ${http_code}"
+    else
+        echo "  [4/7] Test Plan: skipped (no --test-plan)"
+    fi
+
+    # Step 5: Link to requirements (CORRECT DIRECTION: req=outward, test=inward)
+    if [[ -n "$reqs" ]]; then
+        IFS=',' read -ra REQ_KEYS <<< "$reqs"
+        local link_count=0
+        for req in "${REQ_KEYS[@]}"; do
+            for test in "${TEST_KEYS[@]}"; do
+                curl -s -o /dev/null -w "" -X POST \
+                    -H "Authorization: Bearer $(_pat)" \
+                    -H "Content-Type: application/json" \
+                    "$JIRA_BASE/rest/api/2/issueLink" \
+                    -d "{\"type\":{\"name\":\"Tests\"},\"outwardIssue\":{\"key\":\"${req}\"},\"inwardIssue\":{\"key\":\"${test}\"}}"
+                link_count=$((link_count + 1))
+            done
+        done
+        echo "  [5/7] Requirements: ${link_count} links (${#REQ_KEYS[@]} reqs × ${#TEST_KEYS[@]} tests)"
+    else
+        echo "  [5/7] Requirements: skipped (no --reqs)"
+    fi
+
+    # Step 6: Add tests to Test Execution + set PASS
+    if [[ -n "$test_exec" ]]; then
+        local add_json=""
+        for key in "${TEST_KEYS[@]}"; do
+            [[ -n "$add_json" ]] && add_json+=","
+            add_json+="\"${key}\""
+        done
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $(_pat)" \
+            -H "Content-Type: application/json" \
+            "$JIRA_BASE/rest/raven/1.0/api/testexec/${test_exec}/test" \
+            -d "{\"add\":[${add_json}]}")
+        echo "  [6/7] Test Execution ${test_exec}: ${#TEST_KEYS[@]} tests → HTTP ${http_code}"
+
+        # Get testrun IDs and set PASS
+        local testruns
+        testruns=$(_jira_get "/rest/raven/1.0/api/testexec/${test_exec}/test")
+        local pass_count=0
+        for run_id in $(echo "$testruns" | python3 -c "
+import sys,json
+data = json.load(sys.stdin)
+for t in data:
+    print(t.get('id',''))
+" 2>/dev/null); do
+            [[ -z "$run_id" ]] && continue
+            curl -s -o /dev/null -X PUT \
+                -H "Authorization: Bearer $(_pat)" \
+                "$JIRA_BASE/rest/raven/1.0/api/testrun/${run_id}/status?status=PASS"
+            pass_count=$((pass_count + 1))
+        done
+        echo "  [6b/7] Test Results: ${pass_count} → PASS"
+    else
+        echo "  [6/7] Test Execution: skipped (no --exec)"
+    fi
+
+    # Step 7: Close all Xray issues
+    local closed=0
+    for key in "${all_xray_keys[@]}"; do
+        if _transition_issue "$key" "Готово" 2>/dev/null; then
+            closed=$((closed + 1))
+        fi
+        # Remove status:in-progress if present
+        _jira_put "/rest/api/2/issue/${key}?notifyUsers=false" \
+            '{"update":{"labels":[{"remove":"status:in-progress"}]}}' > /dev/null 2>&1 || true
+    done
+    echo "  [7/7] Closed: ${closed}/${#all_xray_keys[@]} issues → Готово"
+
+    echo ""
+    echo "Done: Xray workflow complete for ${#TEST_KEYS[@]} tests in sprint ${sprint}"
+}
+
 # --- Main ---
 [[ $# -eq 0 ]] && _usage
 
 CMD="$1"; shift
 case "$CMD" in
-    create)   cmd_create "$@" ;;
-    start)    cmd_start "$@" ;;
-    done)     cmd_done "$@" ;;
-    block)    cmd_block "$@" ;;
-    list)     cmd_list "$@" ;;
-    my-tasks) cmd_my_tasks "$@" ;;
-    sprint)   cmd_sprint "$@" ;;
-    children) cmd_children "$@" ;;
-    *)        _usage ;;
+    create)        cmd_create "$@" ;;
+    start)         cmd_start "$@" ;;
+    done)          cmd_done "$@" ;;
+    block)         cmd_block "$@" ;;
+    list)          cmd_list "$@" ;;
+    my-tasks)      cmd_my_tasks "$@" ;;
+    sprint)        cmd_sprint "$@" ;;
+    children)      cmd_children "$@" ;;
+    xray-register) cmd_xray_register "$@" ;;
+    *)             _usage ;;
 esac
