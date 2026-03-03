@@ -501,7 +501,7 @@ fi
         assert result.returncode == 2
         assert "EKFLAB-10" in result.stdout
         assert "EKFLAB-20" in result.stdout
-        assert "2 незакрытых" in result.stdout
+        assert "2 НЕЗАКРЫТЫХ ЗАДАЧ" in result.stdout
 
 
 class TestGuardAgentWriteScope:
