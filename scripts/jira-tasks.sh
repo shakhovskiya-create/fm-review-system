@@ -120,6 +120,30 @@ _transition_issue() {
     return 1
 }
 
+# --- Markdown to Jira Wiki ---
+_md_to_wiki() {
+    # Convert markdown body to Jira wiki markup
+    # Handles: headers, checkboxes, bold, code, bullets
+    python3 -c "
+import sys, re
+text = sys.argv[1]
+# Headers: ## -> h2., ### -> h3., # -> h1.
+text = re.sub(r'^### (.+)$', r'h3. \1', text, flags=re.MULTILINE)
+text = re.sub(r'^## (.+)$', r'h2. \1', text, flags=re.MULTILINE)
+text = re.sub(r'^# (.+)$', r'h1. \1', text, flags=re.MULTILINE)
+# Checkboxes: - [ ] -> * ( ), - [x] -> * (x)
+text = re.sub(r'^- \[x\] ', '* (x) ', text, flags=re.MULTILINE)
+text = re.sub(r'^- \[ \] ', '* ( ) ', text, flags=re.MULTILINE)
+# Bullets: - item -> * item (only simple dashes at start of line)
+text = re.sub(r'^- ', '* ', text, flags=re.MULTILINE)
+# Inline code: \`code\` -> {{code}}
+text = re.sub(r'\`([^\`]+)\`', r'{{\1}}', text)
+# Bold: **text** -> *text*
+text = re.sub(r'\*\*([^*]+)\*\*', r'*\1*', text)
+print(text)
+" "$1"
+}
+
 # --- Commands ---
 _usage() {
     echo "Usage: jira-tasks.sh <command> [options]"
@@ -165,41 +189,49 @@ cmd_create() {
     [[ -z "$title" ]] && { echo "ERROR: --title is required" >&2; exit 1; }
     [[ -z "$body" ]] && { echo "ERROR: --body is required (образ результата + AC)" >&2; exit 1; }
 
+    # Convert markdown body to Jira wiki markup
+    local wiki_body
+    wiki_body=$(_md_to_wiki "$body")
+
     # Build labels
     local labels="[\"product:profitability\""
     [[ -n "$agent" ]] && labels+=",\"agent:${agent}\""
     labels+="]"
 
-    # Build fields
+    # Build fields (all JSON via Python for safe encoding)
     local jira_priority="${PRIORITY_MAP[$priority]:-Medium}"
-    local fields="{
-        \"project\": {\"key\": \"${JIRA_PROJECT}\"},
-        \"summary\": $(python3 -c "import json; print(json.dumps('$title'))"),
-        \"issuetype\": {\"name\": \"${issue_type}\"},
-        \"description\": $(python3 -c "import json; print(json.dumps('$body'))"),
-        \"labels\": ${labels},
-        \"priority\": {\"name\": \"${jira_priority}\"}
-    "
+    local sprint_id=""
+    [[ -n "$sprint" ]] && sprint_id="${SPRINT_IDS[$sprint]:-}"
 
-    # Epic Name for Epic type
-    if [[ "$issue_type" == "Epic" ]]; then
-        fields+=",\"${EPIC_NAME_FIELD}\": $(python3 -c "import json; print(json.dumps('$title'))")"
-    fi
-
-    # Epic Link for child tasks
-    if [[ -n "$parent" ]]; then
-        fields+=",\"${EPIC_LINK_FIELD}\": \"${parent}\""
-    fi
-
-    # Sprint
-    if [[ -n "$sprint" ]] && [[ -n "${SPRINT_IDS[$sprint]:-}" ]]; then
-        fields+=",\"${SPRINT_FIELD}\": ${SPRINT_IDS[$sprint]}"
-    fi
-
-    fields+="}"
+    local payload
+    payload=$(python3 -c "
+import json, sys
+fields = {
+    'project': {'key': sys.argv[1]},
+    'summary': sys.argv[2],
+    'issuetype': {'name': sys.argv[3]},
+    'description': sys.argv[4],
+    'labels': json.loads(sys.argv[5]),
+    'priority': {'name': sys.argv[6]}
+}
+epic_name_field = sys.argv[7]
+epic_link_field = sys.argv[8]
+sprint_field = sys.argv[9]
+issue_type = sys.argv[3]
+parent = sys.argv[10]
+sprint_id = sys.argv[11]
+if issue_type == 'Epic':
+    fields[epic_name_field] = sys.argv[2]  # epic name = title
+if parent:
+    fields[epic_link_field] = parent
+if sprint_id:
+    fields[sprint_field] = int(sprint_id)
+print(json.dumps({'fields': fields}))
+" "$JIRA_PROJECT" "$title" "$issue_type" "$wiki_body" "$labels" "$jira_priority" \
+  "$EPIC_NAME_FIELD" "$EPIC_LINK_FIELD" "$SPRINT_FIELD" "${parent:-}" "${sprint_id:-}")
 
     local response
-    response=$(_jira_post "/rest/api/2/issue" "{\"fields\": ${fields}}")
+    response=$(_jira_post "/rest/api/2/issue" "$payload")
 
     local key
     key=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin).get('key','ERROR'))" 2>/dev/null)
@@ -211,7 +243,14 @@ cmd_create() {
     fi
 
     # Auto-set default Smart Checklist (DoD) — all items unchecked
-    local default_checklist='- Tests pass\n- No regression\n- AC met\n- Artifacts listed\n- Docs updated (or N/A)\n- No hidden debt'
+    local default_checklist
+    default_checklist=$(printf '%s\n' \
+        '- Tests pass' \
+        '- No regression' \
+        '- AC met' \
+        '- Artifacts listed' \
+        '- Docs updated (or N/A)' \
+        '- No hidden debt')
     local cl_payload
     cl_payload=$(python3 -c "import json,sys; print(json.dumps({'value': sys.argv[1]}))" "$default_checklist")
     curl -s -X PUT \
