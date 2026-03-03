@@ -28,6 +28,8 @@ EPIC_LINK_FIELD="customfield_10100"
 # Sprint IDs
 declare -A SPRINT_IDS=(
     [27]=109 [28]=110 [29]=111 [30]=112 [31]=113
+    [32]=122 [33]=123 [34]=124 [35]=125
+    [36]=126 [37]=127 [38]=128 [39]=129
 )
 
 # Status transition IDs (Сделать -> В работе -> Готово)
@@ -149,7 +151,7 @@ _usage() {
     echo "Usage: jira-tasks.sh <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T] [--parent EKFLAB-N]"
+    echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T] [--parent EKFLAB-N] [--component C] [--version V]"
     echo "  start    <EKFLAB-N>"
     echo "  done     <EKFLAB-N> --comment '...'   (REQUIRED: DoD + результат)"
     echo "  block    <EKFLAB-N> --reason '...'"
@@ -164,6 +166,7 @@ _usage() {
 
 cmd_create() {
     local title="" agent="" sprint="" body="" priority="medium" issue_type="Задача" parent=""
+    local component="" fix_version=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -172,6 +175,8 @@ cmd_create() {
             --sprint) sprint="$2"; shift 2 ;;
             --body) body="$2"; shift 2 ;;
             --priority) priority="$2"; shift 2 ;;
+            --component) component="$2"; shift 2 ;;
+            --version) fix_version="$2"; shift 2 ;;
             --type)
                 case "$2" in
                     epic) issue_type="Epic" ;;
@@ -188,6 +193,32 @@ cmd_create() {
 
     [[ -z "$title" ]] && { echo "ERROR: --title is required" >&2; exit 1; }
     [[ -z "$body" ]] && { echo "ERROR: --body is required (образ результата + AC)" >&2; exit 1; }
+
+    # --- Definition of Ready (DoR) validation ---
+    local dor_warnings=0
+    if [[ -z "$sprint" ]]; then
+        echo "DoR WARNING: --sprint не указан (задача не попадет в спринт)" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if ! echo "$body" | grep -qiE '(Проблема|проблем)'; then
+        echo "DoR WARNING: --body не содержит секцию 'Проблема' (зачем делаем задачу?)" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if ! echo "$body" | grep -qiE '(Решение|решени|Ожидаемый результат|результат)'; then
+        echo "DoR WARNING: --body не содержит секцию 'Решение' или 'Ожидаемый результат'" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if [[ -z "$component" ]]; then
+        echo "DoR WARNING: --component не указан" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if [[ -z "$fix_version" ]]; then
+        echo "DoR WARNING: --version не указана (fixVersion)" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if [[ "$dor_warnings" -gt 0 ]]; then
+        echo "DoR: ${dor_warnings} предупреждений (задача создается, но рекомендуется заполнить все поля)" >&2
+    fi
 
     # Convert markdown body to Jira wiki markup
     local wiki_body
@@ -220,15 +251,22 @@ sprint_field = sys.argv[9]
 issue_type = sys.argv[3]
 parent = sys.argv[10]
 sprint_id = sys.argv[11]
+component_name = sys.argv[12]
+fix_version_name = sys.argv[13]
 if issue_type == 'Epic':
     fields[epic_name_field] = sys.argv[2]  # epic name = title
 if parent:
     fields[epic_link_field] = parent
 if sprint_id:
     fields[sprint_field] = int(sprint_id)
+if component_name:
+    fields['components'] = [{'name': component_name}]
+if fix_version_name:
+    fields['fixVersions'] = [{'name': fix_version_name}]
 print(json.dumps({'fields': fields}))
 " "$JIRA_PROJECT" "$title" "$issue_type" "$wiki_body" "$labels" "$jira_priority" \
-  "$EPIC_NAME_FIELD" "$EPIC_LINK_FIELD" "$SPRINT_FIELD" "${parent:-}" "${sprint_id:-}")
+  "$EPIC_NAME_FIELD" "$EPIC_LINK_FIELD" "$SPRINT_FIELD" "${parent:-}" "${sprint_id:-}" \
+  "${component:-}" "${fix_version:-}")
 
     local response
     response=$(_jira_post "/rest/api/2/issue" "$payload")
@@ -242,15 +280,16 @@ print(json.dumps({'fields': fields}))
         exit 1
     fi
 
-    # Auto-set default Smart Checklist (DoD) — all items unchecked
+    # Auto-set default Smart Checklist (DoD) — all items unchecked, Russian
     local default_checklist
     default_checklist=$(printf '%s\n' \
-        '- Tests pass' \
-        '- No regression' \
-        '- AC met' \
-        '- Artifacts listed' \
-        '- Docs updated (or N/A)' \
-        '- No hidden debt')
+        '---' \
+        '- Тесты проходят' \
+        '- Регрессий нет' \
+        '- Критерии приёмки выполнены' \
+        '- Артефакты перечислены' \
+        '- Документация обновлена (или N/A)' \
+        '- Скрытого техдолга нет')
     local cl_payload
     cl_payload=$(python3 -c "import json,sys; print(json.dumps({'value': sys.argv[1]}))" "$default_checklist")
     curl -s -X PUT \
