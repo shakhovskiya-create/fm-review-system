@@ -344,8 +344,10 @@ else:
     fi
 
     # Step 1: Add closing comment (результат, NOT DoD — DoD is in Smart Checklist)
+    local comment_json
+    comment_json=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$comment")
     _jira_post "/rest/api/2/issue/${issue_key}/comment?notifyUsers=false" \
-        "{\"body\": $(python3 -c "import json; print(json.dumps('$comment'))")}" > /dev/null
+        "{\"body\": $comment_json}" > /dev/null
 
     # Step 2: Transition to Готово
     if _transition_issue "$issue_key" "Готово"; then
