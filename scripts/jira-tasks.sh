@@ -40,6 +40,20 @@ declare -A PRIORITY_MAP=(
     [critical]="Highest" [high]="High" [medium]="Medium" [low]="Low"
 )
 
+# Agent → label mapping (no "agent:" prefix to avoid AI traces)
+declare -A AGENT_LABEL_MAP=(
+    [0-creator]="creator" [1-architect]="architect" [2-simulator]="simulator"
+    [5-tech-architect]="architect" [7-publisher]="publisher"
+    [8-bpmn-designer]="bpmn" [9-se-go]="se-go" [10-se-1c]="se-1c"
+    [11-dev-1c]="dev-1c" [12-dev-go]="dev-go" [13-qa-1c]="qa-1c"
+    [14-qa-go]="qa-go" [15-trainer]="docs" [16-release-engineer]="release"
+    [orchestrator]="lead"
+)
+_agent_label() {
+    local agent="$1"
+    echo "${AGENT_LABEL_MAP[$agent]:-$agent}"
+}
+
 # --- Auth ---
 _get_pat() {
     # Priority 1: env var
@@ -231,7 +245,7 @@ cmd_create() {
 
     # Build labels
     local labels="[\"product:profitability\""
-    [[ -n "$agent" ]] && labels+=",\"agent:${agent}\""
+    [[ -n "$agent" ]] && labels+=",\"$(_agent_label "$agent")\""
     labels+="]"
 
     # Build fields (all JSON via Python for safe encoding)
@@ -470,7 +484,7 @@ cmd_list() {
 
     local jql="project = ${JIRA_PROJECT}"
     [[ -n "$product" ]] && jql+=" AND labels = \"product:${product}\""
-    [[ -n "$agent" ]] && jql+=" AND labels = \"agent:${agent}\""
+    [[ -n "$agent" ]] && jql+=" AND labels = \"$(_agent_label "$agent")\""
     [[ -n "$status" ]] && {
         case "$status" in
             planned|todo) jql+=" AND status = \"Сделать\"" ;;
@@ -754,6 +768,35 @@ cmd_sprint_close() {
         echo "$open_json" | python3 -c "import json,sys; [print(f'  {i[\"key\"]} | {i[\"fields\"][\"summary\"][:60]}') for i in json.load(sys.stdin).get('issues',[])]" 2>/dev/null
         echo "Close all tasks first!" >&2
         exit 1
+    fi
+
+    # 1b. Check Xray coverage: if sprint has code tasks, must have Test issues linked
+    local code_tasks_json code_count
+    # Tasks that produce testable code (exclude epics, test tasks, process tasks)
+    code_tasks_json=$(_jira_get "/rest/api/2/search?jql=sprint=${sid}%20AND%20labels=product:profitability%20AND%20issuetype%20not%20in%20(Epic,10000)%20AND%20issuetype%20not%20in%20(11100,11101,11102,11103,11104,11105)%20AND%20statusCategory=Done&fields=key,summary,issuelinks&maxResults=200")
+    code_count=$(echo "$code_tasks_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('total',0))" 2>/dev/null || echo "0")
+
+    if [[ "$code_count" -gt 0 ]]; then
+        # Check if ANY Xray Test issues exist in this sprint
+        local xray_json xray_count
+        xray_json=$(_jira_get "/rest/api/2/search?jql=sprint=${sid}%20AND%20labels=product:profitability%20AND%20issuetype%20in%20(11100,11101,11102)&fields=key&maxResults=10")
+        xray_count=$(echo "$xray_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('total',0))" 2>/dev/null || echo "0")
+
+        if [[ "$xray_count" -eq 0 ]]; then
+            echo "" >&2
+            echo "╔══════════════════════════════════════════════════════════╗" >&2
+            echo "║  BLOCKED: Xray тесты не зарегистрированы!               ║" >&2
+            echo "║                                                          ║" >&2
+            echo "║  Sprint ${sprint_num} имеет ${code_count} code-задач, но 0 Test issues.   ║" >&2
+            echo "║  Запусти: jira-tasks.sh xray-register --sprint ${sprint_num} ...  ║" >&2
+            echo "║                                                          ║" >&2
+            echo "║  Правило: .claude/rules/xray-test-linking.md             ║" >&2
+            echo "╚══════════════════════════════════════════════════════════╝" >&2
+            echo "" >&2
+            exit 1
+        else
+            echo "  Xray: ${xray_count} test issues found — OK"
+        fi
     fi
 
     # 2. Close sprint via Agile API

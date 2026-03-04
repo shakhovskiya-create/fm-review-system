@@ -74,12 +74,33 @@ if [ -n "$AGENT_NAME" ]; then
   # Write marker for guard hooks (agent write scope, etc.)
   echo "$AGENT_NAME" > "$PROJECT_DIR/.claude/.current-subagent"
 
-  # Извлекаем номер/имя агента: agent-0-creator -> 0-creator, helper-architect -> orchestrator
+  # Map agent name to clean Jira label (no "agent:" prefix)
+  _agent_to_label() {
+    case "$1" in
+      0-creator|agent-0-creator) echo "creator" ;;
+      1-architect|agent-1-architect) echo "architect" ;;
+      2-simulator|agent-2-simulator) echo "simulator" ;;
+      5-tech-architect|agent-5-tech-architect) echo "architect" ;;
+      7-publisher|agent-7-publisher) echo "publisher" ;;
+      8-bpmn-designer|agent-8-bpmn-designer) echo "bpmn" ;;
+      9-se-go|agent-9-se-go) echo "se-go" ;;
+      10-se-1c|agent-10-se-1c) echo "se-1c" ;;
+      11-dev-1c|agent-11-dev-1c) echo "dev-1c" ;;
+      12-dev-go|agent-12-dev-go) echo "dev-go" ;;
+      13-qa-1c|agent-13-qa-1c) echo "qa-1c" ;;
+      14-qa-go|agent-14-qa-go) echo "qa-go" ;;
+      15-trainer|agent-15-trainer) echo "docs" ;;
+      16-release-engineer|agent-16-release-engineer) echo "release" ;;
+      orchestrator|helper-architect) echo "lead" ;;
+      *) echo "$1" ;;
+    esac
+  }
+
   AGENT_LABEL=""
   IS_ORCHESTRATOR=false
   case "$AGENT_NAME" in
-    agent-*)  AGENT_LABEL=$(echo "$AGENT_NAME" | sed 's/^agent-//') ;;
-    helper-*) AGENT_LABEL="orchestrator"; IS_ORCHESTRATOR=true ;;
+    agent-*)  AGENT_LABEL=$(_agent_to_label "$AGENT_NAME") ;;
+    helper-*) AGENT_LABEL="lead"; IS_ORCHESTRATOR=true ;;
   esac
 
   # Whitelist: helper-architect пропускается без блокировки (инфра-агент)
@@ -100,7 +121,7 @@ if [ -n "$AGENT_NAME" ]; then
     fi
 
     # Получаем открытые задачи для агента через Jira REST API
-    JQL="project = ${JIRA_PROJECT} AND labels = \"agent:${AGENT_LABEL}\" AND statusCategory != Done"
+    JQL="project = ${JIRA_PROJECT} AND labels = \"${AGENT_LABEL}\" AND statusCategory != Done"
     issues_json=$(timeout 5 curl -s -G \
       -H "Authorization: Bearer $JIRA_PAT" \
       -H "Content-Type: application/json" \
@@ -133,12 +154,12 @@ if [ -n "$AGENT_NAME" ]; then
     if [ "$issues_total" -eq 0 ] 2>/dev/null; then
       # Нет задач вообще
       if [ "$SKIP_ISSUE_CHECK" = true ]; then
-        echo "WARNING: Нет задач для agent:${AGENT_LABEL}. Рекомендуется создать задачу."
+        echo "WARNING: Нет задач для ${AGENT_LABEL}. Рекомендуется создать задачу."
         echo ""
         echo "  bash scripts/jira-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"
         echo "============================================="
       else
-        echo "BLOCK: Нет задачи в Jira со статусом 'В работе' для agent:${AGENT_LABEL}."
+        echo "BLOCK: Нет задачи в Jira со статусом 'В работе' для ${AGENT_LABEL}."
         echo ""
         echo "Создай задачу через jira-tasks.sh create + start перед началом работы:"
         echo "  1. bash scripts/jira-tasks.sh create --title '...' --agent ${AGENT_LABEL} --sprint <N> --body '...'"

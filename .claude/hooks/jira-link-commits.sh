@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+HOOK_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 JIRA_BASE_URL="https://jira.ekf.su"
 
 # Only process git push commands
@@ -20,6 +20,24 @@ if ! echo "$COMMAND" | grep -qE '(^|&&|\|\||;)\s*git\s+push'; then
     exit 0
 fi
 
+# Determine which repo was pushed to (not necessarily fm-review-system)
+REPO_DIR="$HOOK_DIR"
+# Check for: cd /some/path && git push
+if echo "$COMMAND" | grep -qE 'cd\s+'; then
+    candidate=$(echo "$COMMAND" | grep -oE 'cd\s+[^ ;&|]+' | tail -1 | sed 's/^cd\s*//')
+    [ -d "$candidate/.git" ] && REPO_DIR="$candidate"
+fi
+# Check for: git -C /some/path push
+if echo "$COMMAND" | grep -qE 'git\s+-C\s+'; then
+    candidate=$(echo "$COMMAND" | grep -oE 'git\s+-C\s+[^ ]+' | head -1 | sed 's/^git\s*-C\s*//')
+    [ -d "$candidate/.git" ] && REPO_DIR="$candidate"
+fi
+# Check for known repos mentioned in command
+if echo "$COMMAND" | grep -q "profitability-service"; then
+    candidate="/home/dev/projects/claude-agents/profitability-service"
+    [ -d "$candidate/.git" ] && REPO_DIR="$candidate"
+fi
+
 # Check if push succeeded (PostToolUse = after execution)
 STDOUT=$(echo "$INPUT" | jq -r '.stdout // empty' 2>/dev/null || echo "")
 STDERR=$(echo "$INPUT" | jq -r '.stderr // empty' 2>/dev/null || echo "")
@@ -28,17 +46,17 @@ if ! echo "$STDERR$STDOUT" | grep -qE '(->|Everything up-to-date)'; then
     exit 0
 fi
 
-# Load JIRA_PAT
+# Load JIRA_PAT (secrets are in fm-review-system, not necessarily in pushed repo)
 if [ -z "${JIRA_PAT:-}" ]; then
-    if [ -f "$PROJECT_DIR/scripts/lib/secrets.sh" ]; then
+    if [ -f "$HOOK_DIR/scripts/lib/secrets.sh" ]; then
         # shellcheck disable=SC1091
-        source "$PROJECT_DIR/scripts/lib/secrets.sh"
-        if _infisical_universal_auth "$PROJECT_DIR" 2>/dev/null; then
+        source "$HOOK_DIR/scripts/lib/secrets.sh"
+        if _infisical_universal_auth "$HOOK_DIR" 2>/dev/null; then
             JIRA_PAT=$(infisical secrets get JIRA_PAT --projectId="${INFISICAL_PROJECT_ID}" --env=dev --plain 2>/dev/null || true)
         fi
     fi
-    if [ -z "${JIRA_PAT:-}" ] && [ -f "$PROJECT_DIR/.env" ]; then
-        JIRA_PAT=$(grep -E '^JIRA_PAT=' "$PROJECT_DIR/.env" | cut -d= -f2- | tr -d '"' || true)
+    if [ -z "${JIRA_PAT:-}" ] && [ -f "$HOOK_DIR/.env" ]; then
+        JIRA_PAT=$(grep -E '^JIRA_PAT=' "$HOOK_DIR/.env" | cut -d= -f2- | tr -d '"' || true)
     fi
 fi
 
@@ -47,13 +65,13 @@ if [ -z "${JIRA_PAT:-}" ]; then
 fi
 
 # Get commits since last push (last 5 commits on current branch)
-REPO_URL=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null | sed 's/\.git$//' || echo "")
+REPO_URL=$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null | sed 's/\.git$//' || echo "")
 # Strip credentials from URL (e.g., https://user:token@github.com/... → https://github.com/...)
 REPO_URL=$(echo "$REPO_URL" | sed 's|https://[^@]*@|https://|')
 # Convert SSH URL to HTTPS if needed
 REPO_URL=$(echo "$REPO_URL" | sed 's|git@github.com:|https://github.com/|')
 
-commits=$(git -C "$PROJECT_DIR" log --oneline -5 --format="%H|%an|%s" 2>/dev/null || echo "")
+commits=$(git -C "$REPO_DIR" log --oneline -5 --format="%H|%an|%s" 2>/dev/null || echo "")
 [ -z "$commits" ] && exit 0
 
 linked=0
@@ -70,7 +88,7 @@ while IFS='|' read -r sha author message; do
 
     comment="*Коммит:* [${short_sha}|${commit_url}]
 *Сообщение:* ${first_line}
-*Ветка:* $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo 'main')"
+*Ветка:* $(git -C "$REPO_DIR" branch --show-current 2>/dev/null || echo 'main')"
 
     for key in $keys; do
         # Check if we already commented (avoid duplicates on repeated pushes)

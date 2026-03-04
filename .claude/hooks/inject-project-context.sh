@@ -65,7 +65,7 @@ REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || ec
 if [ -n "$REPO" ]; then
   # GitHub Issues: открытые задачи оркестратора
   issues=$(gh issue list --repo "$REPO" \
-    --label "agent:orchestrator" --state open --limit 10 \
+    --label "lead" --state open --limit 10 \
     --json number,title,labels \
     --jq '.[] | "  #\(.number): \(.title) [\([.labels[].name | select(startswith("status:") or startswith("sprint:"))] | join(", "))]"' 2>/dev/null || true)
   if [ -n "$issues" ]; then

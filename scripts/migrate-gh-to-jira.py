@@ -47,23 +47,23 @@ SPRINT_FIELD = "customfield_10104"
 EPIC_NAME_FIELD = "customfield_10102"  # Имя эпика (Jira Server)
 EPIC_LINK_FIELD = "customfield_10100"  # Ссылка на эпик (Jira Server)
 
-# Agent → Label mapping
+# Agent → Label mapping (clean labels, no "agent:" prefix)
 AGENT_LABELS = {
-    "0-creator": "agent:0-creator",
-    "1-architect": "agent:1-architect",
-    "2-simulator": "agent:2-simulator",
-    "5-tech-architect": "agent:5-tech-architect",
-    "7-publisher": "agent:7-publisher",
-    "8-bpmn-designer": "agent:8-bpmn-designer",
-    "9-se-go": "agent:9-se-go",
-    "10-se-1c": "agent:10-se-1c",
-    "11-dev-1c": "agent:11-dev-1c",
-    "12-dev-go": "agent:12-dev-go",
-    "13-qa-1c": "agent:13-qa-1c",
-    "14-qa-go": "agent:14-qa-go",
-    "15-trainer": "agent:15-trainer",
-    "16-release-engineer": "agent:16-release-engineer",
-    "orchestrator": "agent:orchestrator",
+    "0-creator": "creator",
+    "1-architect": "architect",
+    "2-simulator": "simulator",
+    "5-tech-architect": "architect",
+    "7-publisher": "publisher",
+    "8-bpmn-designer": "bpmn",
+    "9-se-go": "se-go",
+    "10-se-1c": "se-1c",
+    "11-dev-1c": "dev-1c",
+    "12-dev-go": "dev-go",
+    "13-qa-1c": "qa-1c",
+    "14-qa-go": "qa-go",
+    "15-trainer": "docs",
+    "16-release-engineer": "release",
+    "orchestrator": "lead",
 }
 
 # Priority mapping
