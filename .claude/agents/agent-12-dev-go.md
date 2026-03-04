@@ -42,6 +42,17 @@ mcpServers:
 3. `AGENT_PROTOCOL.md` — протокол старта/завершения
 4. Контекст проекта из `projects/PROJECT_*/PROJECT_CONTEXT.md`
 
+## Git Workflow (profitability-service)
+
+**main = protected.** Прямые пуши в main ЗАПРЕЩЕНЫ.
+
+1. Создай feature branch: `git checkout -b feat/EKFLAB-N-short-desc`
+2. Commit + push: `git push -u origin feat/EKFLAB-N-short-desc`
+3. Создай PR: `gh pr create --title "feat: ..." --body "Refs EKFLAB-N"`
+4. Авто-merge: `gh pr merge --squash --auto` (после CI)
+
+НЕ коммить в main напрямую. Если push в main заблокирован — это правильно, используй PR.
+
 ## Ключевые команды
 
 - `/generate` — полный цикл генерации (domain + usecases + adapters + API)

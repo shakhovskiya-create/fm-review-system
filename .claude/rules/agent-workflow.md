@@ -50,8 +50,22 @@ Epic EKFLAB-3: "Phase 3A: Project Scaffold"
 - Задача имеет 1 действие и 1 результат (пример: "Исправить опечатку в ФМ")
 - Задача тривиальна (< 10 минут работы)
 
+### Time Tracking (ОБЯЗАТЕЛЬНО):
+- При создании задачи ВСЕГДА указывать `--estimate Xh` (планируемое время)
+- Формат: `1h`, `2h`, `4h`, `1d` (1d = 8h)
+- Ориентиры: мелкий фикс = 1h, задача с тестами = 2-4h, крупная задача = 4-8h, epic = сумма children
+
+### Цикл ревью (Agent 12 ↔ Agent 9):
+**ОБЯЗАТЕЛЬНО** для любого code review:
+1. Agent 12 (Dev) пишет/фиксит код
+2. Agent 9 (SE) делает review
+3. Если НЕ PASS → Agent 12 фиксит findings → Agent 9 ревьюит снова
+4. Повторять до PASS (max 5 итераций)
+5. ТОЛЬКО после PASS → переход к тестам (Agent 14)
+**Оркестратор** отвечает за запуск цикла. НЕ пропускать ревью!
+
 ### During work:
-- New problem → `bash scripts/jira-tasks.sh create --title "..." --agent <name> --sprint <N> --priority <P> --body "..."`
+- New problem → `bash scripts/jira-tasks.sh create --title "..." --agent <name> --sprint <N> --priority <P> --estimate Xh --body "..."`
 - Blocker → `bash scripts/jira-tasks.sh block EKFLAB-N --reason "..."`
 - Check epic progress → `bash scripts/jira-tasks.sh children EKFLAB-N`
 
@@ -71,3 +85,10 @@ Epic EKFLAB-3: "Phase 3A: Project Scaffold"
 ### Commit messages:
 - Reference Jira: `Refs EKFLAB-N` (NOT `Closes #N`)
 - Example: `feat: add domain entities (Refs EKFLAB-28)`
+
+### Git workflow (profitability-service):
+- **main** = protected. Прямые пуши ЗАПРЕЩЕНЫ (branch protection)
+- **Feature branch:** `feat/EKFLAB-N-short-desc` или `fix/EKFLAB-N-short-desc`
+- **Workflow:** checkout -b → commit → push -u → gh pr create → CI pass → squash merge
+- Agent 12: создаёт feature branch, пушит, создаёт PR. Merge — после CI green
+- `gh pr merge --squash --auto` — авто-merge после CI. Или merge вручную оркестратором
