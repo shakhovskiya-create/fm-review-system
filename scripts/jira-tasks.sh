@@ -295,12 +295,18 @@ print(json.dumps({'fields': fields}))
     echo "Created: ${JIRA_BASE}/browse/${key}" >&2
 }
 
+_TIMER_DIR="${PROJECT_DIR}/.jira-timers"
+
 cmd_start() {
     local issue_key="$1"
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
 
     # Add status:in-progress label (removed by cmd_done)
     _jira_put "/rest/api/2/issue/${issue_key}?notifyUsers=false" '{"update":{"labels":[{"add":"status:in-progress"}]}}'
+
+    # Save start timestamp for auto time tracking
+    mkdir -p "$_TIMER_DIR"
+    date +%s > "$_TIMER_DIR/${issue_key}.start"
 
     # Transition to В работе
     if _transition_issue "$issue_key" "В работе"; then
@@ -324,7 +330,33 @@ cmd_done() {
 
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
     [[ -z "$comment" ]] && { echo "ERROR: --comment is required (результат + было→стало)" >&2; exit 1; }
-    [[ -z "$time_spent" ]] && echo "WARNING: --time-spent not specified (e.g. --time-spent 2h)" >&2
+
+    # Auto-calculate time from start timer if --time-spent not provided
+    if [[ -z "$time_spent" ]]; then
+        local timer_file="$_TIMER_DIR/${issue_key}.start"
+        if [[ -f "$timer_file" ]]; then
+            local start_ts now_ts elapsed_s elapsed_min elapsed_h
+            start_ts=$(cat "$timer_file")
+            now_ts=$(date +%s)
+            elapsed_s=$((now_ts - start_ts))
+            elapsed_min=$((elapsed_s / 60))
+            if [[ $elapsed_min -lt 60 ]]; then
+                time_spent="${elapsed_min}m"
+                [[ $elapsed_min -lt 1 ]] && time_spent="1m"
+            else
+                elapsed_h=$(( (elapsed_min + 30) / 60 ))  # round to nearest hour
+                [[ $elapsed_h -lt 1 ]] && elapsed_h=1
+                time_spent="${elapsed_h}h"
+            fi
+            echo "  Time auto-calculated: ${time_spent} (${elapsed_min} min from start)" >&2
+            rm -f "$timer_file"
+        else
+            echo "WARNING: --time-spent not specified and no timer found (use jira-tasks.sh start first)" >&2
+        fi
+    else
+        # Clean up timer file if manual time provided
+        rm -f "$_TIMER_DIR/${issue_key}.start" 2>/dev/null || true
+    fi
 
     # Step 0: Mark Smart Checklist items as DONE via plugin REST API
     # Шаблон "Profitability Service 2" создаёт 6 DoD items при переходе в "В работе"
@@ -703,6 +735,76 @@ for t in data:
     echo "Done: Xray workflow complete for ${#TEST_KEYS[@]} tests in sprint ${sprint}"
 }
 
+cmd_sprint_close() {
+    local sprint_num="$1"
+    [[ -z "$sprint_num" ]] && { echo "ERROR: sprint number required (e.g. sprint-close 29)" >&2; exit 1; }
+
+    local sid="${SPRINT_IDS[$sprint_num]:-}"
+    [[ -z "$sid" ]] && { echo "ERROR: Unknown sprint ${sprint_num}" >&2; exit 1; }
+
+    echo "=== Closing Sprint ${sprint_num} (id=${sid}) ==="
+
+    # 1. Check for open tasks
+    local open_json open_count
+    open_json=$(_jira_get "/rest/api/2/search?jql=sprint=${sid}%20AND%20statusCategory!=Done%20AND%20labels=product:profitability&fields=key,summary&maxResults=50")
+    open_count=$(echo "$open_json" | python3 -c "import json,sys; print(json.load(sys.stdin).get('total',0))" 2>/dev/null || echo "0")
+
+    if [[ "$open_count" -gt 0 ]]; then
+        echo "ERROR: ${open_count} open tasks in sprint ${sprint_num}:" >&2
+        echo "$open_json" | python3 -c "import json,sys; [print(f'  {i[\"key\"]} | {i[\"fields\"][\"summary\"][:60]}') for i in json.load(sys.stdin).get('issues',[])]" 2>/dev/null
+        echo "Close all tasks first!" >&2
+        exit 1
+    fi
+
+    # 2. Close sprint via Agile API
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        -H "Authorization: Bearer $(_pat)" \
+        -H "Content-Type: application/json" \
+        "${JIRA_BASE}/rest/agile/1.0/sprint/${sid}" \
+        -d '{"state":"closed"}')
+    echo "  Sprint closed: HTTP ${http_code}"
+
+    # 3. Auto-release Fix Versions used in this sprint's tasks
+    local versions_json
+    versions_json=$(_jira_get "/rest/api/2/search?jql=sprint=${sid}%20AND%20labels=product:profitability&fields=fixVersions&maxResults=200")
+    local version_ids
+    version_ids=$(echo "$versions_json" | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+seen=set()
+for issue in data.get('issues',[]):
+    for v in issue['fields'].get('fixVersions',[]):
+        vid=v['id']
+        if vid not in seen:
+            seen.add(vid)
+            print(f'{vid} {v[\"name\"]}')
+" 2>/dev/null)
+
+    local today
+    today=$(date +%Y-%m-%d)
+    local released=0
+    while IFS=' ' read -r vid vname; do
+        [[ -z "$vid" ]] && continue
+        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+            -H "Authorization: Bearer $(_pat)" \
+            -H "Content-Type: application/json" \
+            "${JIRA_BASE}/rest/api/2/version/${vid}" \
+            -d "{\"released\":true,\"releaseDate\":\"${today}\"}")
+        echo "  Version ${vname} released: HTTP ${http_code}"
+        released=$((released + 1))
+    done <<< "$version_ids"
+
+    # 4. Auto-update memory layers (Layer 2 + 3 + 4)
+    local memory_script="$SCRIPT_DIR/update-memory.sh"
+    if [[ -x "$memory_script" ]]; then
+        "$memory_script" --sprint "$sprint_num" --status "closed" 2>/dev/null || true
+    fi
+
+    echo ""
+    echo "Sprint ${sprint_num}: CLOSED. ${released} version(s) released."
+}
+
 # --- Main ---
 [[ $# -eq 0 ]] && _usage
 
@@ -715,6 +817,7 @@ case "$CMD" in
     list)          cmd_list "$@" ;;
     my-tasks)      cmd_my_tasks "$@" ;;
     sprint)        cmd_sprint "$@" ;;
+    sprint-close)  cmd_sprint_close "$@" ;;
     children)      cmd_children "$@" ;;
     xray-register) cmd_xray_register "$@" ;;
     *)             _usage ;;

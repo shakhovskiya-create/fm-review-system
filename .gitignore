@@ -113,3 +113,4 @@ src/.langfuse_state/
 # CSM/S3 auto-generated setup files
 .csm_setup_*
 .s3_setup_*
+.jira-timers/

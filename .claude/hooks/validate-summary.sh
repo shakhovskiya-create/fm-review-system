@@ -80,6 +80,15 @@ except Exception as e:
             if [ -x "$QUEUE_SCRIPT" ]; then
                 "$QUEUE_SCRIPT" "$recent" 2>/dev/null || true
             fi
+
+            # Auto-update memory layers (Layer 2: MCP Memory, Layer 3: Graphiti, Layer 4: RAG)
+            MEMORY_SCRIPT="$PROJECT_DIR/scripts/update-memory.sh"
+            if [ -x "$MEMORY_SCRIPT" ]; then
+                # Extract agent name from directory path (AGENT_12_DEV_GO → agent-12-dev-go)
+                agent_dir_name=$(basename "$agent_dir")
+                agent_nice_name=$(echo "$agent_dir_name" | sed 's/^AGENT_/agent-/' | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+                "$MEMORY_SCRIPT" --agent "$agent_nice_name" --summary "$recent" 2>/dev/null || true
+            fi
         fi
     done
 done
