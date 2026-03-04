@@ -13,7 +13,14 @@ TRACER="${PROJECT_DIR}/src/fm_review/langfuse_tracer.py"
 # Skip if tracer missing
 [ -f "$TRACER" ] || exit 0
 
-# Skip if Langfuse not configured (env vars injected by load-secrets.sh)
+# Load secrets if not already set
+if [ -z "${LANGFUSE_PUBLIC_KEY:-}" ]; then
+    if [ -f "$PROJECT_DIR/scripts/load-secrets.sh" ]; then
+        source "$PROJECT_DIR/scripts/load-secrets.sh" 2>/dev/null || true
+    fi
+fi
+
+# Skip if Langfuse still not configured
 [ -z "${LANGFUSE_PUBLIC_KEY:-}" ] && exit 0
 
 # Run tracer in background (non-blocking)

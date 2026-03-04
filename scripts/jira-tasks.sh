@@ -3,9 +3,9 @@
 # Замена gh-tasks.sh. Используется оркестратором и агентами.
 #
 # Usage:
-#   jira-tasks.sh create --title "..." --agent 1-architect --sprint 27 --body "..." [--priority high] [--type epic] [--parent EKFLAB-3]
+#   jira-tasks.sh create --title "..." --agent 1-architect --sprint 27 --body "..." [--priority high] [--type epic] [--parent EKFLAB-3] [--estimate 4h]
 #   jira-tasks.sh start    <EKFLAB-N>                    # Сделать -> В работе
-#   jira-tasks.sh done     <EKFLAB-N> --comment "..."    # В работе -> Готово (comment REQUIRED)
+#   jira-tasks.sh done     <EKFLAB-N> --comment "..." --time-spent 2h  # В работе -> Готово
 #   jira-tasks.sh block    <EKFLAB-N> --reason "..."     # Add blocker comment
 #   jira-tasks.sh list     [--agent X] [--sprint N] [--status S] [--product P]
 #   jira-tasks.sh my-tasks --agent <name>                # Open tasks for agent
@@ -153,7 +153,7 @@ _usage() {
     echo "Commands:"
     echo "  create   --title '...' --agent <name> --sprint <N> --body '...' [--priority P] [--type T] [--parent EKFLAB-N] [--component C] [--version V]"
     echo "  start    <EKFLAB-N>"
-    echo "  done     <EKFLAB-N> --comment '...'   (REQUIRED: DoD + результат)"
+    echo "  done     <EKFLAB-N> --comment '...' [--time-spent Xh]  (comment REQUIRED, time-spent recommended)"
     echo "  block    <EKFLAB-N> --reason '...'"
     echo "  list     [--agent X] [--sprint N] [--status S] [--product P]"
     echo "  my-tasks --agent <name>"
@@ -166,7 +166,7 @@ _usage() {
 
 cmd_create() {
     local title="" agent="" sprint="" body="" priority="medium" issue_type="Задача" parent=""
-    local component="" fix_version=""
+    local component="" fix_version="" estimate=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -187,6 +187,7 @@ cmd_create() {
                 esac
                 shift 2 ;;
             --parent) parent="$2"; shift 2 ;;
+            --estimate) estimate="$2"; shift 2 ;;
             *) shift ;;
         esac
     done
@@ -214,6 +215,10 @@ cmd_create() {
     fi
     if [[ -z "$fix_version" ]]; then
         echo "DoR WARNING: --version не указана (fixVersion)" >&2
+        dor_warnings=$((dor_warnings + 1))
+    fi
+    if [[ -z "$estimate" ]]; then
+        echo "DoR WARNING: --estimate не указан (планирование часов, например '4h' или '1d')" >&2
         dor_warnings=$((dor_warnings + 1))
     fi
     if [[ "$dor_warnings" -gt 0 ]]; then
@@ -253,6 +258,7 @@ parent = sys.argv[10]
 sprint_id = sys.argv[11]
 component_name = sys.argv[12]
 fix_version_name = sys.argv[13]
+estimate = sys.argv[14]
 if issue_type == 'Epic':
     fields[epic_name_field] = sys.argv[2]  # epic name = title
 if parent:
@@ -263,10 +269,12 @@ if component_name:
     fields['components'] = [{'name': component_name}]
 if fix_version_name:
     fields['fixVersions'] = [{'name': fix_version_name}]
+if estimate:
+    fields['timetracking'] = {'originalEstimate': estimate}
 print(json.dumps({'fields': fields}))
 " "$JIRA_PROJECT" "$title" "$issue_type" "$wiki_body" "$labels" "$jira_priority" \
   "$EPIC_NAME_FIELD" "$EPIC_LINK_FIELD" "$SPRINT_FIELD" "${parent:-}" "${sprint_id:-}" \
-  "${component:-}" "${fix_version:-}")
+  "${component:-}" "${fix_version:-}" "${estimate:-}")
 
     local response
     response=$(_jira_post "/rest/api/2/issue" "$payload")
@@ -303,18 +311,20 @@ cmd_start() {
 }
 
 cmd_done() {
-    local issue_key="" comment=""
+    local issue_key="" comment="" time_spent=""
 
     issue_key="$1"; shift
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --comment) comment="$2"; shift 2 ;;
+            --time-spent) time_spent="$2"; shift 2 ;;
             *) shift ;;
         esac
     done
 
     [[ -z "$issue_key" ]] && { echo "ERROR: issue key required" >&2; exit 1; }
     [[ -z "$comment" ]] && { echo "ERROR: --comment is required (результат + было→стало)" >&2; exit 1; }
+    [[ -z "$time_spent" ]] && echo "WARNING: --time-spent not specified (e.g. --time-spent 2h)" >&2
 
     # Step 0: Mark Smart Checklist items as DONE via plugin REST API
     # Шаблон "Profitability Service 2" создаёт 6 DoD items при переходе в "В работе"
@@ -353,6 +363,13 @@ cmd_done() {
     comment_json=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$comment")
     _jira_post "/rest/api/2/issue/${issue_key}/comment?notifyUsers=false" \
         "{\"body\": $comment_json}" > /dev/null
+
+    # Step 1b: Log time spent (if provided)
+    if [[ -n "$time_spent" ]]; then
+        _jira_post "/rest/api/2/issue/${issue_key}/worklog?notifyUsers=false" \
+            "{\"timeSpent\": \"${time_spent}\"}" > /dev/null 2>&1
+        echo "  Time logged: ${time_spent}" >&2
+    fi
 
     # Step 2: Transition to Готово
     if _transition_issue "$issue_key" "Готово"; then

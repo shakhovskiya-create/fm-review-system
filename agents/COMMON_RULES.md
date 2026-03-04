@@ -73,7 +73,8 @@
     - **Порядок завершения:** (1) закрыть ВСЕ задачи → (2) записать в память → (3) вернуть результат
 29. **Декомпозиция**: задача с 2+ шагами → разбей на подзадачи (`--parent EKFLAB-N`). 1 issue = 1 deliverable. Подробнее: `.claude/rules/agent-workflow.md`.
 31. **Commit message**: используй `Refs EKFLAB-N` для ссылки на Jira задачу (smart commit).
-    - Закрывай ТОЛЬКО через: `scripts/jira-tasks.sh done EKFLAB-N --comment "...DoD..."`
+    - Закрывай ТОЛЬКО через: `scripts/jira-tasks.sh done EKFLAB-N --comment "...DoD..." --time-spent Xh`
+    - `--time-spent` ОБЯЗАТЕЛЕН. Формат: `1h`, `2h`, `4h`. Считай реальное время работы над задачей
     - Hook `guard-issue-autoclose.sh` блокирует `Closes/Fixes/Resolves #N` в коммитах
 
 ## Kafka-интеграция
