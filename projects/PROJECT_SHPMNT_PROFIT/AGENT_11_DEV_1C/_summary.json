@@ -1,29 +1,62 @@
 {
   "agent": "Agent11_Dev1C",
-  "command": "/auto",
-  "timestamp": "2026-03-02T18:30:00+03:00",
+  "command": "/generate",
+  "timestamp": "2026-03-13T16:00:00+03:00",
   "fmVersion": "1.0.5",
   "project": "PROJECT_SHPMNT_PROFIT",
   "status": "completed",
   "counts": {
-    "total": 19,
+    "total": 18,
     "critical": 0,
     "high": 0,
     "medium": 0,
     "low": 0
   },
   "outputFiles": [
-    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/phase1_5_extension.md",
-    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/phase1_5_extension_v2.md"
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/architecture_extension.md",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/module_kafka_integration.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/subscriptions_order.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/subscriptions_shipment.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/subscriptions_return.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/subscriptions_prices.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/subscriptions_client.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/scheduled_job_retry.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/register_event_queue.md",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/http_service_commands.bsl",
+    "projects/PROJECT_SHPMNT_PROFIT/AGENT_11_DEV_1C/register_processed_commands.md"
   ],
-  "notes": "Phase 1.5 v2: Added 5 missing outbound event types (SE-EXT-001 remediation). Coverage: 9/9 events (100%). New subscriptions: ekf_ПриЗаписиНПСС (price.npss-updated), ekf_ПриЗаписиЦенКонтрагентов (price.purchase-changed), ekf_ПриЗаписиКонтрагента (client.updated), ekf_ПриПроведенииЛокальнойСметы (ls.created), ekf_ПриПроведенииЛокальнойСметыПлан (ls.plan-changed). 19 metadata objects total (+5 subscriptions). 64 test scenarios (+32). All code follows ITS 455, compatible with UT 10.2 on platform 8.3.",
-  "v2_delta": {
-    "issue": "#411",
-    "se_finding": "SE-EXT-001",
-    "new_subscriptions": 5,
-    "new_payload_functions": 5,
-    "new_test_scenarios": 32,
-    "outbound_coverage": "9/9 (100%)",
-    "lines_added": 600
+  "notes": "Sprint 48: Full regeneration of 1C extension code for Kafka integration via NiFi. 11 artifacts: 1 architecture doc, 6 BSL modules, 2 register descriptions, 1 HTTP service + commands module, 1 retry scheduler. 18 metadata objects. All JSON schemas match tz-1c-kafka-integration.md v1.0 exactly. Sums as strings with 2 decimals. ISO 8601 dates with +03:00. UUID v4. Kill switch via ekf_IntegrationActive constant.",
+  "jira": {
+    "tasks": ["EKFLAB-517", "EKFLAB-518", "EKFLAB-519"],
+    "sprint": 48
+  },
+  "metadata_objects": {
+    "constants": 7,
+    "registers": 2,
+    "common_modules": 3,
+    "http_services": 1,
+    "subscriptions": 5,
+    "scheduled_jobs": 2,
+    "total": 18
+  },
+  "events": {
+    "outbound": 9,
+    "inbound": 3,
+    "outbound_topics": [
+      "1c.order.created.v1",
+      "1c.order.updated.v1",
+      "1c.shipment.posted.v1",
+      "1c.shipment.returned.v1",
+      "1c.price.npss-updated.v1",
+      "1c.price.purchase-changed.v1",
+      "1c.client.updated.v1",
+      "1c.ls.created.v1",
+      "1c.ls.plan-changed.v1"
+    ],
+    "inbound_topics": [
+      "cmd.approval.result.v1",
+      "cmd.sanction.applied.v1",
+      "cmd.block.shipment.v1"
+    ]
   }
 }
