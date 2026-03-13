@@ -136,7 +136,7 @@ LATEST_SE=$(find "$SE_REVIEW_DIR" -name "se_review_sprint${SPRINT_NUM}*" -name "
 if [ -n "$LATEST_SE" ]; then
     SE_VERDICT=$(jq -r '.verdict // empty' "$LATEST_SE" 2>/dev/null || echo "")
     if [ "$SE_VERDICT" != "PASS" ] && [ "$SE_VERDICT" != "" ]; then
-        SE_HIGH=$(jq '[.findings[]? | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' "$LATEST_SE" 2>/dev/null || echo "0")
+        SE_HIGH=$(jq '[.findings[]? | select((.severity == "HIGH" or .severity == "CRITICAL") and .resolved != true)] | length' "$LATEST_SE" 2>/dev/null || echo "0")
         if [ "$SE_HIGH" -gt 0 ]; then
             FINDINGS_UNRESOLVED=$((FINDINGS_UNRESOLVED + SE_HIGH))
         fi
@@ -148,7 +148,7 @@ LATEST_OAI=$(find "$OPENAI_REVIEW_DIR" -name "openai_review_*.json" 2>/dev/null 
 if [ -n "$LATEST_OAI" ]; then
     OAI_VERDICT=$(jq -r '.verdict // empty' "$LATEST_OAI" 2>/dev/null || echo "")
     if [ "$OAI_VERDICT" != "PASS" ] && [ "$OAI_VERDICT" != "" ]; then
-        OAI_HIGH=$(jq '[.findings[]? | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' "$LATEST_OAI" 2>/dev/null || echo "0")
+        OAI_HIGH=$(jq '[.findings[]? | select((.severity == "HIGH" or .severity == "CRITICAL") and .resolved != true)] | length' "$LATEST_OAI" 2>/dev/null || echo "0")
         if [ "$OAI_HIGH" -gt 0 ]; then
             FINDINGS_UNRESOLVED=$((FINDINGS_UNRESOLVED + OAI_HIGH))
         fi

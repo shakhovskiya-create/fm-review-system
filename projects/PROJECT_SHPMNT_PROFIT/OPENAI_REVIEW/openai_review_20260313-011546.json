@@ -1,0 +1,166 @@
+{
+  "verdict": "FAIL",
+  "summary": "The diff adds substantial Kafka consumer functionality, but there are correctness and reliability issues in idempotency, error classification, and event handling that can lead to duplicate processing, silent data inconsistencies, or invalid domain transitions. Several integration tests also encode flaky or misleading assumptions and would not catch the most important failure modes.",
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "id": "SE-001",
+      "category": "correctness",
+      "file": "internal/adapter/kafka/consumer/router.go",
+      "line": 106,
+      "title": "Deduplication is non-atomic and allows duplicate processing under concurrent delivery",
+      "description": "The middleware performs a separate IsDuplicate check before handler execution and only marks the message as processed afterward. Under at-least-once delivery, partition rebalances, or multiple consumers racing on the same message ID, two workers can both observe 'not duplicate' and execute the handler before either calls MarkProcessed. This defeats idempotency for side-effecting handlers.",
+      "suggestion": "Replace the check-then-insert flow with a single atomic claim operation backed by INSERT ... ON CONFLICT and inspect RowsAffected(). For example, add a method like TryMarkProcessed(ctx, messageID, topic) (bool, error) that inserts first and returns false when the row already exists; only execute the handler if the claim succeeds. If exactly-once-after-success semantics are required, use a transactional inbox pattern tied to business state changes.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "HIGH",
+      "id": "SE-002",
+      "category": "correctness",
+      "file": "internal/adapter/kafka/consumer/dedup.go",
+      "line": 39,
+      "title": "ON CONFLICT target does not match the new composite primary key",
+      "description": "MarkProcessed uses ON CONFLICT (message_id) DO NOTHING, but migration 000004 changes the primary key to (message_id, topic). PostgreSQL requires the conflict target to match a unique or exclusion constraint. After the migration is applied, this statement will fail at runtime with no matching constraint.",
+      "suggestion": "Change the statement to target the composite key: `INSERT INTO kafka_dedup (message_id, topic, processed_at) VALUES ($1, $2, NOW()) ON CONFLICT (message_id, topic) DO NOTHING`.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "HIGH",
+      "id": "SE-003",
+      "category": "error-handling",
+      "file": "internal/adapter/kafka/consumer/handler_clients.go",
+      "line": 29,
+      "title": "Repository errors are treated as 'client not found' and can create duplicate or corrupted client records",
+      "description": "Any error returned by ClientRepo.GetByExternalID causes the code to create a new client. This conflates 'not found' with transient database failures, timeouts, deserialization issues, or permission errors. In those cases the handler would write a new temporal record instead of retrying, causing data corruption and duplicate external IDs.",
+      "suggestion": "Differentiate a true not-found condition from other errors, e.g. with errors.Is(err, port.ErrNotFound) or a repository-specific sentinel. Only create a new client on not-found; otherwise return the error.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "HIGH",
+      "id": "SE-004",
+      "category": "error-handling",
+      "file": "internal/adapter/kafka/consumer/handler_prices.go",
+      "line": 53,
+      "title": "Price sheet lookup errors are treated as 'missing record' and can mask DB failures",
+      "description": "handleNPSSUpdated creates a new PriceSheet whenever GetByProductID returns an error. As with the client handler, this treats transport or database failures as absence, potentially creating duplicate temporal records or overwriting intended sequencing guarantees.",
+      "suggestion": "Check for a specific not-found error before creating a new PriceSheet. Return unexpected repository errors so the message can be retried.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "HIGH",
+      "id": "SE-005",
+      "category": "error-handling",
+      "file": "internal/adapter/kafka/consumer/handler_shipments.go",
+      "line": 29,
+      "title": "Shipment lookup errors are treated as 'order missing' and may fabricate shipments on DB failure",
+      "description": "handleShipmentPosted creates a new shipment whenever ShipmentRepo.GetByExternalID returns an error. A transient repository failure would therefore be converted into a new shipment, causing duplicate shipments and incorrect fulfillment state.",
+      "suggestion": "Only create a new shipment when the repository explicitly reports not found. Propagate all other errors to trigger retry/DLQ.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "HIGH",
+      "id": "SE-006",
+      "category": "correctness",
+      "file": "internal/domain/entity/shipment.go",
+      "line": 215,
+      "title": "ForceFulfill and ForceCancel ignore audit reason and bypass domain invariants without recording provenance",
+      "description": "Both methods accept a reason string but do not persist or emit it anywhere; they only mutate status and append the standard event. This silently discards the audit trail promised by the comments and makes forced state transitions indistinguishable from normal ones. Because these methods are now used in inbound 1C flows, debugging and compliance review will lose the reason for invariant bypass.",
+      "suggestion": "Either remove the unused reason parameter and comments, or preferably record it in the entity and/or publish a dedicated domain event carrying the reason, actor/source, and previous status.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "SE-007",
+      "category": "architecture",
+      "file": "internal/adapter/kafka/consumer/handler_clients.go",
+      "line": 57,
+      "title": "Temporal versioning update is not performed atomically",
+      "description": "The handler closes the current client record and then saves a new version in two separate repository calls without an explicit transaction. A failure between the two writes leaves the client with no active version. The same pattern appears in handleNPSSUpdated when closing the current price sheet and saving a new version.",
+      "suggestion": "Wrap the close-old/create-new sequence in a single transaction at the use case or repository level. Expose a repository method like ReplaceVersion(ctx, old, new) or run both saves in a unit-of-work.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "SE-008",
+      "category": "error-handling",
+      "file": "internal/adapter/kafka/consumer/handler_ls.go",
+      "line": 71,
+      "title": "Domain event publish failures are swallowed after state is persisted",
+      "description": "handleLSCreated and handleLSPlanChanged log PublishAll failures and still return nil. This can permanently lose downstream reactions while the aggregate state is committed, creating inconsistency between local persistence and published domain events. Other handlers in this diff return the publish error, so behavior is inconsistent.",
+      "suggestion": "Use a consistent outbox/event publication strategy. Either persist domain events transactionally and publish asynchronously, or return the publish error so the Kafka message is retried. Avoid mixing best-effort and fail-fast semantics across handlers.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "SE-009",
+      "category": "testing",
+      "file": "internal/adapter/kafka/consumer/integration_test.go",
+      "line": 309,
+      "title": "Integration test uses fixed sleep and is flaky under load",
+      "description": "TestConsumer_Idempotency_DedupStore waits with time.Sleep(5 * time.Second) and then asserts the count. This is timing-dependent: slow CI may fail spuriously, and fast runs waste time. It also does not assert eventual convergence robustly.",
+      "suggestion": "Replace the fixed sleep with assert.Eventually polling processCount until it reaches the expected value or timeout. Also assert that it never exceeds 1 after an additional polling window if you want stronger confidence.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "SE-010",
+      "category": "testing",
+      "file": "internal/adapter/kafka/consumer/integration_test.go",
+      "line": 245,
+      "title": "Dedup integration test does not exercise the router middleware and misses the real race/failure mode",
+      "description": "The test bypasses Router.wrapWithMiddleware and manually performs IsDuplicate -> process -> MarkProcessed inside the handler. That reproduces the same non-atomic pattern rather than verifying the production path, and it would not catch misconfiguration in router middleware, missing metrics guards, or the broken ON CONFLICT target.",
+      "suggestion": "Instantiate a Router with a real DedupStore and register wrapped handlers through RegisterAll or expose the middleware for testing. Add a test that verifies duplicate messages are skipped through the actual middleware path, including concurrent delivery if possible.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "MEDIUM",
+      "id": "SE-011",
+      "category": "correctness",
+      "file": "internal/adapter/kafka/consumer/router.go",
+      "line": 113,
+      "title": "Metrics access assumes Metrics is always non-nil and can panic",
+      "description": "wrapWithMiddleware calls r.deps.Metrics.IncDuplicate/IncFailed/IncRetried/IncDLQ/IncProcessed without nil checks. Deps declares Metrics as a pointer, so any caller that omits metrics wiring will trigger a nil pointer panic on message handling.",
+      "suggestion": "Either require non-nil Metrics in NewRouter and fail fast there, or guard each call with `if r.deps.Metrics != nil { ... }`.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    },
+    {
+      "severity": "LOW",
+      "id": "SE-012",
+      "category": "go-idioms",
+      "file": "internal/adapter/kafka/consumer/handler_ls.go",
+      "line": 218,
+      "title": "convertLSLineItems accepts an unused parameter",
+      "description": "convertLSLineItems receives `_ vo.Percentage` but never uses it. This adds confusion about intended behavior and suggests either missing logic or an outdated signature.",
+      "suggestion": "Remove the unused parameter, or implement the intended logic if planned profitability should influence line-item conversion.",
+      "resolved": true,
+      "resolution": "Fixed in PR #35, confirmed by Agent 9 SE review"
+    }
+  ],
+  "stats": {
+    "files_reviewed": 14,
+    "total_findings": 12,
+    "critical": 1,
+    "high": 5,
+    "medium": 5,
+    "low": 1
+  },
+  "_meta": {
+    "model": "gpt-5.4-2026-03-05",
+    "pr": 35,
+    "repo": "shakhovskiya-create/profitability-service",
+    "input_tokens": 24808,
+    "output_tokens": 2290,
+    "total_tokens": 27098
+  }
+}
